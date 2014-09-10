@@ -27,6 +27,10 @@
 \makeglossaries
 \newacronym{HOL}{HOL}{Higher Order Logic}
 
+\usepackage{float}
+\floatstyle{boxed}
+\restylefloat{figure}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % IMPORTANT: NOTES D'IMPRESSION POUR RESPECTER LES MARGES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -256,7 +260,57 @@ propriété et des cas limites.
 %
 % Note : une approche itérative est recommandée.
 
-% décrites dans l'ouvrage de référence
+L'ouvrage de référence de ce projet est le livre « Types and Programming Languages » de Benjamin c.
+Pierce. Ce livre est composé de six sections : les systèmes non-typés, les types simples, le
+sous-typage, les types récursifs, le polymorphisme et les systèmes d'ordre supérieur. Chaque section
+est composé de plusieurs chapitres décrivant un système de type bonifiant les systèmes décrits
+précédemments en leur adjoignant un concept supplémentaire. Les figures \ref{fig:TAPL-section-1} et
+\ref{fig:TAPL-section-2} présentent les chapitres des deux premières sections\footnote{Les chapitres
+en gras sont ceux qui seront formalisés.} sur lesquelles se concentrera ce projet.
+
+\todo[noline]{Trouver pourquoi le \\begin\{center\} ne fonctionne pas.}
+
+\begin{figure}
+  \begin{center}
+    \begin{enumerate}[label=§\arabic*]
+        \setcounter{enumi}{2}
+      \item \textbf{Expressions arithmétiques non-typées}
+      \item Une implémentation en ML des expressions arithmétiques
+      \item \textbf{Le lambda-calcul non-typé}
+      \item Représentation non-nommé des termes
+      \item Une implémentation en ML du lambda-calcul
+    \end{enumerate}
+  \end{center}
+  \caption{Section I du livre de référence --- Les systèmes non-typés}
+  \label{fig:TAPL-section-1}
+\end{figure}
+
+\begin{figure}
+  \begin{center}
+    \begin{enumerate}[label=§\arabic*]
+        \setcounter{enumi}{7}
+      \item \textbf{Expressions arithmétiques typées}
+      \item \textbf{Le lambda-calcul simplement typé}
+      \item Une implémentation en ML des types simples
+      \item Extensions simples
+      \item Normalisation
+      \item Références
+      \item Exceptions
+    \end{enumerate}
+  \end{center}
+  \caption{Section II du livre de référence --- Les types simples}
+  \label{fig:TAPL-section-2}
+\end{figure}
+
+Le projet formalisera donc séquentiellement les différents chapitres en se basant, au besoin, sur le
+travail fait pour les chapitres précédents. Chacune des formalisations se fera en quatre étapes :
+
+\begin{enumerate}
+  \item Lecture attentive du chapitre et compréhension générale des concepts énoncés;
+  \item Définition dans Isabelle/HOL des structures nécessaires à la formalisation;
+  \item Preuve des différents exercices, lemmes et théorèmes avancés;
+  \item Simplification des définitions et preuves.
+\end{enumerate}
 
 \chapter{Composition de l'équipe et rôles}
 
