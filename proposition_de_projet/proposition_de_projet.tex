@@ -201,13 +201,23 @@
 % Quel sont les problèmes généraux et spécifiques que vous cherchez à solutionner – totalement ou en
 % partie? Quel est le contexte de ces problèmes? Quelle est la situation actuelle?
 
-This thesis is concerned with the study of type systems in the context of computer science. Here is
-one proposed definition:
+Ce projet s'intéresse à l'étude des systèmes de types dans le contexte des langages de
+programmation. Voici une définition possible :
 
 \begin{quotation} % Benjamin C. Pierce, Types and Programming Languages, §1.1
-  A type system is a tractable syntactic method for proving the absence of certain program behaviors
-  by classifying phrases according to the kinds of values they compute.
+  Un système de type est une méthode syntaxique ???tractable??? pour prouver l'absence de certains
+  comportement des programmes par la classification des phrases selon le genre de valeurs qu'elles
+  calculent.
 \end{quotation}
+
+L'objectif d'un système de type est donc de garantir, sans exécution, qu'un programme est exempt de
+certaines erreurs (e.g. l'utilisation de deux systèmes d'unité, sans effectuer les conversions
+appropriées, qui a entrainé la destruction du Mars Climate Orbiter). Ainsi, il existe un très grand
+nombre de systèmes de types de divers niveau d'expressivité et de complexité. Lors du développement
+d'un système de type, un ensemble de preuves est réalisé afin de démontrer que le nouveau système
+respecte ses objectifs.
+
+L'étude de ces systèmes ainsi que des preuves qui les accompagnent sont le sujet du présent projet.
 
 \chapter{Objectif du projet}
 
