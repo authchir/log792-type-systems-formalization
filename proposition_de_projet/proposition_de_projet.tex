@@ -5,7 +5,7 @@
 \usepackage[canadien]{babel}
 \usepackage{glossaries}
 \usepackage{float}
-\usepackage{enumitem}
+\usepackage[inline]{enumitem}
 
 \makeindex
 \makeglossaries
@@ -62,9 +62,15 @@ L'étude de ces systèmes ainsi que des preuves qui les accompagnent sont le suj
 % Validate Paper-Proofs
 % Clarification (Paper-Proof & Isabelle/HOL)
 
-Les objectifs de ce projet sont quadruples : s'initier à la formalisation avec l'assistant de preuve
-Isabelle/HOL, s'initier à la théorie des types, valider les preuves manuelles existantes et
-clarifier les cas limites de ces dernières.
+Les objectifs de ce projet sont quadruples :
+\begin{enumerate*}[label=\arabic*)]
+  \item s'initier à la formalisation avec l'assistant de preuve Isabelle/HOL;
+  \item s'initier à la théorie des types;
+  \item valider les preuves manuelles existantes et
+  \item clarifier les cas limites de ces dernières.
+\end{enumerate*}
+
+\subsection{S'initier à la formalisation Isabelle/HOL}
 
 Isabelle/HOL est un assistant de preuve utilisant la logique d'ordre supérieure. Il permet de
 spécifier des formules mathématiques, relations et algorithmes, de prouver des propriétés de ces
@@ -72,11 +78,15 @@ derniers et de générer du code exécutable correspondant à ces spécification
 concentrera sur la spécification de systèmes de types et l'écriture de preuves des différentes
 propriétés qui y sont associées.
 
+\subsection{S'initier à la théorie des types}
+
 La théorie des types est un domaine d'étude à l'intersection de la logique, des mathématiques et de
 la philosophie. Son application à l'informatique permet de vérifier, sans exécution, qu'un programe
-respecte certaines propriétées. Les languages de programmtions dominants actuellement ne fournissent
+respecte certaines propriétées. Les langages de programmtions dominants actuellement ne fournissent
 qu'un nombre limité de garanties. Cependant, des alternatives plus expressives et plus puissantes
 sont connues ou bien en développement.
+
+\subsection{Valider les preuves manuelles existantes}
 
 La théorie des types étant un sujet de recherche très actif depuis plusieur dizaines d'années, un
 grand nombre de publications décrivent les caractéristiques de différents systèmes de type.
@@ -85,11 +95,13 @@ que des erreurs s'y soient glissées. La formalisation de celles-ci à l'aide d'
 permet de valider, sous réserve de l'assistant de preuve est correct, qu'aucune erreur logique n'est
 présente.
 
+\subsection{Clarifier les cas limites des preuves manuelles}
+
 Les propriétés énoncées et prouvées manuellement semblent souvent évidentes dès lors qu'elles sont
 appliquées à un exemple concret. Cette méthode de visualisation a toutefois ses limites puisque
 certaines constructions plus complexes peuvent entrainer des résultats inattendus. La formalisation
 de ces propriétés à l'aide d'un assistant de preuve oblige son auteur à considérer la liste
-exhaustive des constructions du language et permet ainsi d'acquérir un meilleur compréhension de la
+exhaustive des constructions du langage et permet ainsi d'acquérir un meilleur compréhension de la
 propriété et des cas limites.
 
 \section{Méthodologie}
