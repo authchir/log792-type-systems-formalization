@@ -29,26 +29,30 @@
 
 \section{Problématique et contexte}
 
-% Quel sont les problèmes généraux et spécifiques que vous cherchez à solutionner – totalement ou en
-% partie? Quel est le contexte de ces problèmes? Quelle est la situation actuelle?
+% \emph{Quel sont les problèmes généraux et spécifiques que vous cherchez à solutionner – totalement
+% ou en partie? Quel est le contexte de ces problèmes? Quelle est la situation actuelle?}
 
-Ce projet s'intéresse à l'étude des systèmes de types dans le contexte des langages de
-programmation. Voici une définition possible :
+Ce projet s'intéresse à l'étude des systèmes de types, dans le contexte des langages de
+programmation, dont voici une définition :
 
 \begin{quotation} % Benjamin C. Pierce, Types and Programming Languages, §1.1
-  Un système de type est une méthode syntaxique ??tractable?? pour prouver l'absence de certains
+  Un système de types est une méthode syntaxique ??tractable?? pour prouver l'absence de certains
   comportement des programmes par la classification des phrases selon le genre de valeurs qu'elles
   calculent.
 \end{quotation}
 
-L'objectif d'un système de type est donc de garantir, sans exécution, qu'un programme est exempt de
-certaines erreurs (e.g. l'utilisation de deux systèmes d'unité, sans effectuer les conversions
-appropriées, qui a entrainé la destruction du Mars Climate Orbiter). Ainsi, il existe un très grand
-nombre de systèmes de types de divers niveau d'expressivité et de complexité. Lors du développement
-d'un système de type, un ensemble de preuves est réalisé afin de démontrer que le nouveau système
-respecte ses objectifs.
+L'objectif est donc de garantir, sans l'exécuter, qu'un programme est exempt de certaines erreurs
+telles qu'une faute typographique dans un nom de variable, l'appel d'une fonction non supporté dans
+un certain context ou encore une tentative de diviser un nombre par une chaine de caractères. De
+tels exemples peuvent sembler simplistes mais sont très fréquentes et peuvent avoir des conséquences
+désastreuses : une incohérence informatique entre les systèmes d'unités métrique et anglo-saxon a
+provoqué la destruction du Mars Climate Orbiter en 1999. Bien sur, tous les défauts ne peuvent pas
+être décelés par un système de types. Cependant, il en existe un très grand nombre, de divers
+niveaux d'expressivité et de complexité, qui permettent de détecter un éventail varié d'erreurs.
 
-L'étude de ces systèmes ainsi que des preuves qui les accompagnent sont le sujet du présent projet.
+Lors du développement d'un nouveau système de type, un ensemble de preuves est réalisé afin de
+démontrer que celui-ci respecte ses objectifs. L'étude de ces systèmes ainsi que des
+preuves qui les accompagnent sont le sujet du présent projet.
 
 \section{Objectif du projet}
 
