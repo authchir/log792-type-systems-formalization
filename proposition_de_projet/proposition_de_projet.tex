@@ -37,16 +37,16 @@ programmation, dont voici une définition :
 
 \begin{quotation} % Benjamin C. Pierce, Types and Programming Languages, §1.1
   Un système de types est une méthode syntaxique tractable pour prouver l'absence de certains
-  comportement des programmes par la classification des phrases selon le genre de valeurs qu'elles
+  comportements des programmes par la classification des phrases selon le genre de valeurs qu'elles
   calculent.
 \end{quotation}
 
 L'objectif est donc de garantir, sans l'exécuter, qu'un programme est exempt de certaines erreurs
-telles qu'une faute typographique dans un nom de variable, l'appel d'une fonction non supporté dans
-un certain context ou encore une tentative de diviser un nombre par une chaine de caractères. De
-tels exemples peuvent sembler simplistes mais sont très fréquentes et peuvent avoir des conséquences
-désastreuses : une incohérence informatique entre les systèmes d'unités métrique et anglo-saxon a
-provoqué la destruction du Mars Climate Orbiter en 1999. Bien sur, tous les défauts ne peuvent pas
+telles qu'une faute typographique dans un nom de variable, l'appel d'une fonction non supportée dans
+un certain contexte ou encore une tentative de diviser un nombre par une chaine de caractères. De
+tels exemples peuvent sembler simplistes, mais sont très fréquents et peuvent avoir des conséquences
+désastreuses : une incohérence informatique entre les systèmes métrique et anglo-saxon d'unités a
+provoqué la destruction du Mars Climate Orbiter en 1999. Bien sûr, tous les défauts ne peuvent pas
 être décelés par un système de types. Cependant, il en existe un très grand nombre, de divers
 niveaux d'expressivité et de complexité, qui permettent de détecter un éventail varié d'erreurs.
 
@@ -76,40 +76,40 @@ Les objectifs de ce projet sont quadruples :
 
 \subsection{S'initier à la formalisation Isabelle/HOL}
 
-Deux grandes catégories d'outils sont disponnibles pour effectuer une formalisation : les prouveurs
-automatiques et les assistants de preuve interactifs. Quelque soit l'outil utilisé, il faut définir
-un context de travail et une équation que l'on veut prouver. La différence est que, dans le premier
-cas, l'outil tentera de trouver une preuve entièrement automatiquement alors que, dans le second
-cas, il faut travailler interactivement avec l'outils pour prouver le théorème.
+Il existe deux grandes catégories d'outils pour effectuer une formalisation : les prouveurs
+automatiques et les assistants de preuve interactifs. Quel que soit l'outil utilisé, il faut définir
+un contexte de travail et une équation que l'on veut prouver. La différence est que, dans le premier
+cas, l'outil tente de trouver une preuve entièrement automatiquement alors que, dans le second
+cas, il faut travailler interactivement avec l'outil pour prouver le théorème.
 
-Isabelle/HOL est un assistant de preuve interactif utilisant la logique d'ordre supérieure. Il pemet
+Isabelle/HOL est un assistant de preuve interactif utilisant la logique d'ordre supérieure. Il permet
 de spécifier des formules mathématiques, algorithmes et objets dans un langage déclaratif,
-fonctionel et typé. Il est alors possible de spécifier des propriété sur l'interaction entre les
+fonctionnel et typé. Il est alors possible de spécifier des propriétés sur l'interaction entre les
 divers éléments. Une fois le système formalisé, il est possible d'en extraire du code exécutable
 correspondant aux spécifications. Ce projet sera l'occasion de s'initier à la définition d'un
 système formel et aux preuves interactives à l'aide d'Isabelle/HOL.
 
 \subsection{S'initier à la théorie des types}
 
-Plusieurs des langages de programmations dominant actuellement ont un système de type appliqué à la
-compilation. La majorité des programmeurs sont donc familiés avec le concept. Malheureusement, les
-systèmes de types présent dans ces langages sont généralement simples, imposent nombre de
-contraintes à leur utilisateurs et n'offrent qu'un nombre limité de garanties en retour. Certaines
+Plusieurs des langages de programmation dominant actuellement ont une étape de validation des types appliquée à la
+compilation. La majorité des programmeurs sont donc familiarisés avec le concept. Malheureusement, les
+systèmes de types présents dans ces langages sont généralement simples, imposent nombre de
+contraintes à leurs utilisateurs et n'offrent qu'un nombre limité de garanties en retour. Certaines
 de ces limitations ont été mitigées dans de nouvelles versions du langage (e.g. l'ajout des types et
 fonctions génériques en Java).
 
-D'un autre coté, des alternatives plus expressives et plus puissantes sont bien connues ou bien
-actuellement en développement par les acteurs du milieu. Ce projet sera l'occastion de consolider
+Cependant, des options plus expressives et plus puissantes sont bien connues, ou bien
+actuellement en développement par les acteurs du milieu. Ce projet sera l'occasion de consolider
 les acquis fondamentaux et d'en apprendre plus sur les concepts plus avancés de la théorie des types
 
 \subsection{Valider les preuves manuelles existantes}
 
 La théorie des types étant un sujet de recherche très actif depuis plusieurs dizaines d'années, un
 grand nombre de publications décrivent les caractéristiques de différents systèmes de type.
-Cependant, une preuve manuelle étant validée par des être humains, il est toujours possible que des
+Cependant, une preuve manuelle étant validée par des êtres humains, il est toujours possible que des
 erreurs s'y soient glissées. La formalisation de celles-ci à l'aide d'un assistant de preuve permet
-de valider, sous réserve que l'assistant de preuve est correct, qu'aucune erreur logique n'est
-présente. S'il s'avérait qu'une erreur soit découverte dans le cadre de ce projet, l'information
+de valider, sous réserve que l'assistant de preuve soit correct, qu'aucune erreur logique ne soit
+présente. S'il s'avérait qu'une erreur est découverte dans le cadre de ce projet, l'information
 serait transmise à l'auteur initial afin de l'informer de la situation.
 
 \subsection{Clarifier les cas limites des preuves manuelles}
@@ -118,9 +118,9 @@ Les propriétés énoncées et prouvées manuellement semblent souvent évidente
 appliquées à un exemple concret. Cette méthode de visualisation a toutefois ses limites puisque
 certaines constructions plus complexes peuvent entrainer des résultats inattendus. La formalisation
 de ces propriétés à l'aide d'un assistant de preuve oblige son auteur à considérer la liste
-exhaustive des constructions du langage et permet ainsi d'acquérir un meilleur compréhension de la
-propriété et des cas limites. Cette technique a été utilisé avec succès afin d'enseigner
-l'ingénierie logiciels à des étudiants de premier cycle. \emph{CITATIONS NEED}
+exhaustive des constructions du langage et permet ainsi d'acquérir une meilleure compréhension de la
+propriété et des cas limites. Cette technique fut utilisée avec succès afin d'enseigner
+l'ingénierie logicielle à des étudiants de premier cycle. \emph{CITATIONS NEED}
 
 \section{Méthodologie}
 
@@ -132,31 +132,31 @@ l'ingénierie logiciels à des étudiants de premier cycle. \emph{CITATIONS NEED
 % \emph{Note : une approche itérative est recommandée.}
 
 L'ouvrage de référence de ce projet est le livre « Types and Programming Languages » de Benjamin C.
-Pierce. Ce livre est composé de six sections : les systèmes non-typés, les types simples, le
+Pierce. Ce livre est composé de six sections : les systèmes non typés, les types simples, le
 sous-typage, les types récursifs, le polymorphisme et les systèmes d'ordre supérieur. Chaque section
-est composé de plusieurs chapitres décrivant un système de type bonifiant un système décrit
+est composée de plusieurs chapitres décrivant un système de type bonifiant un système décrit
 précédemment en lui adjoignant un concept supplémentaire. Les figures \ref{fig:TAPL-section-1} et
 \ref{fig:TAPL-section-2} présentent les chapitres des deux premières sections sur lesquelles se
 concentrera ce projet --- ceux en gras sont ceux qui seront formalisés--- et la figure
 \ref{fig:TAPL-chapter-dependencies} présente les dépendances entre ceux-ci.
 
-Ces chapitres ont été choisie car ils décrivent des langages et leurs théorèmes au lieu d'en
+Ces chapitres furent choisis, car ils décrivent des langages et leurs théorèmes au lieu d'en
 expliquer la théorie ou d'en présenter une implémentation. De plus, ils culminent au lambda-calcul
-symplement typé qui a la propriété de pouvoir représenter \footnote{Ceci n'est pas tout à fait
-exacte puisqu'il faudrait y ajouter la fonctionnalité de pouvoir communiquer avec l'environement
+simplement typé qui a la propriété de pouvoir représenter \footnote{Ceci n'est pas tout à fait
+exacte puisqu'il faudrait y ajouter la fonctionnalité de pouvoir communiquer avec l'environnement
 d'exécution afin de pouvoir faire des opérations comme lire ou écrire dans un fichier, effectuer de
-la communication interprocessus, etc.} la majorité des langages de programmations existants.
+la communication interprocessus, etc.} la majorité des langages de programmation existants.
 
 \begin{figure}[h]
   \begin{enumerate}[label=§ \arabic*]
       \setcounter{enumi}{2}
-    \item \textbf{Expressions arithmétiques non-typées}
+    \item \textbf{Expressions arithmétiques non typées}
     \item Une implémentation en ML des expressions arithmétiques
-    \item \textbf{Le lambda-calcul non-typé}
-    \item Représentation non-nommé des termes
+    \item \textbf{Le lambda-calcul non typé}
+    \item Représentation non nommée des termes
     \item Une implémentation en ML du lambda-calcul
   \end{enumerate}
-  \caption{Section I du livre de référence --- Les systèmes non-typés}
+  \caption{Section I du livre de référence --- Les systèmes non typés}
   \label{fig:TAPL-section-1}
 \end{figure}
 
@@ -197,7 +197,7 @@ la communication interprocessus, etc.} la majorité des langages de programmatio
 Le projet formalisera séquentiellement les différents chapitres en se basant sur le travail
 des chapitres précédents. Pour cette raison, le premier chapitre sera le plus long à formaliser :
 tout devant être fait à partir de zéro. Pour les chapitres suivants, la première étape sera
-d'importer la formalisation des dépendances et de la modifier pour inclure les nouveau concepts
+d'importer la formalisation des dépendances et de la modifier pour inclure les nouveaux concepts
 introduits.
 
 Chacune des formalisations se fera en quatre étapes :
@@ -205,19 +205,19 @@ Chacune des formalisations se fera en quatre étapes :
 \begin{enumerate}
   \item Lecture attentive du chapitre et compréhension générale des concepts énoncés;
   \item Définition dans Isabelle/HOL des structures nécessaires à la formalisation;
-  \item Preuve des différents lemmes et théorèmes avancés ansi que, optionellement, les exercices;
+  \item Preuve des différents lemmes et théorèmes avancés ainsi que, optionnellement, les exercices;
   \item Simplification des définitions et preuves.
 \end{enumerate}
 
 L'objectif principal du projet étant de formaliser le chapitre 9 et ce genre de formalisation étant
-un projet ambitieux, un certain nombre d'actions pouraient être entreprises si le respet des
-échéancier s'avère menacé :
+un projet ambitieux, un certain nombre d'actions pourraient être entreprises si le respect des
+échéanciers s'avère menacé :
 
 \begin{enumerate}
   \label{lower-objectives}
   \item Ne prendre en compte les exercices proposés;
   \item Définir certains lemmes comme des axiomes au lieu de les prouver;
-  \item Sauter les chapitres 3 ou 4 afin de passer directement au chapitre 9.
+  \item Sauter les chapitres 5 ou 8 afin de passer directement au chapitre 9.
 \end{enumerate}
 
 \section{Livrables et planification}
@@ -319,7 +319,7 @@ Un certain nombre de risques sont identifiés dans le tableau \ref{tab:risks}
   \item[Isabelle/HOL] Spécialisation d'Isabelle pour la logique d'ordre supérieur (\gls{HOL}).
   \item[Isabelle/Isar] Langage structuré permettant d'écrire des preuves plus lisibles.
   \item[Isabelle/jEdit] Environement de développement intégré pour Isabelle basé sur jEdit.
-  \item[Sledgehammer] Outil appliquant des prouveurs automatiques de théorèmes ainsi que des
+  \item[Sledgehammer] Outil appliquant des trouveurs automatiques de théorèmes ainsi que des
     solveurs de « satisfaisabilité modulo théories »
 \end{description}
 
