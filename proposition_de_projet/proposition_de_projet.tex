@@ -36,7 +36,7 @@ Ce projet s'intéresse à l'étude des systèmes de types, dans le contexte des 
 programmation, dont voici une définition :
 
 \begin{quotation} % Benjamin C. Pierce, Types and Programming Languages, §1.1
-  Un système de types est une méthode syntaxique ??tractable?? pour prouver l'absence de certains
+  Un système de types est une méthode syntaxique tractable pour prouver l'absence de certains
   comportement des programmes par la classification des phrases selon le genre de valeurs qu'elles
   calculent.
 \end{quotation}
@@ -52,15 +52,15 @@ niveaux d'expressivité et de complexité, qui permettent de détecter un évent
 
 Lors du développement d'un nouveau système de type, un ensemble de preuves est réalisé afin de
 démontrer que celui-ci respecte ses objectifs. L'étude de ces systèmes ainsi que des
-preuves qui les accompagnent sont le sujet du présent projet.
+preuves qui les accompagnent est le sujet du présent projet.
 
-\section{Objectif du projet}
+\section{Objectifs du projet}
 
-% Dans cette partie, vous décrivez précisément  ce que vous allez accomplir dans le projet. Quels
-% sont les résultats attendus de votre projet? Quelles sont les retombées du projet? Assurez-vous
-% que vos objectifs sont "testables", c'est-à-dire que vous serez capable de démontrer de façon
-% convaincante, à la fin du projet, que les objectifs ont été atteints. Assurez-vous aussi que vos
-% objectifs sont en lien avec la problématique énoncée plus haut.
+% \emph{Dans cette partie, vous décrivez précisément  ce que vous allez accomplir dans le projet.
+% Quels sont les résultats attendus de votre projet? Quelles sont les retombées du projet?
+% Assurez-vous que vos objectifs sont "testables", c'est-à-dire que vous serez capable de démontrer
+% de façon convaincante, à la fin du projet, que les objectifs ont été atteints. Assurez-vous aussi
+% que vos objectifs sont en lien avec la problématique énoncée plus haut.}
 
 % Learning (Paper-Proof of Type Systems properties & Isabelle/HOL)
 % Validate Paper-Proofs
@@ -76,28 +76,41 @@ Les objectifs de ce projet sont quadruples :
 
 \subsection{S'initier à la formalisation Isabelle/HOL}
 
-Isabelle/HOL est un assistant de preuve utilisant la logique d'ordre supérieure. Il permet de
-spécifier des formules mathématiques, relations et algorithmes, de prouver des propriétés de ces
-derniers et de générer du code exécutable correspondant à ces spécification. Ce projet se
-concentrera sur la spécification de systèmes de types et l'écriture de preuves des différentes
-propriétés qui y sont associées.
+Deux grandes catégories d'outils sont disponnibles pour effectuer une formalisation : les prouveurs
+automatiques et les assistants de preuve interactifs. Quelque soit l'outil utilisé, il faut définir
+un context de travail et une équation que l'on veut prouver. La différence est que, dans le premier
+cas, l'outil tentera de trouver une preuve entièrement automatiquement alors que, dans le second
+cas, il faut travailler interactivement avec l'outils pour prouver le théorème.
+
+Isabelle/HOL est un assistant de preuve interactif utilisant la logique d'ordre supérieure. Il pemet
+de spécifier des formules mathématiques, algorithmes et objets dans un langage déclaratif,
+fonctionel et typé. Il est alors possible de spécifier des propriété sur l'interaction entre les
+divers éléments. Une fois le système formalisé, il est possible d'en extraire du code exécutable
+correspondant aux spécifications. Ce projet sera l'occasion de s'initier à la définition d'un
+système formel et aux preuves interactives à l'aide d'Isabelle/HOL.
 
 \subsection{S'initier à la théorie des types}
 
-La théorie des types est un domaine d'étude à l'intersection de la logique, des mathématiques et de
-la philosophie. Son application à l'informatique permet de vérifier, sans exécution, qu'un programe
-respecte certaines propriétées. Les langages de programmtions dominants actuellement ne fournissent
-qu'un nombre limité de garanties. Cependant, des alternatives plus expressives et plus puissantes
-sont connues ou bien en développement.
+Plusieurs des langages de programmations dominant actuellement ont un système de type appliqué à la
+compilation. La majorité des programmeurs sont donc familiés avec le concept. Malheureusement, les
+systèmes de types présent dans ces langages sont généralement simples, imposent nombre de
+contraintes à leur utilisateurs et n'offrent qu'un nombre limité de garanties en retour. Certaines
+de ces limitations ont été mitigées dans de nouvelles versions du langage (e.g. l'ajout des types et
+fonctions génériques en Java).
+
+D'un autre coté, des alternatives plus expressives et plus puissantes sont bien connues ou bien
+actuellement en développement par les acteurs du milieu. Ce projet sera l'occastion de consolider
+les acquis fondamentaux et d'en apprendre plus sur les concepts plus avancés de la théorie des types
 
 \subsection{Valider les preuves manuelles existantes}
 
-La théorie des types étant un sujet de recherche très actif depuis plusieur dizaines d'années, un
+La théorie des types étant un sujet de recherche très actif depuis plusieurs dizaines d'années, un
 grand nombre de publications décrivent les caractéristiques de différents systèmes de type.
-Cependant, une formalisation manuelle étant valider par des être humains, il est toujours possible
-que des erreurs s'y soient glissées. La formalisation de celles-ci à l'aide d'un assistant de preuve
-permet de valider, sous réserve de l'assistant de preuve est correct, qu'aucune erreur logique n'est
-présente.
+Cependant, une preuve manuelle étant validée par des être humains, il est toujours possible que des
+erreurs s'y soient glissées. La formalisation de celles-ci à l'aide d'un assistant de preuve permet
+de valider, sous réserve que l'assistant de preuve est correct, qu'aucune erreur logique n'est
+présente. S'il s'avérait qu'une erreur soit découverte dans le cadre de ce projet, l'information
+serait transmise à l'auteur initial afin de l'informer de la situation.
 
 \subsection{Clarifier les cas limites des preuves manuelles}
 
@@ -106,79 +119,113 @@ appliquées à un exemple concret. Cette méthode de visualisation a toutefois s
 certaines constructions plus complexes peuvent entrainer des résultats inattendus. La formalisation
 de ces propriétés à l'aide d'un assistant de preuve oblige son auteur à considérer la liste
 exhaustive des constructions du langage et permet ainsi d'acquérir un meilleur compréhension de la
-propriété et des cas limites.
+propriété et des cas limites. Cette technique a été utilisé avec succès afin d'enseigner
+l'ingénierie logiciels à des étudiants de premier cycle. \emph{CITATIONS NEED}
 
 \section{Méthodologie}
 
-% Expliquez comment vous allez atteindre les objectifs du projet. Ce sont les activités (analyse,
-% conception, mesure, tests, gestion de la configuration, revues, etc.) et les responsabilités
-% identifiées dans cette section qui guideront l’affectation des responsabilités aux membres de
-% l’équipe et aussi à l’établissement de votre échéancier de travail.
+% \emph{Expliquez comment vous allez atteindre les objectifs du projet. Ce sont les activités
+% (analyse, conception, mesure, tests, gestion de la configuration, revues, etc.) et les
+% responsabilités identifiées dans cette section qui guideront l’affectation des responsabilités aux
+% membres de l’équipe et aussi à l’établissement de votre échéancier de travail.}
 %
-% Note : une approche itérative est recommandée.
+% \emph{Note : une approche itérative est recommandée.}
 
 L'ouvrage de référence de ce projet est le livre « Types and Programming Languages » de Benjamin C.
 Pierce. Ce livre est composé de six sections : les systèmes non-typés, les types simples, le
 sous-typage, les types récursifs, le polymorphisme et les systèmes d'ordre supérieur. Chaque section
-est composé de plusieurs chapitres décrivant un système de type bonifiant les systèmes décrits
-précédemments en leur adjoignant un concept supplémentaire. Les figures \ref{fig:TAPL-section-1} et
-\ref{fig:TAPL-section-2} présentent les chapitres des deux premières sections\footnote{Les chapitres
-en gras sont ceux qui seront formalisés.} sur lesquelles se concentrera ce projet.
+est composé de plusieurs chapitres décrivant un système de type bonifiant un système décrit
+précédemment en lui adjoignant un concept supplémentaire. Les figures \ref{fig:TAPL-section-1} et
+\ref{fig:TAPL-section-2} présentent les chapitres des deux premières sections sur lesquelles se
+concentrera ce projet --- ceux en gras sont ceux qui seront formalisés--- et la figure
+\ref{fig:TAPL-chapter-dependencies} présente les dépendances entre ceux-ci.
 
-%TODO Trouver pourquoi le \begin{center} ne fonctionne pas.
+Ces chapitres ont été choisie car ils décrivent des langages et leurs théorèmes au lieu d'en
+expliquer la théorie ou d'en présenter une implémentation. De plus, ils culminent au lambda-calcul
+symplement typé qui a la propriété de pouvoir représenter \footnote{Ceci n'est pas tout à fait
+exacte puisqu'il faudrait y ajouter la fonctionnalité de pouvoir communiquer avec l'environement
+d'exécution afin de pouvoir faire des opérations comme lire ou écrire dans un fichier, effectuer de
+la communication interprocessus, etc.} la majorité des langages de programmations existants.
 
 \begin{figure}[h]
-  \begin{center}
-    \begin{enumerate}[label=§ \arabic*]
-        \setcounter{enumi}{2}
-      \item \textbf{Expressions arithmétiques non-typées}
-      \item Une implémentation en ML des expressions arithmétiques
-      \item \textbf{Le lambda-calcul non-typé}
-      \item Représentation non-nommé des termes
-      \item Une implémentation en ML du lambda-calcul
-    \end{enumerate}
-  \end{center}
+  \begin{enumerate}[label=§ \arabic*]
+      \setcounter{enumi}{2}
+    \item \textbf{Expressions arithmétiques non-typées}
+    \item Une implémentation en ML des expressions arithmétiques
+    \item \textbf{Le lambda-calcul non-typé}
+    \item Représentation non-nommé des termes
+    \item Une implémentation en ML du lambda-calcul
+  \end{enumerate}
   \caption{Section I du livre de référence --- Les systèmes non-typés}
   \label{fig:TAPL-section-1}
 \end{figure}
 
 \begin{figure}[h]
-  \begin{center}
-    \begin{enumerate}[label=§ \arabic*]
-        \setcounter{enumi}{7}
-      \item \textbf{Expressions arithmétiques typées}
-      \item \textbf{Le lambda-calcul simplement typé}
-      \item Une implémentation en ML des types simples
-      \item Extensions simples
-      \item Normalisation
-      \item Références
-      \item Exceptions
-    \end{enumerate}
-  \end{center}
+  \begin{enumerate}[label=§ \arabic*]
+      \setcounter{enumi}{7}
+    \item \textbf{Expressions arithmétiques typées}
+    \item \textbf{Le lambda-calcul simplement typé}
+    \item Une implémentation en ML des types simples
+    \item Extensions simples
+    \item Normalisation
+    \item Références
+    \item Exceptions
+  \end{enumerate}
   \caption{Section II du livre de référence --- Les types simples}
   \label{fig:TAPL-section-2}
 \end{figure}
 
-Le projet formalisera donc séquentiellement les différents chapitres en se basant, au besoin, sur le
-travail fait pour les chapitres précédents. Chacune des formalisations se fera en quatre étapes :
+\begin{figure}[h]
+  \begin{center}
+    \setlength{\unitlength}{1cm}
+    \begin{picture}(4,4.5)
+      \thicklines
+      \put(0,0){\framebox(1,1){3}}
+      \put(0,3){\framebox(1,1){8}}
+      \put(0.5,3){\vector(0,-1){2}}
+      \put(3,0){\framebox(1,1){5}}
+      \put(3,0.5){\vector(-1,0){2}}
+      \put(3,3){\framebox(1,1){9}}
+      \put(3,3.5){\vector(-1,0){2}}
+      \put(3.5,3){\vector(0,-1){2}}
+    \end{picture}
+  \end{center}
+  \caption{Dépendances entre les chapitres}
+  \label{fig:TAPL-chapter-dependencies}
+\end{figure}
+
+Le projet formalisera séquentiellement les différents chapitres en se basant sur le travail
+des chapitres précédents. Pour cette raison, le premier chapitre sera le plus long à formaliser :
+tout devant être fait à partir de zéro. Pour les chapitres suivants, la première étape sera
+d'importer la formalisation des dépendances et de la modifier pour inclure les nouveau concepts
+introduits.
+
+Chacune des formalisations se fera en quatre étapes :
 
 \begin{enumerate}
   \item Lecture attentive du chapitre et compréhension générale des concepts énoncés;
   \item Définition dans Isabelle/HOL des structures nécessaires à la formalisation;
-  \item Preuve des différents exercices, lemmes et théorèmes avancés;
+  \item Preuve des différents lemmes et théorèmes avancés ansi que, optionellement, les exercices;
   \item Simplification des définitions et preuves.
 \end{enumerate}
 
-\section{Composition de l'équipe et rôles}
+L'objectif principal du projet étant de formaliser le chapitre 9 et ce genre de formalisation étant
+un projet ambitieux, un certain nombre d'actions pouraient être entreprises si le respet des
+échéancier s'avère menacé :
 
-Confirmer avec monsieur Labbé que cette section n'est pas applicable.
+\begin{enumerate}
+  \label{lower-objectives}
+  \item Ne prendre en compte les exercices proposés;
+  \item Définir certains lemmes comme des axiomes au lieu de les prouver;
+  \item Sauter les chapitres 3 ou 4 afin de passer directement au chapitre 9.
+\end{enumerate}
 
 \section{Livrables et planification}
 
 \subsection{Description des artéfacts}
 
-% Cette section identifie les artefacts qui seront produits durant le projet, ainsi que la
-% planification de leur réalisation.
+\emph{Cette section identifie les artefacts qui seront produits durant le projet, ainsi que la
+planification de leur réalisation.}
 
 \begin{description}
   \item[Fiche de renseignement]
@@ -197,8 +244,8 @@ Confirmer avec monsieur Labbé que cette section n'est pas applicable.
     hypothèses, les résultats, l'analyse des résultats, les conclusions, les recommandations et les
     références.
   \item[Théories Isabelle/HOL]
-    Fichier source de l'assistant de preuve Isabelle/HOL contenant les définitions et théorèmes
-    formalisés au cours de ce projet.
+    Fichiers sources utilisés par l'assistant de preuve Isabelle/HOL pour sauvegarder les
+    définitions et théorèmes formalisés au cours de ce projet.
 \end{description}
 
 \subsection{Planification}
@@ -207,30 +254,32 @@ Confirmer avec monsieur Labbé que cette section n'est pas applicable.
 
 \section{Risques}
 
-% Vous devez énumérer les difficultés probables que vous pourriez rencontrer et qui pourraient avoir
-% un impact sur la réalisation de votre projet. Vous devez expliquer dans un tableau chaque risque
-% identifié, son impact ainsi que les moyens que vous allez mettre en œuvre pour le gérer et
-% atténuer sa probabilité ou son impact.
+% \emph{Vous devez énumérer les difficultés probables que vous pourriez rencontrer et qui pourraient
+% avoir un impact sur la réalisation de votre projet. Vous devez expliquer dans un tableau chaque
+% risque identifié, son impact ainsi que les moyens que vous allez mettre en œuvre pour le gérer et
+% atténuer sa probabilité ou son impact.}
+%
+% \emph{La forme d'un risque devrait être négative. C'est-à-dire, un risque est un événement que l'on
+% veut éviter. Par exemple "expérience du client" n'est pas un risque tandis que "manque
+% d’expérience du client" en serait un. Voici un exemple de risque : "Un passager est blessé dans
+% une voiture lors d'une collision." Une mitigation à un risque est la stratégie qui vise à éviter
+% que l'événement négatif se produise. Par exemple : "Le passager porte une ceinture de sécurité et
+% la voiture est équipée de coussin de sécurité gonflable." Soyez spécifique à votre projet. "Manque
+% de temps pour finir le projet" et "Portée trop ambitieuse" sont des risques pour n'importe quel
+% projet. Il n’est pas mauvais d’avoir des risques génériques, mais il est important d’aussi trouver
+% plusieurs risques spécifiques à votre projet, de même que de trouver des mitigations qui sont
+% spécifiques à votre projet.}
+%
+% \emph{Si vous manquez d'inspiration, vous pouvez consulter la liste LOG\_GTI\_792\_Generic Software
+% Risk Factors.xls, disponible sur le site Web du cours sous la rubrique ‘Gabarits et guides’.
+% Toutefois, faire attention de ne pas ainsi identifier des risques et mitigations qui sont
+% applicables à la majorité des projets.}
 
-% La forme d'un risque devrait être négative. C'est-à-dire, un risque est un événement que l'on veut
-% éviter. Par exemple "expérience du client" n'est pas un risque tandis que "manque d’expérience du
-% client" en serait un. Voici un exemple de risque : "Un passager est blessé dans une voiture lors
-% d'une collision." Une mitigation à un risque est la stratégie qui vise à éviter que l'événement
-% négatif se produise. Par exemple : "Le passager porte une ceinture de sécurité et la voiture est
-% équipée de coussin de sécurité gonflable." Soyez spécifique à votre projet. "Manque de temps pour
-% finir le projet" et "Portée trop ambitieuse" sont des risques pour n'importe quel projet. Il n’est
-% pas mauvais d’avoir des risques génériques, mais il est important d’aussi trouver plusieurs
-% risques spécifiques à votre projet, de même que de trouver des mitigations qui sont spécifiques à
-% votre projet.
+Un certain nombre de risques sont identifiés dans le tableau \ref{tab:risks}
 
-% Si vous manquez d'inspiration, vous pouvez consulter la liste LOG_GTI_792_Generic Software Risk
-% Factors.xls, disponible sur le site Web du cours sous la rubrique ‘Gabarits et guides’. Toutefois,
-% faire attention de ne pas ainsi identifier des risques et mitigations qui sont applicables à la
-% majorité des projets.
-
-\begin{table}[h]
-  \caption{Risques et mitigations}
-  \begin{tabular}{|p{0.29\textwidth}|p{0.30\textwidth}|p{0.12\textwidth}|p{0.29\textwidth}|}
+\begin{table}[!h]
+  \small
+  \begin{tabular}{|p{3.5cm}|p{3.5cm}|p{1.5cm}|p{3.5cm}|}
     \hline
     \textbf{Risque} &
     \textbf{Impact} &
@@ -238,26 +287,29 @@ Confirmer avec monsieur Labbé que cette section n'est pas applicable.
     \textbf{Mitigation / \newline atténuation} \\
     \hline
     Manque d'expérience avec la théorie des types &
-    Monopolise du temps pour apprendre la théorie &
+    Monopolise du temps pour apprendre la théorie. &
     Faible &
     Étudier attentivement l'ouvrage de référence. \\
     \hline
     Manque d'expérience avec l'assistant de preuve Isabelle/HOL &
-    Monopolise du temps pour apprendre le fonctionnement de l'outil &
+    Monopolise du temps pour apprendre le fonctionnement de l'outil. &
     Forte &
     Étudier attentivement et se référer au besoin à la la documentation de l'outil. \\
     \hline
     Manque d'expérience en formalisation &
-    Monopolise du temp pour apprendre la méthodologie &
+    Monopolise du temp pour apprendre la méthodologie. &
     Forte &
     S'informer auprès des chercheurs expérimentés de la chaire de recherche. \\
     \hline
     Objectifs trop ambitieux &
-    Ne pas réaliser toutes les formalisations prévues &
+    Ne pas réaliser toutes les formalisations prévues. &
     Moyenne &
-    Évaluer des objectifs réalistes avec mon superviseur de stage. \\
+    Un certain nombre de mitigations sont décrites à la page \pageref{lower-objectives} de la
+    section \ref{lower-objectives}. \\
     \hline
   \end{tabular}
+  \caption{Risques et mitigations}
+  \label{tab:risks}
 \end{table}
 
 \section{Techniques et outils}
@@ -273,28 +325,32 @@ Confirmer avec monsieur Labbé que cette section n'est pas applicable.
 
 \section{Références}
 
-% Vos références initiales. Par exemple: documents de projet existants, compilation de patrons,
-% documentation sur la technologie, etc.
+\emph{Vos références initiales. Par exemple: documents de projet existants, compilation de patrons,
+documentation sur la technologie, etc.}
 
 \begin{itemize}
   \item Benjamin C. Pierce, Types and Programming Languages
+  \item Benjamin C. Pierce, Using a Proof Assistant to Teach Programming Language Foundations
   \item Jasmin Christian Blanchette, Hammering Away : A User's Guide to Sledgehammer for Isabele/HOL
+  \item Rex Page, Carl Eastlund, Matthias Felleisen, Functional Programming and Theorem Proving for
+    Undergraduates: A Progress Report
   \item Tobias Nipkow, Programming and Proving in Isabelle/HOL
+  \item Tobias Nipkow, Teaching Semantics with a Proof Assistant: No more LSD Trip Proofs
   \item Tobias Nipkow, Lawrence C. Paulson, Markus Wenzel, Isabelle/HOL : A Proof Assistant for
     Higher-Order Logic
 \end{itemize}
 
 \section{Annexe A : Plan de travail}
 
-% Le tableau suivant présente la planification pour la réalisation des tâches ou artefacts décrits
-% précédemment.
-%
-% Note : il faut compléter la liste des tâches et des jalons. Assurez-vous que vos tâches sont
-% exprimées en termes d'activités d'ingénierie, par exemple analyse, architecture, conception,
-% implémentation, etc, et non en termes de production d'artéfacts (ex: rédaction document X). Les
-% artéfacts affectés par une activité d'ingénierie sont indiqués dans la colonne
-% "Livrables/Artéfacts". Si vous utilisez une approche itérative, rendez vos itérations visibles
-% dans ce plan. Si le projet est réalisé en équipe, ajoutez une colonne d'effort pour chaque membre
-% de l'équipe.
+\emph{Le tableau suivant présente la planification pour la réalisation des tâches ou artefacts décrits
+précédemment.}
+
+\emph{Note : il faut compléter la liste des tâches et des jalons. Assurez-vous que vos tâches sont
+exprimées en termes d'activités d'ingénierie, par exemple analyse, architecture, conception,
+implémentation, etc, et non en termes de production d'artéfacts (ex: rédaction document X). Les
+artéfacts affectés par une activité d'ingénierie sont indiqués dans la colonne
+"Livrables/Artéfacts". Si vous utilisez une approche itérative, rendez vos itérations visibles
+dans ce plan. Si le projet est réalisé en équipe, ajoutez une colonne d'effort pour chaque membre
+de l'équipe.}
 
 \end{document}
