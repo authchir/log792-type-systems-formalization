@@ -1,4 +1,4 @@
-\documentclass[a4paper, oneside, 12pt, titlepage, draft]{article}
+\documentclass[a4paper, oneside, 12pt, titlepage]{article}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -33,7 +33,7 @@
 % ou en partie? Quel est le contexte de ces problèmes? Quelle est la situation actuelle?}
 
 Ce projet s'intéresse à l'étude des systèmes de types, dans le contexte des langages de
-programmation, dont voici une définition :
+programmation, dont voici une définition \cite{pierce2002} :
 
 \begin{quotation} % Benjamin C. Pierce, Types and Programming Languages, §1.1
   Un système de types est une méthode syntaxique tractable pour prouver l'absence de certains
@@ -82,8 +82,8 @@ un contexte de travail et une équation que l'on veut prouver. La différence es
 cas, l'outil tente de trouver une preuve entièrement automatiquement alors que, dans le second
 cas, il faut travailler interactivement avec l'outil pour prouver le théorème.
 
-Isabelle/HOL est un assistant de preuve interactif utilisant la logique d'ordre supérieure. Il permet
-de spécifier des formules mathématiques, algorithmes et objets dans un langage déclaratif,
+Isabelle/HOL est un assistant de preuve interactif utilisant la logique d'ordre supérieure. Il
+permet de spécifier des formules mathématiques, algorithmes et objets dans un langage déclaratif,
 fonctionnel et typé. Il est alors possible de spécifier des propriétés sur l'interaction entre les
 divers éléments. Une fois le système formalisé, il est possible d'en extraire du code exécutable
 correspondant aux spécifications. Ce projet sera l'occasion de s'initier à la définition d'un
@@ -91,12 +91,12 @@ système formel et aux preuves interactives à l'aide d'Isabelle/HOL.
 
 \subsection{S'initier à la théorie des types}
 
-Plusieurs des langages de programmation dominant actuellement ont une étape de validation des types appliquée à la
-compilation. La majorité des programmeurs sont donc familiarisés avec le concept. Malheureusement, les
-systèmes de types présents dans ces langages sont généralement simples, imposent nombre de
-contraintes à leurs utilisateurs et n'offrent qu'un nombre limité de garanties en retour. Certaines
-de ces limitations ont été mitigées dans de nouvelles versions du langage (e.g. l'ajout des types et
-fonctions génériques en Java).
+Plusieurs des langages de programmation dominant actuellement ont une étape de validation des types
+appliquée à la compilation. La majorité des programmeurs sont donc familiarisés avec le concept.
+Malheureusement, les systèmes de types présents dans ces langages sont généralement simples,
+imposent nombre de contraintes à leurs utilisateurs et n'offrent qu'un nombre limité de garanties en
+retour. Certaines de ces limitations ont été mitigées dans de nouvelles versions du langage (e.g.
+l'ajout des types et fonctions génériques en Java).
 
 Cependant, des options plus expressives et plus puissantes sont bien connues, ou bien
 actuellement en développement par les acteurs du milieu. Ce projet sera l'occasion de consolider
@@ -119,8 +119,9 @@ appliquées à un exemple concret. Cette méthode de visualisation a toutefois s
 certaines constructions plus complexes peuvent entrainer des résultats inattendus. La formalisation
 de ces propriétés à l'aide d'un assistant de preuve oblige son auteur à considérer la liste
 exhaustive des constructions du langage et permet ainsi d'acquérir une meilleure compréhension de la
-propriété et des cas limites. Cette technique fut utilisée avec succès afin d'enseigner
-l'ingénierie logicielle à des étudiants de premier cycle. \emph{CITATIONS NEED}
+propriété et des cas limites. Cette technique fut utilisée avec succès afin d'enseigner l'ingénierie
+logicielle à des étudiants de premier cycle \cite{page:thm-proving-undergraduates, pierce:LambdaTA,
+nipkow:teaching-proof-assistant}.
 
 \section{Méthodologie}
 
@@ -143,7 +144,7 @@ concentrera ce projet --- ceux en gras sont ceux qui seront formalisés--- et la
 Ces chapitres furent choisis, car ils décrivent des langages et leurs théorèmes au lieu d'en
 expliquer la théorie ou d'en présenter une implémentation. De plus, ils culminent au lambda-calcul
 simplement typé qui a la propriété de pouvoir représenter \footnote{Ceci n'est pas tout à fait
-exacte puisqu'il faudrait y ajouter la fonctionnalité de pouvoir communiquer avec l'environnement
+exact puisqu'il faudrait y ajouter la fonctionnalité de pouvoir communiquer avec l'environnement
 d'exécution afin de pouvoir faire des opérations comme lire ou écrire dans un fichier, effectuer de
 la communication interprocessus, etc.} la majorité des langages de programmation existants.
 
@@ -224,8 +225,8 @@ un projet ambitieux, un certain nombre d'actions pourraient être entreprises si
 
 \subsection{Description des artéfacts}
 
-\emph{Cette section identifie les artefacts qui seront produits durant le projet, ainsi que la
-planification de leur réalisation.}
+% \emph{Cette section identifie les artefacts qui seront produits durant le projet, ainsi que la
+% planification de leur réalisation.}
 
 \begin{description}
   \item[Fiche de renseignement]
@@ -297,7 +298,7 @@ Un certain nombre de risques sont identifiés dans le tableau \ref{tab:risks}
     Étudier attentivement et se référer au besoin à la la documentation de l'outil. \\
     \hline
     Manque d'expérience en formalisation &
-    Monopolise du temp pour apprendre la méthodologie. &
+    Monopolise du temps pour apprendre la méthodologie. &
     Forte &
     S'informer auprès des chercheurs expérimentés de la chaire de recherche. \\
     \hline
@@ -320,30 +321,24 @@ Un certain nombre de risques sont identifiés dans le tableau \ref{tab:risks}
   \item[Isabelle/Isar] Langage structuré permettant d'écrire des preuves plus lisibles.
   \item[Isabelle/jEdit] Environement de développement intégré pour Isabelle basé sur jEdit.
   \item[Sledgehammer] Outil appliquant des trouveurs automatiques de théorèmes ainsi que des
-    solveurs de « satisfaisabilité modulo théories »
+    solveurs de « satisfaisabilité modulo théories ».
 \end{description}
 
 \section{Références}
 
-\emph{Vos références initiales. Par exemple: documents de projet existants, compilation de patrons,
-documentation sur la technologie, etc.}
+% \emph{Vos références initiales. Par exemple: documents de projet existants, compilation de patrons,
+% documentation sur la technologie, etc.}
 
-\begin{itemize}
-  \item Benjamin C. Pierce, Types and Programming Languages
-  \item Benjamin C. Pierce, Using a Proof Assistant to Teach Programming Language Foundations
-  \item Jasmin Christian Blanchette, Hammering Away : A User's Guide to Sledgehammer for Isabele/HOL
-  \item Rex Page, Carl Eastlund, Matthias Felleisen, Functional Programming and Theorem Proving for
-    Undergraduates: A Progress Report
-  \item Tobias Nipkow, Programming and Proving in Isabelle/HOL
-  \item Tobias Nipkow, Teaching Semantics with a Proof Assistant: No more LSD Trip Proofs
-  \item Tobias Nipkow, Lawrence C. Paulson, Markus Wenzel, Isabelle/HOL : A Proof Assistant for
-    Higher-Order Logic
-\end{itemize}
+\renewcommand*{\refname}{\vspace*{-1em}}\vspace*{-1em}
+
+\nocite{*}
+\bibliographystyle{alpha}
+\bibliography{bibliography}
 
 \section{Annexe A : Plan de travail}
 
-\emph{Le tableau suivant présente la planification pour la réalisation des tâches ou artefacts décrits
-précédemment.}
+\emph{Le tableau suivant présente la planification pour la réalisation des tâches ou artefacts
+décrits précédemment.}
 
 \emph{Note : il faut compléter la liste des tâches et des jalons. Assurez-vous que vos tâches sont
 exprimées en termes d'activités d'ingénierie, par exemple analyse, architecture, conception,
