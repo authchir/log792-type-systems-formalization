@@ -3,13 +3,15 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[canadien]{babel}
-\usepackage{glossaries}
 \usepackage{float}
 \usepackage[inline]{enumitem}
+\usepackage{pdflscape}
+\usepackage{geometry}
+\usepackage{array}
 
-\makeindex
-\makeglossaries
-\newacronym{HOL}{HOL}{Higher Order Logic}
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
 
 \floatstyle{boxed}
 \restylefloat{figure}
@@ -35,7 +37,7 @@
 Ce projet s'intéresse à l'étude des systèmes de types, dans le contexte des langages de
 programmation, dont voici une définition \cite{pierce2002} :
 
-\begin{quotation} % Benjamin C. Pierce, Types and Programming Languages, §1.1
+\begin{quotation}
   Un système de types est une méthode syntaxique tractable pour prouver l'absence de certains
   comportements des programmes par la classification des phrases selon le genre de valeurs qu'elles
   calculent.
@@ -132,14 +134,14 @@ nipkow:teaching-proof-assistant}.
 %
 % \emph{Note : une approche itérative est recommandée.}
 
-L'ouvrage de référence de ce projet est le livre « Types and Programming Languages » de Benjamin C.
-Pierce. Ce livre est composé de six sections : les systèmes non typés, les types simples, le
-sous-typage, les types récursifs, le polymorphisme et les systèmes d'ordre supérieur. Chaque section
-est composée de plusieurs chapitres décrivant un système de type bonifiant un système décrit
-précédemment en lui adjoignant un concept supplémentaire. Les figures \ref{fig:TAPL-section-1} et
-\ref{fig:TAPL-section-2} présentent les chapitres des deux premières sections sur lesquelles se
-concentrera ce projet --- ceux en gras sont ceux qui seront formalisés--- et la figure
-\ref{fig:TAPL-chapter-dependencies} présente les dépendances entre ceux-ci.
+L'ouvrage de référence de ce projet est le livre \emph{Types and Programming Languages} de
+Benjamin~C.~Pierce. Ce livre est composé de six sections : les systèmes non typés, les types
+simples, le sous-typage, les types récursifs, le polymorphisme et les systèmes d'ordre supérieur.
+Chaque section est composée de plusieurs chapitres décrivant un système de type bonifiant un système
+décrit précédemment en lui adjoignant un concept supplémentaire. Les figures
+\ref{fig:TAPL-section-1} et \ref{fig:TAPL-section-2} présentent les chapitres des deux premières
+sections sur lesquelles se concentrera ce projet --- ceux en gras sont ceux qui seront formalisés
+--- et la figure \ref{fig:TAPL-chapter-dependencies} présente les dépendances entre ceux-ci.
 
 Ces chapitres furent choisis, car ils décrivent des langages et leurs théorèmes au lieu d'en
 expliquer la théorie ou d'en présenter une implémentation. De plus, ils culminent au lambda-calcul
@@ -198,7 +200,7 @@ la communication interprocessus, etc.} la majorité des langages de programmatio
 Le projet formalisera séquentiellement les différents chapitres en se basant sur le travail
 des chapitres précédents. Pour cette raison, le premier chapitre sera le plus long à formaliser :
 tout devant être fait à partir de zéro. Pour les chapitres suivants, la première étape sera
-d'importer la formalisation des dépendances et de la modifier pour inclure les nouveaux concepts
+de copier la formalisation des dépendances et de la modifier pour inclure les nouveaux concepts
 introduits.
 
 Chacune des formalisations se fera en quatre étapes :
@@ -216,7 +218,7 @@ un projet ambitieux, un certain nombre d'actions pourraient être entreprises si
 
 \begin{enumerate}
   \label{lower-objectives}
-  \item Ne prendre en compte les exercices proposés;
+  \item Ne pas prendre en compte les exercices proposés;
   \item Définir certains lemmes comme des axiomes au lieu de les prouver;
   \item Sauter les chapitres 5 ou 8 afin de passer directement au chapitre 9.
 \end{enumerate}
@@ -253,6 +255,8 @@ un projet ambitieux, un certain nombre d'actions pourraient être entreprises si
 
 % Voir Annexe A. Commentez le tableau de l’annexe A. Une approche itérative est recommandée.
 
+Le plan de projet se trouve à l'annexe A.
+
 \section{Risques}
 
 % \emph{Vous devez énumérer les difficultés probables que vous pourriez rencontrer et qui pourraient
@@ -276,7 +280,7 @@ un projet ambitieux, un certain nombre d'actions pourraient être entreprises si
 % Toutefois, faire attention de ne pas ainsi identifier des risques et mitigations qui sont
 % applicables à la majorité des projets.}
 
-Un certain nombre de risques sont identifiés dans le tableau \ref{tab:risks}
+Un certain nombre de risques sont identifiés dans le tableau \ref{tab:risks}.
 
 \begin{table}[!h]
   \small
@@ -317,9 +321,11 @@ Un certain nombre de risques sont identifiés dans le tableau \ref{tab:risks}
 
 \begin{description}
   \item[Isabelle] Système générique pour l'implémentation de formalismes logiques.
-  \item[Isabelle/HOL] Spécialisation d'Isabelle pour la logique d'ordre supérieur (\gls{HOL}).
+  \item[Isabelle/HOL] Spécialisation d'Isabelle pour la logique d'ordre supérieur (\emph{Higher
+    Order Logic} en anglais).
   \item[Isabelle/Isar] Langage structuré permettant d'écrire des preuves plus lisibles.
-  \item[Isabelle/jEdit] Environement de développement intégré pour Isabelle basé sur jEdit.
+  \item[Isabelle/jEdit] Environement de développement intégré pour Isabelle basé sur l'éditeur
+    jEdit.
   \item[Sledgehammer] Outil appliquant des trouveurs automatiques de théorèmes ainsi que des
     solveurs de « satisfaisabilité modulo théories ».
 \end{description}
@@ -335,17 +341,73 @@ Un certain nombre de risques sont identifiés dans le tableau \ref{tab:risks}
 \bibliographystyle{alpha}
 \bibliography{bibliography}
 
+\newgeometry{margin=2.5cm}
+\begin{landscape}
+\thispagestyle{empty}
+
 \section{Annexe A : Plan de travail}
 
-\emph{Le tableau suivant présente la planification pour la réalisation des tâches ou artefacts
-décrits précédemment.}
+% \emph{Le tableau suivant présente la planification pour la réalisation des tâches ou artefacts
+% décrits précédemment.}
+%
+% \emph{Note : il faut compléter la liste des tâches et des jalons. Assurez-vous que vos tâches sont
+% exprimées en termes d'activités d'ingénierie, par exemple analyse, architecture, conception,
+% implémentation, etc, et non en termes de production d'artéfacts (ex: rédaction document X). Les
+% artéfacts affectés par une activité d'ingénierie sont indiqués dans la colonne
+% "Livrables/Artéfacts". Si vous utilisez une approche itérative, rendez vos itérations visibles
+% dans ce plan. Si le projet est réalisé en équipe, ajoutez une colonne d'effort pour chaque membre
+% de l'équipe.}
 
-\emph{Note : il faut compléter la liste des tâches et des jalons. Assurez-vous que vos tâches sont
-exprimées en termes d'activités d'ingénierie, par exemple analyse, architecture, conception,
-implémentation, etc, et non en termes de production d'artéfacts (ex: rédaction document X). Les
-artéfacts affectés par une activité d'ingénierie sont indiqués dans la colonne
-"Livrables/Artéfacts". Si vous utilisez une approche itérative, rendez vos itérations visibles
-dans ce plan. Si le projet est réalisé en équipe, ajoutez une colonne d'effort pour chaque membre
-de l'équipe.}
+\begin{table}[!h]
+  \small
+  \centering
+  \begin{tabular}{|l||l|l|p{2cm}||l|l|}
+    \hline
+    \textbf{\#} &
+    \textbf{Commence} &
+    \textbf{Termine} &
+    \textbf{Efforts estimés (heures)} &
+    \textbf{Jalon} &
+    \textbf{Artéfacts} \\
+    \hline \hline
+    1   & & 2014-09-02 & 1 & Remise de la fiche de renseignement & Fiche de renseignements \\
+    1.1 & & 2014-09-01 & 1 & Rencontre --- professeur superviseur & \\
+    \hline
+    2   & 2014-09-02 & 2014-09-19   & 5 & Remise de la proposition de projet & Proposition de projet \\
+    2.1 &            & à déterminer & 1 & Rencontre --- professeur superviseur & \\
+    \hline
+    2.2.1 & 2014-09-19 &            & 2 & Étude du chapitre 3 & \\
+    2.2.2 &            &            & 10 & Définitions du chapitre 3 & \\
+    2.2.3 &            &            & 15 & Preuves du chapitre 3 & \\
+    2.2.4 &            & 2014-10-10 & 2 & Simplification du chapitre 3 & Théorie Isabelle/HOL \\
+    \hline
+    3   & 2014-09-19 & 2014-10-24 & 10 & Remise du rapport d'étape & Rapport d'étape \\
+    3.1 &            & à déterminer & 1 & Rencontre --- professeur superviseur & \\
+    \hline
+    3.2.1 & 2014-10-10 &            & 2 & Étude du chapitre 5 & \\
+    3.2.2 &            &            & 5 & Définitions du chapitre 5 & \\
+    3.2.3 &            &            & 10 & Preuves du chapitre 5 & \\
+    3.2.4 &            & 2014-10-24 & 3 & Simplification du chapitre 5 & Théorie Isabelle/HOL \\
+    \hline
+    3.3.1 & 2014-10-24 &            & 2 & Étude du chapitre 8 & \\
+    3.3.2 &            &            & 5 & Définitions du chapitre 8 & \\
+    3.3.3 &            &            & 10 & Preuves du chapitre 8 & \\
+    3.3.4 &            & 2014-11-07 & 3 & Simplification du chapitre 8 & Théorie Isabelle/HOL \\
+    \hline
+    3.4.1 & 2014-11-07 &            & 2 & Étude du chapitre 9 & \\
+    3.4.2 &            &            & 5 & Définitions du chapitre 9 & \\
+    3.4.3 &            &            & 15 & Preuves du chapitre 9 & \\
+    3.4.4 &            & 2014-10-21 & 3 & Simplification du chapitre 9 & Théorie Isabelle/HOL \\
+    \hline
+    5 & 2014-11-07 & 2014-12 & 10 & Présentation & Diapositives de la présentation orale \\
+    \hline
+    6   & 2014-12-01 & 2014-12      & 30 & Remise du travail & Rapport final \\
+    6.1 &            & à déterminer & 1 & Rencontre --- professeur superviseur & \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\end{landscape}
+\restoregeometry
 
 \end{document}
