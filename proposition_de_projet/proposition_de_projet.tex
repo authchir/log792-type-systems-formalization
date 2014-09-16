@@ -8,26 +8,71 @@
 \usepackage{pdflscape}
 \usepackage{geometry}
 \usepackage{array}
+\usepackage[pdftex]{graphicx}
 
 \newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
 \newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
 \newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
 
 \floatstyle{boxed}
 \restylefloat{figure}
 
 \begin{document}
 
-\title{Formalisation de systèmes de types à l'aide d'Isabelle/HOL}
-\author{Martin Desharnais}
-\maketitle
+% \title{Formalisation de systèmes de types à l'aide d'Isabelle/HOL}
+% \author{Martin Desharnais}
+% \maketitle
 
+\begin{titlepage}
+  \begin{center}
+    % Upper part of the page. The '~' is needed because \\
+    % only works if a paragraph has started.
+    \includegraphics[width=6cm]{./logo-ETS.png}~\\[1cm]
+
+    \textsc{\LARGE École de technologie supérieure}\\[1.5cm]
+
+    \textsc{\Large LOG792 Projet de fin d'étude}\\[0.25cm]
+    \textsc{\Large Proposition de projet}\\[0.5cm]
+
+    % Title
+    \HRule \\[0.4cm]
+    { \huge \bfseries Formalisation de systèmes de types à l'aide d'Isabelle/HOL \\[0.4cm] }
+
+    \HRule \\[1.5cm]
+
+    % Author and supervisor
+    \begin{minipage}{0.4\textwidth}
+    \begin{flushleft} \large
+    \emph{Auteur :}\\
+    Martin Desharnais
+    \end{flushleft}
+    \end{minipage}
+    \begin{minipage}{0.4\textwidth}
+    \begin{flushright} \large
+    \emph{Superviseur :} \\
+    Dr.~David Labbé
+    \end{flushright}
+    \end{minipage}
+
+    \vfill
+
+    % Bottom of the page
+    {\large \today}
+
+  \end{center}
+\end{titlepage}
+
+\pagestyle{empty}
+\pagenumbering{Roman}
 \tableofcontents
+%\clearpage
 %\listoftables
+%\clearpage
 %\listoffigures
-%\printglossaries
 
 \cleardoublepage
+\pagenumbering{arabic}
 
 \section{Problématique et contexte}
 
@@ -47,7 +92,7 @@ L'objectif est donc de garantir, sans l'exécuter, qu'un programme est exempt de
 telles qu'une faute typographique dans un nom de variable, l'appel d'une fonction non supportée dans
 un certain contexte ou encore une tentative de diviser un nombre par une chaine de caractères. De
 tels exemples peuvent sembler simplistes, mais sont très fréquents et peuvent avoir des conséquences
-désastreuses : une incohérence informatique entre les systèmes métrique et anglo-saxon d'unités a
+désastreuses : une incohérence informatique entre les systèmes d'unités métrique et anglo-saxon a
 provoqué la destruction du Mars Climate Orbiter en 1999. Bien sûr, tous les défauts ne peuvent pas
 être décelés par un système de types. Cependant, il en existe un très grand nombre, de divers
 niveaux d'expressivité et de complexité, qui permettent de détecter un éventail varié d'erreurs.
@@ -145,10 +190,10 @@ sections sur lesquelles se concentrera ce projet --- ceux en gras sont ceux qui 
 
 Ces chapitres furent choisis, car ils décrivent des langages et leurs théorèmes au lieu d'en
 expliquer la théorie ou d'en présenter une implémentation. De plus, ils culminent au lambda-calcul
-simplement typé qui a la propriété de pouvoir représenter \footnote{Ceci n'est pas tout à fait
-exact puisqu'il faudrait y ajouter la fonctionnalité de pouvoir communiquer avec l'environnement
-d'exécution afin de pouvoir faire des opérations comme lire ou écrire dans un fichier, effectuer de
-la communication interprocessus, etc.} la majorité des langages de programmation existants.
+simplement typé, qui a la propriété de pouvoir représenter la majorité des langages de programmation
+existants\footnote{Ceci n'est pas tout à fait exact puisqu'il faudrait y ajouter la fonctionnalité
+de pouvoir communiquer avec l'environnement d'exécution afin de pouvoir faire des opérations comme
+lire ou écrire dans un fichier, effectuer de la communication interprocessus, etc.}.
 
 \begin{figure}[h]
   \begin{enumerate}[label=§ \arabic*]
@@ -208,7 +253,7 @@ Chacune des formalisations se fera en quatre étapes :
 \begin{enumerate}
   \item Lecture attentive du chapitre et compréhension générale des concepts énoncés;
   \item Définition dans Isabelle/HOL des structures nécessaires à la formalisation;
-  \item Preuve des différents lemmes et théorèmes avancés ainsi que, optionnellement, les exercices;
+  \item Preuve des différents lemmes et théorèmes ainsi que, optionnellement, des exercices;
   \item Simplification des définitions et preuves.
 \end{enumerate}
 
@@ -299,7 +344,7 @@ Un certain nombre de risques sont identifiés dans le tableau \ref{tab:risks}.
     Manque d'expérience avec l'assistant de preuve Isabelle/HOL &
     Monopolise du temps pour apprendre le fonctionnement de l'outil. &
     Forte &
-    Étudier attentivement et se référer au besoin à la la documentation de l'outil. \\
+    Étudier attentivement et se référer au besoin à la documentation de l'outil. \\
     \hline
     Manque d'expérience en formalisation &
     Monopolise du temps pour apprendre la méthodologie. &
@@ -397,7 +442,7 @@ Un certain nombre de risques sont identifiés dans le tableau \ref{tab:risks}.
     3.4.1 & 2014-11-07 &            & 2 & Étude du chapitre 9 & \\
     3.4.2 &            &            & 5 & Définitions du chapitre 9 & \\
     3.4.3 &            &            & 15 & Preuves du chapitre 9 & \\
-    3.4.4 &            & 2014-10-21 & 3 & Simplification du chapitre 9 & Théorie Isabelle/HOL \\
+    3.4.4 &            & 2014-11-21 & 3 & Simplification du chapitre 9 & Théorie Isabelle/HOL \\
     \hline
     5 & 2014-11-07 & 2014-12 & 10 & Présentation & Diapositives de la présentation orale \\
     \hline
