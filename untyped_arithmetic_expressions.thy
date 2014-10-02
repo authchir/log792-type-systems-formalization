@@ -8,10 +8,11 @@ datatype B_term
   | BIf B_term B_term B_term
 
 inductive is_value :: "B_term \<Rightarrow> bool" where
-  "is_value BTrue" |
-  "is_value BFalse"
+  is_value_BTrue: "is_value BTrue" |
+  is_value_BFalse: "is_value BFalse"
 
 inductive_cases is_value_BIfD: "is_value (BIf t1 t2 t3)"
+
 
 inductive eval_once :: "B_term \<Rightarrow> B_term \<Rightarrow> bool" where
   e_if_true: "eval_once (BIf BTrue t2 t3) t2" |
@@ -20,6 +21,7 @@ inductive eval_once :: "B_term \<Rightarrow> B_term \<Rightarrow> bool" where
 
 inductive_cases eval_once_BTrueD: "eval_once BTrue t"
 inductive_cases eval_once_BFalseD: "eval_once BFalse t"
+
 
 inductive eval :: "B_term \<Rightarrow> B_term \<Rightarrow> bool" where
   e_once: "eval_once t t' \<Longrightarrow> eval t t'" |
@@ -55,21 +57,8 @@ lemma eval_eq_eval': "eval = eval'"
    apply (rule e_self)
   using e_once e_transitive by blast
 
-inductive is_normal_form :: "B_term \<Rightarrow> bool" where
-  "\<forall>t'. \<not> eval_once t t' \<Longrightarrow> is_normal_form t"
-
-(*
-definition is_normal :: "B_term \<Rightarrow> bool" where
-  "is_normal t \<longleftrightarrow> (\<forall>t'. \<not> eval_once t t')"
-*)
-
-inductive_cases is_normal_form_BIfD: "is_normal_form (BIf t1 t2 t3)"
-
-lemma is_normal_form_BTrue: "is_normal_form BTrue"
-  using eval_once_BTrueD is_normal_form.intros by blast
-
-lemma is_normal_form_BFalse: "is_normal_form BFalse"
-  using eval_once_BFalseD is_normal_form.intros by blast
+definition is_normal_form :: "B_term \<Rightarrow> bool" where
+  "is_normal_form t \<longleftrightarrow> (\<forall>t'. \<not> eval_once t t')"
 
 lemma
   assumes
@@ -92,13 +81,14 @@ lemma not_eval_once_BTrue: "\<not> eval_once BTrue t"
 lemma not_eval_once_BFalse: "\<not> eval_once BFalse t"
   by (blast dest: eval_once_BFalseD)
 
+(* Theorem 3.5.4 *)
+
 theorem eval_single_determinacy:
   fixes t t' t'' :: B_term
   shows "eval_once t t' \<Longrightarrow> eval_once t t'' \<Longrightarrow> t' = t''"
 proof (induction t t' arbitrary: t'' rule: eval_once.induct)
   case (e_if_true t1 t2)
   thus ?case by (auto dest: eval_once_BTrueD elim: eval_once.cases)
-    (* by (auto simp: not_eval_once_BTrue elim: eval_once.cases) *)
 next
   case (e_if_false t1 t2)
   thus ?case by (auto simp: not_eval_once_BTrue elim: eval_once.cases)
@@ -107,34 +97,37 @@ next
   show ?case
     apply (rule eval_once.cases[OF e_if.prems])
     using e_if.hyps by (auto dest: eval_once_BTrueD eval_once_BFalseD e_if.IH)
-(*    using e_if.hyps apply (auto dest: eval_once_BTrueD)[1]
-     using e_if.hyps apply (auto dest: eval_once_BFalseD)[1]
-    apply auto
-    apply (rename_tac t1'')
-    apply (erule e_if.IH)
-    done *)
 qed
 
-theorem
+
+(* Theorem 3.5.7 *)
+
+theorem value_imp_normal_form:
   fixes t :: B_term
   shows "is_value t \<Longrightarrow> is_normal_form t"
-using eval_once_BFalseD eval_once_BTrueD is_normal_form.intros is_value.simps by fastforce
+  by (auto simp: is_normal_form_def elim: is_value.cases dest: eval_once_BTrueD eval_once_BFalseD)
 
-theorem
+
+(* Theorem 3.5.8 *)
+
+theorem normal_form_imp_value:
   fixes t :: B_term
   shows "is_normal_form t \<Longrightarrow> is_value t"
 proof (rule ccontr, induction t rule: B_term.induct)
-    case BTrue
-    thus ?case by (simp add: is_value.intros(1))
-  next
-    case BFalse
-    thus ?case by (simp add: is_value.intros(2))
-  next
-    case (BIf t1 t2 t3)
-    thus ?case by (metis e_if e_if_false e_if_true is_normal_form.cases is_normal_form.intros is_value.cases)
+  case BTrue
+  thus ?case by (simp add: is_value_BTrue)
+next
+  case BFalse
+  thus ?case by (simp add: is_value_BFalse)
+next
+  case (BIf t1 t2 t3)
+  thus ?case by (metis e_if e_if_false e_if_true is_normal_form_def is_value.cases)
 qed
 
-corollary
+
+(* Theorem 3.5.11 *)
+
+corollary uniqueness_of_normal_form:
   fixes t u u' :: B_term
   assumes
     "eval t u" and
@@ -147,13 +140,12 @@ unfolding eval_eq_eval'
 proof (induction t u rule: eval'.induct)
   case (e_base' t)
   thus ?case
-    by (metis eval'.cases is_normal_form.cases)
+    by (metis eval'.simps is_normal_form_def)
 next
   case (e_step' t t' t'')
   thus ?case
-    by (metis eval'.cases is_normal_form.cases eval_single_determinacy)
+    by (metis eval'.cases is_normal_form_def eval_single_determinacy)
 qed
-
 
 primrec size_B :: "B_term \<Rightarrow> nat" where
   "size_B BTrue = 1" |
@@ -188,7 +180,7 @@ theorem "\<exists>t'. eval t t' \<and> is_normal_form t'"
   apply (rule conjI)
   apply (rule e_base')
   apply assumption
-  apply (subst (asm) (2) is_normal_form.simps[simplified])
+  apply (subst (asm) (2) is_normal_form_def)
   apply simp
   apply (erule exE)
   using e_step' eval_once_size_B by blast
@@ -199,10 +191,10 @@ find_theorems "\<not> (\<forall>x. _)"
 theorem "\<exists>t'. eval t t' \<and> is_normal_form t'"
 proof (induction t)
   case BTrue
-  thus ?case using e_self is_normal_form_BTrue by auto
+  thus ?case using e_self is_value_BTrue value_imp_normal_form by auto
 next
   case BFalse
-  thus ?case using e_self is_normal_form_BFalse by auto
+  thus ?case using e_self is_value_BFalse value_imp_normal_form by auto
 next
   case (BIf t1 t2 t3)
   thus ?case
