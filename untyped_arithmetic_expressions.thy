@@ -152,19 +152,22 @@ primrec size_B :: "B_term \<Rightarrow> nat" where
   "size_B BFalse = 1" |
   "size_B (BIf t1 t2 t3) = size_B t1 + size_B t2 + size_B t3"
 
-lemma size_B_nz[simp]: "size_B t \<noteq> 0"
-  by (induct t) auto
+(* lemma size_B_nz[simp]: "size_B t \<noteq> 0"
+  by (induct t) auto *)
 
 lemma eval_once_size_B:
   assumes "eval_once t t'"
   shows "size_B t > size_B t'"
 using assms
 proof (induction rule: eval_once.induct)
-  case e_if_true thus ?case by simp
+  case e_if_true
+  thus ?case by simp
 next
-  case e_if_false thus ?case by simp
+  case e_if_false
+  thus ?case by simp
 next
-  case e_if thus ?case by simp
+  case e_if
+  thus ?case by simp
 qed
 
 
@@ -177,25 +180,8 @@ proof (induction rule: measure_induct_rule[of size_B])
   case (less t)
   show ?case
     apply (case_tac "is_normal_form t")
-    apply (rule_tac x = t in exI)
-    apply (rule conjI)
-    apply (rule e_base')
-    apply assumption
-    apply (subst (asm) (1) is_normal_form_def)
-    unfolding not_all not_not
-    apply (erule exE)
-    apply (frule eval_once_size_B)
-    apply (drule less.IH)
-    apply (erule exE)
-    apply (frule conjunct1)
-    apply (drule conjunct2)
-    apply (drule e_step')
-    apply assumption
-    apply (rule exI)
-    apply (rule conjI)
-    apply assumption
-    apply assumption
-    done
+    using e_base' apply blast
+    using e_step' is_normal_form_def eval_once_size_B less.IH by blast
 qed
 
 end
