@@ -168,42 +168,34 @@ next
 qed
 
 
-thm less_induct
-thm Nat.measure_induct_rule
+(* Theorem 3.5.12 *)
 
-theorem "\<exists>t'. eval t t' \<and> is_normal_form t'"
-  unfolding eval_eq_eval'
-  apply (induct rule: measure_induct_rule[of size_B])
-  apply (rename_tac t)
-  apply (case_tac "is_normal_form t")
-  apply (rule_tac x = t in exI)
-  apply (rule conjI)
-  apply (rule e_base')
-  apply assumption
-  apply (subst (asm) (2) is_normal_form_def)
-  apply simp
-  apply (erule exE)
-  using e_step' eval_once_size_B by blast
-
-find_theorems "\<not> (\<forall>x. _)"
-
-
-theorem "\<exists>t'. eval t t' \<and> is_normal_form t'"
-proof (induction t)
-  case BTrue
-  thus ?case using e_self is_value_BTrue value_imp_normal_form by auto
-next
-  case BFalse
-  thus ?case using e_self is_value_BFalse value_imp_normal_form by auto
-next
-  case (BIf t1 t2 t3)
-  thus ?case
-  apply (cases t1)
-    using e_if_true e_once e_transitive apply blast
-   using e_if_false e_once e_transitive apply blast
-   apply hypsubst
-   apply auto
+theorem eval_always_terminate:
+  "\<exists>t'. eval t t' \<and> is_normal_form t'"
+unfolding eval_eq_eval'
+proof (induction rule: measure_induct_rule[of size_B])
+  case (less t)
+  show ?case
+    apply (case_tac "is_normal_form t")
+    apply (rule_tac x = t in exI)
+    apply (rule conjI)
+    apply (rule e_base')
+    apply assumption
+    apply (subst (asm) (1) is_normal_form_def)
+    unfolding not_all not_not
+    apply (erule exE)
+    apply (frule eval_once_size_B)
+    apply (drule less.IH)
+    apply (erule exE)
+    apply (frule conjunct1)
+    apply (drule conjunct2)
+    apply (drule e_step')
+    apply assumption
+    apply (rule exI)
+    apply (rule conjI)
+    apply assumption
+    apply assumption
+    done
 qed
-
 
 end
