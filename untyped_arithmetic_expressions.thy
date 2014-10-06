@@ -221,4 +221,37 @@ proof (induction rule: measure_induct_rule[of size_B])
     using e_step' is_normal_form_def eval_once_size_B less.IH by blast
 qed
 
+
+(* Definitions Arithmetic expressions *)
+
+datatype NBTerm
+  = NBTrue
+  | NBFalse
+  | NBIf NBTerm NBTerm NBTerm
+  | NBZero
+  | NBSucc NBTerm
+  | NBPred NBTerm
+  | NBIs_zero NBTerm
+
+inductive is_numeric_value_NB :: "NBTerm \<Rightarrow> bool" where
+  is_numeric_value_NB_NBZero: "is_numeric_value_NB NBZero" |
+  is_numeric_value_NB_NBSucc: "is_numeric_value_NB nv \<Longrightarrow> is_numeric_value_NB (NBSucc nv)"
+
+inductive is_value_NB :: "NBTerm \<Rightarrow> bool" where
+  is_value_NB_NBTrue: "is_value_NB NBTrue" |
+  is_value_NB_NBFalse: "is_value_NB NBFalse" |
+  is_value_NB_numeric_value: "is_numeric_value_NB nv \<Longrightarrow> is_value_NB nv"
+
+inductive eval_once_NB :: "NBTerm \<Rightarrow> NBTerm \<Rightarrow> bool" where
+  eval_once_NBIf_NBTrue: "eval_once_NB (NBIf NBTrue t2 t3) t2" |
+  eval_once_NBIf_NBFalse: "eval_once_NB (NBIf NBFalse t2 t3) t3" |
+  eval_once_NBIf: "eval_once_NB t1 t1' \<Longrightarrow> eval_once_NB (NBIf t1 t2 t3) (NBIf t1' t2 t3)" |
+  eval_once_NBSucc: "eval_once_NB t1 t1' \<Longrightarrow> eval_once_NB (NBSucc t1) (NBSucc t1')" |
+  eval_once_NBPred_NBZero: "eval_once_NB (NBPred NBZero) NBZero" |
+  eval_once_NBPred_NBSucc: "is_numeric_value_NB nv1 \<Longrightarrow> eval_once_NB (NBPred (NBSucc nv1)) nv1" |
+  eval_once_NBPred: "eval_once_NB t1 t1' \<Longrightarrow> eval_once_NB (NBPred t1) (NBPred t1')" |
+  eval_once_NBIs_zero_NBZero: "eval_once_NB (NBIs_zero NBZero) NBTrue" |
+  eval_once_NBIs_zero_NBSucc: "is_numeric_value_NB nv1 \<Longrightarrow> eval_once_NB (NBIs_zero (NBSucc nv1)) NBFalse" |
+  eval_once_NBIs_zero: "eval_once_NB t1 t1' \<Longrightarrow> eval_once_NB (NBIs_zero t1) (NBIs_zero t1')"
+
 end
