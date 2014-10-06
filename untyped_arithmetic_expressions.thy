@@ -7,12 +7,64 @@ datatype B_term
   | BFalse
   | BIf B_term B_term B_term
 
+
+(* Definition 3.3.1 *)
+
+primrec consts_B :: "B_term \<Rightarrow> B_term set" where
+  "consts_B BTrue = {BTrue}" |
+  "consts_B BFalse = {BFalse}" |
+  "consts_B (BIf t1 t2 t3) = consts_B t1 \<union> consts_B t2 \<union> consts_B t3"
+
+
+(* Definition 3.3.2 *)
+
+primrec size_B :: "B_term \<Rightarrow> nat" where
+  "size_B BTrue = 1" |
+  "size_B BFalse = 1" |
+  "size_B (BIf t1 t2 t3) = size_B t1 + size_B t2 + size_B t3"
+
+primrec depth_B :: "B_term \<Rightarrow> nat" where
+  "depth_B BTrue = 1" |
+  "depth_B BFalse = 1" |
+  "depth_B (BIf t1 t2 t3) = 1 + max (depth_B t1) (max (depth_B t2) (depth_B t3))"
+
+
+(* Util *)
+
+lemma card_union_leq_sum_card: "card (A \<union> B) \<le> card A + card B"
+  by (cases "finite A \<and> finite B") (simp only: card_Un_Int, auto)
+
+(* Lemma 3.3.3 *)
+
+lemma "card (consts_B t) \<le> size_B t"
+proof (induction t)
+  case BTrue
+  show ?case by simp
+next
+  case BFalse
+  show ?case by simp
+next
+  case (BIf t1 t2 t3)
+  show ?case
+  proof -
+    let ?t1 = "consts_B t1"
+    let ?t2 = "consts_B t2"
+    let ?t3 = "consts_B t3"
+    have "card (?t1 \<union> ?t2 \<union> ?t3) \<le> card ?t1 + card ?t2 + card ?t3"
+      by (smt card_union_leq_sum_card add_le_imp_le_right le_antisym le_trans nat_le_linear)
+    also have "\<dots> \<le> size_B t1 + size_B t2 + size_B t3"
+      using BIf.IH by simp
+    finally show ?thesis by simp
+  qed
+qed
+
+(* Definitions: Booleans *)
+
 inductive is_value :: "B_term \<Rightarrow> bool" where
   is_value_BTrue: "is_value BTrue" |
   is_value_BFalse: "is_value BFalse"
 
 inductive_cases is_value_BIfD: "is_value (BIf t1 t2 t3)"
-
 
 inductive eval_once :: "B_term \<Rightarrow> B_term \<Rightarrow> bool" where
   e_if_true: "eval_once (BIf BTrue t2 t3) t2" |
@@ -21,7 +73,6 @@ inductive eval_once :: "B_term \<Rightarrow> B_term \<Rightarrow> bool" where
 
 inductive_cases eval_once_BTrueD: "eval_once BTrue t"
 inductive_cases eval_once_BFalseD: "eval_once BFalse t"
-
 
 inductive eval :: "B_term \<Rightarrow> B_term \<Rightarrow> bool" where
   e_once: "eval_once t t' \<Longrightarrow> eval t t'" |
@@ -36,13 +87,12 @@ lemma e_once': "eval_once t t' \<Longrightarrow> eval' t t'"
   by (simp add: e_base' e_step')
 
 lemma e_transitive': "eval' t t' \<Longrightarrow> eval' t' t'' \<Longrightarrow> eval' t t''"
-  using assms proof (induction t t' arbitrary: t'' rule: eval'.induct)
-    case (e_base' t t'') thus ?case .
-  next
-    case (e_step' t t' t'' t''')
-    thus ?case
-      using eval'.e_step' by blast
-  qed
+proof (induction t t' arbitrary: t'' rule: eval'.induct)
+  case (e_base' t t'') thus ?case .
+next
+  case (e_step' t t' t'' t''')
+  thus ?case using eval'.e_step' by blast
+qed
 
 lemma eval_eq_eval': "eval = eval'"
   apply (rule ext)+
@@ -60,6 +110,9 @@ lemma eval_eq_eval': "eval = eval'"
 definition is_normal_form :: "B_term \<Rightarrow> bool" where
   "is_normal_form t \<longleftrightarrow> (\<forall>t'. \<not> eval_once t t')"
 
+
+(* Example of definition 3.5.3 *)
+
 lemma
   assumes
     s: "s = BIf BTrue BFalse BFalse" and
@@ -67,19 +120,10 @@ lemma
     u: "u = BIf BFalse BTrue BTrue"
   shows "eval_once (BIf t BFalse BFalse) (BIf u BFalse BFalse)"
 proof -
-  have "eval_once s BFalse"
-    unfolding s by (rule e_if_true)
-  hence "eval_once t u"
-    unfolding t u by (rule e_if)
-  thus ?thesis
-    by (rule e_if)
+  have "eval_once s BFalse" unfolding s by (rule e_if_true)
+  hence "eval_once t u" unfolding t u by (rule e_if)
+  thus ?thesis by (rule e_if)
 qed
-
-lemma not_eval_once_BTrue: "\<not> eval_once BTrue t"
-  by (blast dest: eval_once_BTrueD)
-
-lemma not_eval_once_BFalse: "\<not> eval_once BFalse t"
-  by (blast dest: eval_once_BFalseD)
 
 (* Theorem 3.5.4 *)
 
@@ -88,10 +132,10 @@ theorem eval_single_determinacy:
   shows "eval_once t t' \<Longrightarrow> eval_once t t'' \<Longrightarrow> t' = t''"
 proof (induction t t' arbitrary: t'' rule: eval_once.induct)
   case (e_if_true t1 t2)
-  thus ?case by (auto dest: eval_once_BTrueD elim: eval_once.cases)
+  thus ?case by (auto elim: eval_once.cases)
 next
   case (e_if_false t1 t2)
-  thus ?case by (auto simp: not_eval_once_BTrue elim: eval_once.cases)
+  thus ?case by (auto elim: eval_once.cases)
 next
   case (e_if t1 t1' t2 t3)
   show ?case
@@ -105,7 +149,7 @@ qed
 theorem value_imp_normal_form:
   fixes t :: B_term
   shows "is_value t \<Longrightarrow> is_normal_form t"
-  by (auto simp: is_normal_form_def elim: is_value.cases dest: eval_once_BTrueD eval_once_BFalseD)
+by (auto simp: is_normal_form_def elim: is_value.cases dest: eval_once_BTrueD eval_once_BFalseD)
 
 
 (* Theorem 3.5.8 *)
@@ -125,7 +169,7 @@ next
 qed
 
 
-(* Theorem 3.5.11 *)
+(* Corollary 3.5.11 *)
 
 corollary uniqueness_of_normal_form:
   fixes t u u' :: B_term
@@ -139,21 +183,14 @@ using assms
 unfolding eval_eq_eval'
 proof (induction t u rule: eval'.induct)
   case (e_base' t)
-  thus ?case
-    by (metis eval'.simps is_normal_form_def)
+  thus ?case by (metis eval'.simps is_normal_form_def)
 next
   case (e_step' t t' t'')
-  thus ?case
-    by (metis eval'.cases is_normal_form_def eval_single_determinacy)
+  thus ?case by (metis eval'.cases is_normal_form_def eval_single_determinacy)
 qed
 
-primrec size_B :: "B_term \<Rightarrow> nat" where
-  "size_B BTrue = 1" |
-  "size_B BFalse = 1" |
-  "size_B (BIf t1 t2 t3) = size_B t1 + size_B t2 + size_B t3"
 
-(* lemma size_B_nz[simp]: "size_B t \<noteq> 0"
-  by (induct t) auto *)
+(* Util *)
 
 lemma eval_once_size_B:
   assumes "eval_once t t'"
