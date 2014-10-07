@@ -326,4 +326,14 @@ next
       elim: not_eval_once_numeric_value[rotated] is_numeric_value_NBSucc)
 qed
 
+
+(* Theorem 3.5.7 for Arithmetic Expressions *)
+
+theorem value_imp_normal_form_NB:
+  "is_value_NB t \<Longrightarrow> is_normal_form_NB t"
+  by (auto
+    simp: is_normal_form_NB_def
+    elim: is_value_NB.cases
+    dest: eval_once_NBFalseD eval_once_NBTrueD not_eval_once_numeric_value)
+
 end
