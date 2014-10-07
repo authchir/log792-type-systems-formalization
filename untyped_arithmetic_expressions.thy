@@ -336,4 +336,16 @@ theorem value_imp_normal_form_NB:
     elim: is_value_NB.cases
     dest: eval_once_NBFalseD eval_once_NBTrueD not_eval_once_numeric_value)
 
+
+(* Theorem 3.5.8 does not hold for Arithmetic Expressions *)
+
+theorem "\<exists>t. is_normal_form_NB t \<and> \<not> is_value_NB t" (is "\<exists>t. ?P t")
+proof
+  have a: "is_normal_form_NB (NBSucc NBTrue)"
+    by (auto elim: eval_once_NB.cases simp: is_normal_form_NB_def)
+  have b: "\<not> is_value_NB (NBSucc NBTrue)"
+    by (auto elim: is_numeric_value_NB.cases simp: is_value_NB.simps)
+  from a b show "?P (NBSucc NBTrue)" by simp
+qed
+
 end
