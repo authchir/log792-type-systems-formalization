@@ -125,6 +125,7 @@ proof -
   thus ?thesis by (rule e_if)
 qed
 
+
 (* Theorem 3.5.4 *)
 
 theorem eval_single_determinacy:
@@ -222,7 +223,7 @@ proof (induction rule: measure_induct_rule[of size_B])
 qed
 
 
-(* Definitions Arithmetic expressions *)
+(* Definitions: Arithmetic Expressions *)
 
 datatype NBTerm
   = NBTrue
@@ -234,12 +235,12 @@ datatype NBTerm
   | NBIs_zero NBTerm
 
 inductive is_numeric_value_NB :: "NBTerm \<Rightarrow> bool" where
-  is_numeric_value_NB_NBZero: "is_numeric_value_NB NBZero" |
-  is_numeric_value_NB_NBSucc: "is_numeric_value_NB nv \<Longrightarrow> is_numeric_value_NB (NBSucc nv)"
+  is_numeric_value_NBZero: "is_numeric_value_NB NBZero" |
+  is_numeric_value_NBSucc: "is_numeric_value_NB nv \<Longrightarrow> is_numeric_value_NB (NBSucc nv)"
 
 inductive is_value_NB :: "NBTerm \<Rightarrow> bool" where
-  is_value_NB_NBTrue: "is_value_NB NBTrue" |
-  is_value_NB_NBFalse: "is_value_NB NBFalse" |
+  is_value_NBTrue: "is_value_NB NBTrue" |
+  is_value_NBFalse: "is_value_NB NBFalse" |
   is_value_NB_numeric_value: "is_numeric_value_NB nv \<Longrightarrow> is_value_NB nv"
 
 inductive eval_once_NB :: "NBTerm \<Rightarrow> NBTerm \<Rightarrow> bool" where
@@ -253,5 +254,76 @@ inductive eval_once_NB :: "NBTerm \<Rightarrow> NBTerm \<Rightarrow> bool" where
   eval_once_NBIs_zero_NBZero: "eval_once_NB (NBIs_zero NBZero) NBTrue" |
   eval_once_NBIs_zero_NBSucc: "is_numeric_value_NB nv1 \<Longrightarrow> eval_once_NB (NBIs_zero (NBSucc nv1)) NBFalse" |
   eval_once_NBIs_zero: "eval_once_NB t1 t1' \<Longrightarrow> eval_once_NB (NBIs_zero t1) (NBIs_zero t1')"
+
+inductive_cases eval_once_NBTrueD: "eval_once_NB NBTrue t"
+inductive_cases eval_once_NBFalseD: "eval_once_NB NBFalse t"
+inductive_cases eval_once_NBZeroD: "eval_once_NB NBZero t"
+
+lemma not_eval_once_numeric_value: "is_numeric_value_NB nv \<Longrightarrow> eval_once_NB nv t \<Longrightarrow> P"
+proof (induction nv arbitrary: t rule: is_numeric_value_NB.induct)
+  case is_numeric_value_NBZero
+  thus ?case by (auto elim: eval_once_NB.cases)
+next
+  case is_numeric_value_NBSucc
+  show ?case
+    by (auto 
+      intro: is_numeric_value_NBSucc.prems[THEN eval_once_NB.cases]
+      elim: is_numeric_value_NBSucc.IH)
+qed
+
+
+(* Theorem 3.5.4 for Arithmetic Expressions *)
+
+theorem eval_once_NB:
+  fixes t t' t'' :: NBTerm
+  shows "eval_once_NB t t' \<Longrightarrow> eval_once_NB t t'' \<Longrightarrow> t' = t''"
+proof (induction t t' arbitrary: t'' rule: eval_once_NB.induct)
+  case (eval_once_NBIf_NBTrue t1 t2)
+  thus ?case by (auto elim: eval_once_NB.cases)
+next
+  case (eval_once_NBIf_NBFalse t1 t2)
+  thus ?case by (auto elim: eval_once_NB.cases)
+next
+  case (eval_once_NBIf t1 t1' t2 t3)
+  from eval_once_NBIf.prems eval_once_NBIf.hyps show ?case
+    by (auto
+      intro: eval_once_NB.cases
+      dest: eval_once_NBTrueD eval_once_NBFalseD eval_once_NBIf.IH)
+next
+  case (eval_once_NBSucc t1 t2)
+  from eval_once_NBSucc.prems eval_once_NBSucc.IH show ?case
+    by (auto elim: eval_once_NB.cases)
+next
+  case eval_once_NBPred_NBZero
+  thus ?case by (auto intro: eval_once_NB.cases dest: eval_once_NBZeroD)
+next
+  case (eval_once_NBPred_NBSucc nv1)
+  show ?case
+    apply (rule eval_once_NBPred_NBSucc.prems[THEN eval_once_NB.cases])
+    using eval_once_NBPred_NBSucc.hyps
+    by (auto elim: is_numeric_value_NBSucc not_eval_once_numeric_value[rotated])
+next
+  case (eval_once_NBPred t1 t2)
+  show ?case
+    apply (rule eval_once_NBPred.prems[THEN eval_once_NB.cases])
+    using eval_once_NBPred.hyps is_numeric_value_NBZero
+    by (auto intro: eval_once_NBPred.IH dest: not_eval_once_numeric_value is_numeric_value_NBSucc)
+next
+  case eval_once_NBIs_zero_NBZero
+  thus ?case
+    by (auto intro: eval_once_NB.cases dest: eval_once_NBZeroD)
+next
+  case (eval_once_NBIs_zero_NBSucc nv)
+  thus ?case
+    by (auto intro: eval_once_NB.cases not_eval_once_numeric_value dest: is_numeric_value_NBSucc)
+next
+  case (eval_once_NBIs_zero t1 t2)
+  show ?case
+    apply (rule eval_once_NBIs_zero.prems[THEN eval_once_NB.cases])
+    using eval_once_NBIs_zero.hyps
+    by (auto
+      intro: eval_once_NBZeroD eval_once_NBIs_zero.IH
+      elim: not_eval_once_numeric_value[rotated] is_numeric_value_NBSucc)
+qed
 
 end
