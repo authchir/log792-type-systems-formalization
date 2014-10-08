@@ -255,6 +255,27 @@ inductive eval_once_NB :: "NBTerm \<Rightarrow> NBTerm \<Rightarrow> bool" where
   eval_once_NBIs_zero_NBSucc: "is_numeric_value_NB nv1 \<Longrightarrow> eval_once_NB (NBIs_zero (NBSucc nv1)) NBFalse" |
   eval_once_NBIs_zero: "eval_once_NB t1 t1' \<Longrightarrow> eval_once_NB (NBIs_zero t1) (NBIs_zero t1')"
 
+inductive eval_NB :: "NBTerm \<Rightarrow> NBTerm \<Rightarrow> bool" where
+  eval_NB_base: "eval_NB t t" |
+  eval_NB_step: "eval_once_NB t t' \<Longrightarrow> eval_NB t' t'' \<Longrightarrow> eval_NB t t''"
+
+definition is_normal_form_NB :: "NBTerm \<Rightarrow> bool" where
+  "is_normal_form_NB t \<longleftrightarrow> (\<forall>t'. \<not> eval_once_NB t t')"
+
+(* Usefull lemmas *)
+
+lemma eval_once_NB_impl_eval_NB: "eval_once_NB t t' \<Longrightarrow> eval_NB t t'"
+  by (simp add: eval_NB_step eval_NB_base)
+
+lemma eval_NB_transitive: "eval_NB t t' \<Longrightarrow> eval_NB t' t'' \<Longrightarrow> eval_NB t t''"
+proof (induction t t' arbitrary: t'' rule: eval_NB.induct)
+  case (eval_NB_base t t')
+  thus ?case .
+next
+  case (eval_NB_step t1 t2 t3)
+  thus ?case using eval_NB.eval_NB_step by blast
+qed
+
 inductive_cases eval_once_NBTrueD: "eval_once_NB NBTrue t"
 inductive_cases eval_once_NBFalseD: "eval_once_NB NBFalse t"
 inductive_cases eval_once_NBZeroD: "eval_once_NB NBZero t"
@@ -346,6 +367,26 @@ proof
   have b: "\<not> is_value_NB (NBSucc NBTrue)"
     by (auto elim: is_numeric_value_NB.cases simp: is_value_NB.simps)
   from a b show "?P (NBSucc NBTrue)" by simp
+qed
+
+
+(* Corollary 3.5.11 for Arithmetic Expressions *)
+
+corollary uniqueness_of_normal_form_NB:
+  assumes
+    "eval_NB t u" and
+    "eval_NB t u'" and
+    "is_normal_form_NB u" and
+    "is_normal_form_NB u'"
+  shows "u = u'"
+using assms
+proof (induction t u rule: eval_NB.induct)
+  print_cases
+  case (eval_NB_base t)
+  thus ?case by (metis eval_NB.simps is_normal_form_NB_def)
+next
+  case (eval_NB_step t1 t2 t3)
+  thus ?case by (metis eval_NB.cases is_normal_form_NB_def eval_once_NB_right_unique)
 qed
 
 end
