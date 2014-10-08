@@ -21,7 +21,7 @@ primrec consts_B :: "B_term \<Rightarrow> B_term set" where
 primrec size_B :: "B_term \<Rightarrow> nat" where
   "size_B BTrue = 1" |
   "size_B BFalse = 1" |
-  "size_B (BIf t1 t2 t3) = size_B t1 + size_B t2 + size_B t3"
+  "size_B (BIf t1 t2 t3) = 1 + size_B t1 + size_B t2 + size_B t3"
 
 primrec depth_B :: "B_term \<Rightarrow> nat" where
   "depth_B BTrue = 1" |
@@ -234,6 +234,15 @@ datatype NBTerm
   | NBPred NBTerm
   | NBIs_zero NBTerm
 
+primrec size_NB :: "NBTerm \<Rightarrow> nat" where
+  "size_NB NBTrue = 1" |
+  "size_NB NBFalse = 1" |
+  "size_NB NBZero = 1" |
+  "size_NB (NBSucc t) = 1 + size_NB t" |
+  "size_NB (NBPred t) = 1 + size_NB t" |
+  "size_NB (NBIs_zero t) = 1 + size_NB t" |
+  "size_NB (NBIf t1 t2 t3) = 1 + size_NB t1 + size_NB t2 + size_NB t3"
+
 inductive is_numeric_value_NB :: "NBTerm \<Rightarrow> bool" where
   is_numeric_value_NBZero: "is_numeric_value_NB NBZero" |
   is_numeric_value_NBSucc: "is_numeric_value_NB nv \<Longrightarrow> is_numeric_value_NB (NBSucc nv)"
@@ -295,7 +304,7 @@ qed
 
 (* Theorem 3.5.4 for Arithmetic Expressions *)
 
-theorem eval_once_NB:
+theorem eval_once_NB_right_unique:
   fixes t t' t'' :: NBTerm
   shows "eval_once_NB t t' \<Longrightarrow> eval_once_NB t t'' \<Longrightarrow> t' = t''"
 proof (induction t t' arbitrary: t'' rule: eval_once_NB.induct)
@@ -387,6 +396,23 @@ proof (induction t u rule: eval_NB.induct)
 next
   case (eval_NB_step t1 t2 t3)
   thus ?case by (metis eval_NB.cases is_normal_form_NB_def eval_once_NB_right_unique)
+qed
+
+
+(* Theorem 3.5.12 for Arithmetic Expressions *)
+
+lemma eval_once_size_NB:
+  "eval_once_NB t t' \<Longrightarrow> size_NB t > size_NB t'"
+by (induction rule: eval_once_NB.induct) auto
+
+theorem eval_NB_always_terminate:
+  "\<exists>t'. eval_NB t t' \<and> is_normal_form_NB t'"
+proof (induction rule: measure_induct_rule[of size_NB])
+  case (less t)
+  show ?case
+    apply (case_tac "is_normal_form_NB t")
+    using eval_NB_base apply blast
+    using eval_NB_step eval_once_size_NB is_normal_form_NB_def less.IH by blast
 qed
 
 end
