@@ -1,6 +1,12 @@
-theory untyped_arithmetic_expressions
+(*<*)
+theory untyped_arithmetic_expressions (* Untyped_Arithmetic_Expressions *)
 imports Main
 begin
+(*>*)
+
+section {* Boolean Expressions *}
+
+text {* Blah goes here *}
 
 datatype B_term
   = BTrue
@@ -8,7 +14,7 @@ datatype B_term
   | BIf B_term B_term B_term
 
 
-(* Definition 3.3.1 *)
+text {* Definition 3.3.1 by primitive recursion on @{typ B_term} *}
 
 primrec consts_B :: "B_term \<Rightarrow> B_term set" where
   "consts_B BTrue = {BTrue}" |
@@ -94,6 +100,8 @@ next
   thus ?case using eval'.e_step' by blast
 qed
 
+
+(* rewrite as an Isar proof *)
 lemma eval_eq_eval': "eval = eval'"
   apply (rule ext)+
   apply (rule iffI)
@@ -103,6 +111,7 @@ lemma eval_eq_eval': "eval = eval'"
     apply (rule e_base')
    apply (erule e_transitive')
    apply assumption
+
   apply (erule eval'.induct)
    apply (rule e_self)
   using e_once e_transitive by blast
@@ -217,7 +226,7 @@ unfolding eval_eq_eval'
 proof (induction rule: measure_induct_rule[of size_B])
   case (less t)
   show ?case
-    apply (case_tac "is_normal_form t")
+    apply (cases "is_normal_form t")
     using e_base' apply blast
     using e_step' is_normal_form_def eval_once_size_B less.IH by blast
 qed
@@ -334,10 +343,12 @@ next
     by (auto elim: is_numeric_value_NBSucc not_eval_once_numeric_value[rotated])
 next
   case (eval_once_NBPred t1 t2)
-  show ?case
-    apply (rule eval_once_NBPred.prems[THEN eval_once_NB.cases])
-    using eval_once_NBPred.hyps is_numeric_value_NBZero
-    by (auto intro: eval_once_NBPred.IH dest: not_eval_once_numeric_value is_numeric_value_NBSucc)
+  from eval_once_NBPred.hyps eval_once_NBPred.prems show ?case
+    using  is_numeric_value_NBZero
+    by (auto
+      intro: eval_once_NBPred.IH
+      elim: eval_once_NB.cases
+      dest: not_eval_once_numeric_value is_numeric_value_NBSucc)
 next
   case eval_once_NBIs_zero_NBZero
   thus ?case
@@ -369,7 +380,7 @@ theorem value_imp_normal_form_NB:
 
 (* Theorem 3.5.8 does not hold for Arithmetic Expressions *)
 
-theorem "\<exists>t. is_normal_form_NB t \<and> \<not> is_value_NB t" (is "\<exists>t. ?P t")
+theorem not_normal_form_imp_value_NB: "\<exists>t. is_normal_form_NB t \<and> \<not> is_value_NB t" (is "\<exists>t. ?P t")
 proof
   have a: "is_normal_form_NB (NBSucc NBTrue)"
     by (auto elim: eval_once_NB.cases simp: is_normal_form_NB_def)
@@ -390,7 +401,6 @@ corollary uniqueness_of_normal_form_NB:
   shows "u = u'"
 using assms
 proof (induction t u rule: eval_NB.induct)
-  print_cases
   case (eval_NB_base t)
   thus ?case by (metis eval_NB.simps is_normal_form_NB_def)
 next
@@ -415,4 +425,6 @@ proof (induction rule: measure_induct_rule[of size_NB])
     using eval_NB_step eval_once_size_NB is_normal_form_NB_def less.IH by blast
 qed
 
+(*<*)
 end
+(*>*)
