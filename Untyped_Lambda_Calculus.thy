@@ -98,4 +98,31 @@ next
     by (simp add: n_term.n_term_App)
 qed
 
+text {* Single step evaluation *}
+
+inductive is_value :: "Term \<Rightarrow> bool" where
+  "is_value (Abs t)"
+
+inductive eval_once :: "Term \<Rightarrow> Term \<Rightarrow> bool" where
+  eval_once_App1: "eval_once t1 t1' \<Longrightarrow> eval_once (App t1 t2) (App t1' t2)" |
+  eval_once_App2: "is_value v1 \<Longrightarrow> eval_once t2 t2' \<Longrightarrow> eval_once (App v1 t2) (App v1 t2')" |
+  eval_once_App_Abs: "is_value v2 \<Longrightarrow> eval_once (App (Abs t12) v2) (shift (-1) 0 (subst 0 (shift 1 0 v2) t12))"
+
+text {* Theorem 3.5.4 for Untyped Lambda Calculus *}
+
+theorem "eval_once t t' \<Longrightarrow> eval_once t t'' \<Longrightarrow> t' = t''"
+proof (induction t t' arbitrary: t'' rule: eval_once.induct)
+  case (eval_once_App1 t1 t1' t2)
+  from eval_once_App1.hyps eval_once_App1.prems show ?case
+    by (auto elim: eval_once.cases is_value.cases intro: eval_once_App1.IH)
+next
+  case (eval_once_App2 t1 t2 t2')
+  from eval_once_App2.hyps eval_once_App2.prems show ?case
+    by (auto elim: eval_once.cases is_value.cases intro: eval_once_App2.IH)
+next
+  case (eval_once_App_Abs v2 t12)
+  from eval_once_App_Abs.prems eval_once_App_Abs.hyps show ?case
+    by (auto elim: eval_once.cases simp: is_value.simps)
+qed
+
 end
