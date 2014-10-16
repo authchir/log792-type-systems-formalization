@@ -148,4 +148,28 @@ proof
   from a b show "?P (Var 0)" by simp
 qed
 
+text {* Multistep evaluation *}
+
+inductive eval :: "Term \<Rightarrow> Term \<Rightarrow> bool" where
+  eval_base: "eval t t" |
+  eval_step: "eval_once t t' \<Longrightarrow> eval t' t'' \<Longrightarrow> eval t t''"
+
+text {* Corollary 3.5.11 for Untyped Lambda Calculus *}
+
+corollary uniqueness_of_normal_form:
+  assumes
+    "eval t u" and
+    "eval t u'" and
+    "is_normal_form u" and
+    "is_normal_form u'"
+  shows "u = u'"
+using assms
+proof (induction t u rule: eval.induct)
+  case (eval_base t)
+  thus ?case by (metis eval.simps is_normal_form_def)
+next
+  case (eval_step t1 t2 t3)
+  thus ?case by (metis eval.cases is_normal_form_def eval_once_right_unique)
+qed
+
 end
