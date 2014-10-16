@@ -172,4 +172,32 @@ next
   thus ?case by (metis eval.cases is_normal_form_def eval_once_right_unique)
 qed
 
+(* Theorem 3.5.12 does not hold for Untyped Lambda calculus *)
+
+lemma eval_once_VarD: "eval_once (Var x) t \<Longrightarrow> P"
+  by (induction "Var x" t rule: eval_once.induct)
+
+lemma eval_once_AbsD: "eval_once (Abs x) t \<Longrightarrow> P"
+  by (induction "Abs x" t rule: eval_once.induct)
+
+theorem eval_does_not_always_terminate:
+  "\<exists>t. \<forall>t'. eval t t' \<longrightarrow> \<not> is_normal_form t'" (is "\<exists>t. \<forall>t'. ?P t t'")
+proof
+  let ?\<omega> = "Abs (App (Var 0) (Var 0))"
+  let ?\<Omega> = "App ?\<omega> ?\<omega>"
+  { fix t
+    have "eval_once ?\<Omega> t \<Longrightarrow> ?\<Omega> = t"
+      by (induction ?\<Omega> t rule: eval_once.induct) (auto elim: eval_once_AbsD)
+  } note eval_once_\<Omega> = this
+  { fix t
+    have eval_\<Omega>: "eval ?\<Omega> t \<Longrightarrow> ?\<Omega> = t"
+      by (induction ?\<Omega> t rule: eval.induct) (blast dest: eval_once_\<Omega>)+
+  } note eval_\<Omega> = this
+  show "\<forall>t'. ?P ?\<Omega> t'"
+    by (auto
+      simp: is_normal_form_def
+      intro: eval_once_App_Abs is_value.intros
+      dest!: eval_\<Omega>)
+qed
+
 end
