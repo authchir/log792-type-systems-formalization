@@ -110,7 +110,8 @@ inductive eval_once :: "Term \<Rightarrow> Term \<Rightarrow> bool" where
 
 text {* Theorem 3.5.4 for Untyped Lambda Calculus *}
 
-theorem "eval_once t t' \<Longrightarrow> eval_once t t'' \<Longrightarrow> t' = t''"
+theorem eval_once_right_unique:
+  "eval_once t t' \<Longrightarrow> eval_once t t'' \<Longrightarrow> t' = t''"
 proof (induction t t' arbitrary: t'' rule: eval_once.induct)
   case (eval_once_App1 t1 t1' t2)
   from eval_once_App1.hyps eval_once_App1.prems show ?case
@@ -124,5 +125,15 @@ next
   from eval_once_App_Abs.prems eval_once_App_Abs.hyps show ?case
     by (auto elim: eval_once.cases simp: is_value.simps)
 qed
+
+text {* Definition 3.5.6 for Untyped Lambda Calculus *}
+
+definition is_normal_form :: "Term \<Rightarrow> bool" where
+  "is_normal_form t \<longleftrightarrow> (\<forall>t'. \<not> eval_once t t')"
+
+text {* Theorem 3.5.7 for Untyped Lambda Calculus *}
+
+theorem value_imp_normal_form: "is_value t \<Longrightarrow> is_normal_form t"
+  by (auto elim: is_value.cases eval_once.cases simp: is_normal_form_def)
 
 end
