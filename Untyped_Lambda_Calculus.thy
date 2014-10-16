@@ -136,4 +136,16 @@ text {* Theorem 3.5.7 for Untyped Lambda Calculus *}
 theorem value_imp_normal_form: "is_value t \<Longrightarrow> is_normal_form t"
   by (auto elim: is_value.cases eval_once.cases simp: is_normal_form_def)
 
+text {* Theorem 3.5.8 does not hold for Untyped Lambda calculus *}
+
+theorem normal_form_does_not_imp_value:
+  "\<exists>t. is_normal_form t \<and> \<not> is_value t" (is "\<exists>t. ?P t")
+proof
+  have a: "is_normal_form (Var 0)"
+    by (auto simp: is_normal_form_def elim: eval_once.cases)
+  have b: "\<not> is_value (Var 0)"
+    by (auto simp: is_normal_form_def dest: is_value.cases)
+  from a b show "?P (Var 0)" by simp
+qed
+
 end
