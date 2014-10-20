@@ -284,6 +284,68 @@ un projet ambitieux, un certain nombre d'actions pourraient être entreprises si
     solveurs de « satisfaisabilité modulo théories ».
 \end{description}
 
+\section{Sommaire des travaux réalisés et recommandations}
+
+\subsection{Sommaire des traveaux réalisés}
+
+% Décrivez ce que vous avez réalisé à ce jour, en vous référant à la section 5 et à l’annexe A.
+% Joignez en annexe les livrables préliminaires qui ont été produits à ce stade du projet, par
+% exemple un document de vision, un document des spécifications, etc. Vous devez démontrer une
+% progression appréciable depuis la proposition.
+
+% Lors de la remise de la proposition de projet, les éléments 1, 1.1 et 2 du plan de travail étaient
+% déjà complétés. Depuis lors, les éléments 2.1, 2.2.*, 3 et 3.2.* ont aussi été complétés.
+
+Au cours de la première partie de ce projet, le travail d'apprentissage et la formalisation des deux
+premiers chapitres du livre de référence ont été complétés. La liste exhaustive des activitées
+réalisés se trouve dans la plan de travail à l'annexe~A.
+
+\subsubsection{Apprentissage de la formalisation avec Isabelle/HOL}
+
+La réalisation la plus importante fut certainement d'apprendre les bases du processus de
+formalisation et du fonctionnement de l'assistant de preuve.
+
+Lors d'une formalisation, la décision la plus importante à prendre est celle de la représentation
+des concepts manipulés. Dans le case présent, un type inductif est utilisé pour représenter la
+synthaxe abstraite du langage, des fonctions à récursion primitive pour certaines manipulations
+mineures et des définitions inductives pour les relations d'évaluation. En Isabelle/HOL ces
+définitions sont introduites respectivement avec les commandes \texttt{datatype}, \texttt{primrec}
+et \texttt{inductive}.
+
+Une fois les définitions de base mises en place, prouver les différents théorèmes nécessita
+d'apprendre la notation Isabelle/Isar qui est utilisé pour écrire des preuves lisibles à la fois par
+l'ordinateur et l'utilisateur.
+
+\subsubsection{Expressions arithmétiques non-typés}
+
+Ce chapitre contient deux languages : le premier permet de représenter des expressions booléennes
+(i.e. vrai, faux et conditions) et le second, en plus des expressions booléennes, des expressions
+numériques (i.e. zéro, incrémenter, décrémenter et tester l'égalité avec zéro). Dans les deux cas,
+la formalisation consiste à définir le langage, les règles d'évaluations et prouvers certains
+théorèmes de la relation d'évaluation tels que la transitivité, l'univalence, la terminaison, etc.
+
+\subsubsection{Le lambda-calcul non typé}
+
+Ce chapitre contient la définition minimale du $\lambda$-calcul : variable, abstraction de fonction
+et application de fonction. La formalisation prend la même forme que pour les expressions
+arithmétiques non typés et, lorsque possible, les mêmes théorèmes sont prouvés. Cependant, certaines
+propriétés qui étaient vrai pour les autres langages à l'étude ne le sont pas pour le
+$\lambda$-calcul simplement typé (e.g. la terminaison de l'évaluation). Dans ces situations, une
+preuve que la propriété ne tient pas été développée.
+
+\subsection{Recommandations}
+
+% Énumérez vos recommandations par rapport au projet : indiquez ce qu’il reste à réaliser et comment
+% il est prévu de le réaliser, indiquez s’il y a de nouvelles exigences qui pourraient s’ajouter et
+% comment elles pourraient être réalisées, faut-il en réduire ou étendre la portée? Changer
+% d’approche? Etc.
+
+Au vu du temps et du travail qui fut nécessaire pour formaliser les deux premier chapitre, les
+objectifs du projet sont raisonnables et ne nécessitent pas d'être modifiés; La formalisation des
+deux derniers chapitres devraient ressembler aux précédents. Il est recommendable que la majorité
+des ressources soit investi dans la rédaction du rapport et l'intégration des formalisations à
+celui-ci.
+
 \section{Livrables et planification}
 
 \subsection{Description des artéfacts}
