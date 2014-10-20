@@ -2,7 +2,7 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage[canadien]{babel}
+\usepackage[main=canadien, english]{babel}
 \usepackage{float}
 \usepackage[inline]{enumitem}
 \usepackage{pdflscape}
@@ -274,8 +274,8 @@ un projet ambitieux, un certain nombre d'actions pourraient être entreprises si
 
 \begin{description}
   \item[Isabelle] Système générique pour l'implémentation de formalismes logiques.
-  \item[Isabelle/HOL] Spécialisation d'Isabelle pour la logique d'ordre supérieur (\emph{Higher
-    Order Logic} en anglais).
+  \item[Isabelle/HOL] Spécialisation d'Isabelle pour la logique d'ordre supérieur
+    (\emph{Higher-Order Logic} en anglais).
   \item[Isabelle/Isar] Langage structuré permettant d'écrire des preuves plus lisibles.
   \item[Isabelle/jEdit] Environement de développement intégré pour Isabelle basé sur l'éditeur
     jEdit.
@@ -399,6 +399,57 @@ proposition de projet, les modifications suivantes ont été apportées :
 \nocite{*}
 \bibliographystyle{alpha}
 \bibliography{bibliography}
+
+\section{Table des matières du rapport}
+
+\emph{Sur recommendation du directeur du département de génie logiciel et des TI, monsieur Jean-Marc
+Robert, le doyen des études, monsieur Pierre Bourque, a autorisé que la rédaction du rapport soit
+effectuée en anglais.}
+
+\begin{otherlanguage}{english}
+  This section discusses a possible thesis outline. It consists of seven main sections: three to
+  introduce reader to the formalization of type systems and four containing the proper formlizations.
+
+  \begin{enumerate}[label=\textbf{\Roman*}]
+    \item \textbf{Introduction}
+      \begin{enumerate}[label=\textbf{\arabic*}]
+        \item \textbf{Introduction to Type Systems} ~ \\
+          This section will provide a brief introduction to type systems, their history, current use
+          and possible future directions.
+        \item \textbf{Introduction to Formalization} ~ \\
+          This section will provide a brief introduction to logic, formal reasoning and formalization.
+        \item \textbf{Introduction to Isabelle} ~ \\
+          This section will provide a brief introduction to the Isabelle/HOL: a proof
+          assistant based on higher-order logic.
+      \end{enumerate}
+    \item \textbf{Untyped Systems}
+      \begin{enumerate}[label=\textbf{\arabic*}]
+        \setcounter{enumii}{3}
+        \item \textbf{Untyped Arithmetic Expression} ~ \\
+          This section will present the formalization of the language introduced in the Chapter 3 of
+          the reference book. It will consist of the definitions and theorems defining the formal
+          system.
+        \item \textbf{Untyped Lambda Calculus} ~ \\
+          This section will present the formalization of the language introduced in the Chapter 5 of
+          the reference book. It will consist of the definitions and theorems defining the formal
+          system. It will also feature a brief introduction to the $\lambda$-calculus and its relation
+          to programming language theory.
+      \end{enumerate}
+    \item \textbf{Simple Types}
+      \begin{enumerate}[label=\textbf{\arabic*}]
+        \setcounter{enumii}{5}
+        \item \textbf{Typed Arithmetic Expressions} ~ \\
+          This section will present the formalization of the language introduced in the Chapter 8 of
+          the reference book. It will consist of the definitions and theorems defining the formal
+          system.
+        \item \textbf{Simply Typed Lambda Calulus} ~ \\
+          This section will present the formalization of the language introduced in the Chapter 9 of
+          the reference book. It will consist of the definitions and theorems defining the formal
+          system.
+      \end{enumerate}
+    \item \textbf{conclusion}
+  \end{enumerate}
+\end{otherlanguage}
 
 \newgeometry{margin=2.5cm}
 \begin{landscape}
