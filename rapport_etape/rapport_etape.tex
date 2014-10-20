@@ -33,7 +33,7 @@
     \textsc{\LARGE École de technologie supérieure}\\[1.5cm]
 
     \textsc{\Large LOG792 Projet de fin d'étude}\\[0.25cm]
-    \textsc{\Large Proposition de projet}\\[0.5cm]
+    \textsc{\Large Rapport d'étape}\\[0.5cm]
 
     % Title
     \HRule \\[0.4cm]
@@ -189,11 +189,12 @@ sections sur lesquelles se concentrera ce projet --- ceux en gras sont ceux qui 
 --- et la figure \ref{fig:TAPL-chapter-dependencies} présente les dépendances entre ceux-ci.
 
 Ces chapitres furent choisis, car ils décrivent des langages et leurs théorèmes au lieu d'en
-expliquer la théorie ou d'en présenter une implémentation. De plus, ils culminent au lambda-calcul
-simplement typé, qui a la propriété de pouvoir représenter la majorité des langages de programmation
-existants\footnote{Ceci n'est pas tout à fait exact puisqu'il faudrait y ajouter la fonctionnalité
-de pouvoir communiquer avec l'environnement d'exécution afin de pouvoir faire des opérations comme
-lire ou écrire dans un fichier, effectuer de la communication interprocessus, etc.}.
+expliquer la théorie ou d'en présenter une implémentation. De plus, ils culminent au
+$\lambda$-calcul simplement typé, qui a la propriété de pouvoir représenter la majorité des langages
+de programmation existants\footnote{Ceci n'est pas tout à fait exact puisqu'il faudrait y ajouter la
+fonctionnalité de pouvoir communiquer avec l'environnement d'exécution afin de pouvoir faire des
+opérations comme lire ou écrire dans un fichier, effectuer de la communication interprocessus,
+etc.}.
 
 \begin{figure}[h]
   \begin{enumerate}[label=§ \arabic*]
@@ -325,39 +326,51 @@ Le plan de projet se trouve à l'annexe A.
 % Toutefois, faire attention de ne pas ainsi identifier des risques et mitigations qui sont
 % applicables à la majorité des projets.}
 
-Un certain nombre de risques sont identifiés dans le tableau \ref{tab:risks}.
+Un certain nombre de risques sont identifiés dans le tableau \ref{tab:risks}. En comparaison de la
+proposition de projet, les modifications suivantes ont été apportées :
+
+\begin{itemize}
+  \item Ajout d'une évaluation subjective des impacts.
+  \item Ajout d'une explications pour les probabilités.
+  \item Diminution de la probabilité du risque 2 de « Forte » à « Moyenne ».
+  \item Diminution de la probabilité du risque 3 de « Forte » à « Moyenne ».
+\end{itemize}
 
 \begin{table}[!h]
+  \makebox[\textwidth][c]{
   \small
-  \begin{tabular}{|p{3.5cm}|p{3.5cm}|p{1.5cm}|p{3.5cm}|}
+  \begin{tabular}{|p{3.5cm}|p{3.5cm}|p{3.59cm}|p{3.5cm}|}
     \hline
     \textbf{Risque} &
     \textbf{Impact} &
-    \textbf{Proba-bilité} &
+    \textbf{Probabilité} &
     \textbf{Mitigation / \newline atténuation} \\
     \hline
     Manque d'expérience avec la théorie des types &
-    Monopolise du temps pour apprendre la théorie. &
-    Faible &
+    Faible : Monopolise du temps pour apprendre la théorie. &
+    Faible : Le $\lambda$-calcul simplement typé est le plus simple de sa catégorie. &
     Étudier attentivement l'ouvrage de référence. \\
     \hline
     Manque d'expérience avec l'assistant de preuve Isabelle/HOL &
-    Monopolise du temps pour apprendre le fonctionnement de l'outil. &
-    Forte &
+    Moyen : Monopolise du temps pour apprendre le fonctionnement de l'outil. &
+    Moyenne : La majorité de l'apprentissage a été effectuée lors de la formalisation du premier
+    chapitre. &
     Étudier attentivement et se référer au besoin à la documentation de l'outil. \\
     \hline
     Manque d'expérience en formalisation &
-    Monopolise du temps pour apprendre la méthodologie. &
-    Forte &
+    Fort : Monopolise du temps pour apprendre la méthodologie. &
+    Moyenne : La majorité de l'apprentissage a été effectuée lors de la formalisation du premier
+    chapitre. &
     S'informer auprès des chercheurs expérimentés de la chaire de recherche. \\
     \hline
     Objectifs trop ambitieux &
-    Ne pas réaliser toutes les formalisations prévues. &
-    Moyenne &
+    Fort : Ne pas réaliser toutes les formalisations prévues. &
+    Moyenne : La formalisation des chapitres s'est fait selon l'échéancier prévu. &
     Un certain nombre de mitigations sont décrites à la page \pageref{lower-objectives} de la
     section \ref{lower-objectives}. \\
     \hline
   \end{tabular}
+  }
   \caption{Risques et mitigations}
   \label{tab:risks}
 \end{table}
