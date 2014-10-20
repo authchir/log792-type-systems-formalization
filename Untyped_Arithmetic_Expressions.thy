@@ -1,5 +1,5 @@
 (*<*)
-theory untyped_arithmetic_expressions (* Untyped_Arithmetic_Expressions *)
+theory Untyped_Arithmetic_Expressions
 imports Main
 begin
 (*>*)
