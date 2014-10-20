@@ -9,6 +9,7 @@
 \usepackage{geometry}
 \usepackage{array}
 \usepackage[pdftex]{graphicx}
+\usepackage{amssymb}
 
 \newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
 \newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
@@ -315,7 +316,15 @@ un projet ambitieux, un certain nombre d'actions pourraient être entreprises si
 
 % Voir Annexe A. Commentez le tableau de l’annexe A. Une approche itérative est recommandée.
 
-Le plan de projet se trouve à l'annexe A.
+Le plan de projet se trouve à l'annexe A. En comparaison avec la proposition de projet, les
+modifications suivantes ont été apportées :
+
+\begin{itemize}
+  \item Les efforts actuels, en heures, ont été ajoutés.
+  \item Les tâches complétées ont été identifiées.
+  \item L'échéancer des tâches 3.3.*, 3.4.* et 4 a été repoussé afin de prendre en considération que
+    le projet ne pourra pas progresser du 25 octobre au 2 novembre.
+\end{itemize}
 
 \section{Risques}
 
@@ -471,49 +480,50 @@ effectuée en anglais.}
 \begin{table}[!h]
   \small
   \centering
-  \begin{tabular}{|l||l|l|p{1.6cm}|p{1.6cm}||l|l|}
+  \begin{tabular}{|l||l|l|p{1.6cm}|p{1.6cm}|c||l|l|}
     \hline
     \textbf{\#} &
     \textbf{Commence} &
     \textbf{Termine} &
     \textbf{Efforts estimés (heures)} &
     \textbf{Efforts actuels (heures)} &
+    \textbf{Complété} &
     \textbf{Jalon} &
     \textbf{Artéfacts} \\
     \hline \hline
-    1   & & 2014-09-02 & 1 & 1 & Remise de la fiche de renseignement & Fiche de renseignements \\
-    1.1 & & 2014-09-01 & 1 & 1 & Rencontre --- professeur superviseur & \\
+    1   & & 2014-09-02 & 1 & 1 & \checkmark & Remise de la fiche de renseignement & Fiche de renseignements \\
+    1.1 & & 2014-09-01 & 1 & 1 & \checkmark & Rencontre --- professeur superviseur & \\
     \hline
-    2   & 2014-09-02 & 2014-09-19 & 5 & 5 & Remise de la proposition de projet & Proposition de projet \\
-    2.1 &            & courriels  & 1 & 1 & Rencontre --- professeur superviseur & \\
+    2   & 2014-09-02 & 2014-09-19 & 5 & 5 & \checkmark & Remise de la proposition de projet & Proposition de projet \\
+    2.1 &            & courriels  & 1 & 1 & \checkmark & Rencontre --- professeur superviseur & \\
     \hline
-    2.2.1 & 2014-09-19 &            & 2  & 2  & Étude du chapitre 3 & \\
-    2.2.2 &            &            & 10 & 8  & Définitions du chapitre 3 & \\
-    2.2.3 &            &            & 15 & 25 & Preuves du chapitre 3 & \\
-    2.2.4 &            & 2014-10-10 & 2  & 2  & Simplification du chapitre 3 & Théorie Isabelle/HOL \\
+    2.2.1 & 2014-09-19 &            & 2  & 2  & \checkmark & Étude du chapitre 3 & \\
+    2.2.2 &            &            & 10 & 8  & \checkmark & Définitions du chapitre 3 & \\
+    2.2.3 &            &            & 15 & 25 & \checkmark & Preuves du chapitre 3 & \\
+    2.2.4 &            & 2014-10-10 & 2  & 2  & \checkmark & Simplification du chapitre 3 & Théorie Isabelle/HOL \\
     \hline
-    3   & 2014-09-19 & 2014-10-24   & 10 & & Remise du rapport d'étape & Rapport d'étape \\
-    3.1 &            & à déterminer & 1  & & Rencontre --- professeur superviseur & \\
+    3   & 2014-09-19 & 2014-10-24   & 10 & 10 & \checkmark & Remise du rapport d'étape & Rapport d'étape \\
+    3.1 &            & à déterminer & 1  &    & & Rencontre --- professeur superviseur & \\
     \hline
-    3.2.1 & 2014-10-10 &            & 2  & 2  & Étude du chapitre 5 & \\
-    3.2.2 &            &            & 5  & 2  & Définitions du chapitre 5 & \\
-    3.2.3 &            &            & 10 & 10 & Preuves du chapitre 5 & \\
-    3.2.4 &            & 2014-10-24 & 3  & 2  & Simplification du chapitre 5 & Théorie Isabelle/HOL \\
+    3.2.1 & 2014-10-10 &            & 2  & 2  & \checkmark & Étude du chapitre 5 & \\
+    3.2.2 &            &            & 5  & 2  & \checkmark & Définitions du chapitre 5 & \\
+    3.2.3 &            &            & 10 & 10 & \checkmark & Preuves du chapitre 5 & \\
+    3.2.4 &            & 2014-10-24 & 3  & 2  & \checkmark & Simplification du chapitre 5 & Théorie Isabelle/HOL \\
     \hline
-    3.3.1 & \textbf{2014-11-03} &                     & 2  & & Étude du chapitre 8 & \\
-    3.3.2 &                     &                     & 5  & & Définitions du chapitre 8 & \\
-    3.3.3 &                     &                     & 10 & & Preuves du chapitre 8 & \\
-    3.3.4 &                     & \textbf{2014-11-10} & 3  & & Simplification du chapitre 8 & Théorie Isabelle/HOL \\
+    3.3.1 & \textbf{2014-11-03} &                     & 2  & 2 & \checkmark & Étude du chapitre 8 & \\
+    3.3.2 &                     &                     & 5  &   &            & Définitions du chapitre 8 & \\
+    3.3.3 &                     &                     & 10 &   &            & Preuves du chapitre 8 & \\
+    3.3.4 &                     & \textbf{2014-11-10} & 3  &   &            & Simplification du chapitre 8 & Théorie Isabelle/HOL \\
     \hline
-    3.4.1 & \textbf{2014-11-10} &                     & 2  & & Étude du chapitre 9 & \\
-    3.4.2 &                     &                     & 5  & & Définitions du chapitre 9 & \\
-    3.4.3 &                     &                     & 15 & & Preuves du chapitre 9 & \\
-    3.4.4 &                     & \textbf{2014-11-21} & 3  & & Simplification du chapitre 9 & Théorie Isabelle/HOL \\
+    3.4.1 & \textbf{2014-11-10} &                     & 2  & & & Étude du chapitre 9 & \\
+    3.4.2 &                     &                     & 5  & & & Définitions du chapitre 9 & \\
+    3.4.3 &                     &                     & 15 & & & Preuves du chapitre 9 & \\
+    3.4.4 &                     & \textbf{2014-11-21} & 3  & & & Simplification du chapitre 9 & Théorie Isabelle/HOL \\
     \hline
-    5 & \textbf{2014-11-25} & 2014-12 & 10 & & Présentation & Diapositives de la présentation orale \\
+    4 & \textbf{2014-11-25} & 2014-12 & 10 & & & Présentation & Diapositives de la présentation orale \\
     \hline
-    6   & 2014-12-01 & 2014-12      & 30 & & Remise du travail & Rapport final \\
-    6.1 &            & à déterminer & 1  & & Rencontre --- professeur superviseur & \\
+    5   & 2014-12-01 & 2014-12      & 30 & & & Remise du travail & Rapport final \\
+    5.1 &            & à déterminer & 1  & & & Rencontre --- professeur superviseur & \\
     \hline
   \end{tabular}
 \end{table}
