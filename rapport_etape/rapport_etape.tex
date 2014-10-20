@@ -133,7 +133,7 @@ Isabelle/HOL est un assistant de preuve interactif utilisant la logique d'ordre 
 permet de spécifier des formules mathématiques, algorithmes et objets dans un langage déclaratif,
 fonctionnel et typé. Il est alors possible de spécifier des propriétés sur l'interaction entre les
 divers éléments. Une fois le système formalisé, il est possible d'en extraire du code exécutable
-correspondant aux spécifications. Ce projet sera l'occasion de s'initier à la définition d'un
+correspondant aux spécifications. Ce projet est l'occasion de s'initier à la définition d'un
 système formel et aux preuves interactives à l'aide d'Isabelle/HOL.
 
 \subsection{S'initier à la théorie des types}
@@ -146,8 +146,9 @@ retour. Certaines de ces limitations ont été mitigées dans de nouvelles versi
 l'ajout des types et fonctions génériques en Java).
 
 Cependant, des options plus expressives et plus puissantes sont bien connues, ou bien
-actuellement en développement par les acteurs du milieu. Ce projet sera l'occasion de consolider
-les acquis fondamentaux et d'en apprendre plus sur les concepts plus avancés de la théorie des types
+actuellement en développement par les acteurs du milieu. Ce projet est l'occasion de consolider
+les acquis fondamentaux et d'en apprendre plus sur les concepts plus avancés de la théorie des
+types.
 
 \subsection{Valider les preuves manuelles existantes}
 
@@ -155,8 +156,8 @@ La théorie des types étant un sujet de recherche très actif depuis plusieurs 
 grand nombre de publications décrivent les caractéristiques de différents systèmes de type.
 Cependant, une preuve manuelle étant validée par des êtres humains, il est toujours possible que des
 erreurs s'y soient glissées. La formalisation de celles-ci à l'aide d'un assistant de preuve permet
-de valider, sous réserve que l'assistant de preuve soit correct, qu'aucune erreur logique ne soit
-présente. S'il s'avérait qu'une erreur est découverte dans le cadre de ce projet, l'information
+de valider, sous réserve que l'assistant de preuve soit correct, qu'aucune erreur logique n'est
+présente. S'il s'avérait qu'une erreur soit découverte dans le cadre de ce projet, l'information
 serait transmise à l'auteur initial afin de l'informer de la situation.
 
 \subsection{Clarifier les cas limites des preuves manuelles}
@@ -180,12 +181,12 @@ nipkow:teaching-proof-assistant}.
 % \emph{Note : une approche itérative est recommandée.}
 
 L'ouvrage de référence de ce projet est le livre \emph{Types and Programming Languages} de
-Benjamin~C.~Pierce. Ce livre est composé de six sections : les systèmes non typés, les types
+Benjamin~C.~Pierce. Ce dernier est composé de six sections : les systèmes non typés, les types
 simples, le sous-typage, les types récursifs, le polymorphisme et les systèmes d'ordre supérieur.
 Chaque section est composée de plusieurs chapitres décrivant un système de type bonifiant un système
 décrit précédemment en lui adjoignant un concept supplémentaire. Les figures
 \ref{fig:TAPL-section-1} et \ref{fig:TAPL-section-2} présentent les chapitres des deux premières
-sections sur lesquelles se concentrera ce projet --- ceux en gras sont ceux qui seront formalisés
+sections sur lesquelles se concentre ce projet --- ceux en gras sont ceux qui seront formalisés
 --- et la figure \ref{fig:TAPL-chapter-dependencies} présente les dépendances entre ceux-ci.
 
 Ces chapitres furent choisis, car ils décrivent des langages et leurs théorèmes au lieu d'en
@@ -193,7 +194,7 @@ expliquer la théorie ou d'en présenter une implémentation. De plus, ils culmi
 $\lambda$-calcul simplement typé, qui a la propriété de pouvoir représenter la majorité des langages
 de programmation existants\footnote{Ceci n'est pas tout à fait exact puisqu'il faudrait y ajouter la
 fonctionnalité de pouvoir communiquer avec l'environnement d'exécution afin de pouvoir faire des
-opérations comme lire ou écrire dans un fichier, effectuer de la communication interprocessus,
+opérations telles que lire ou écrire dans un fichier, effectuer de la communication interprocessus,
 etc.}.
 
 \begin{figure}[h]
@@ -243,13 +244,13 @@ etc.}.
   \label{fig:TAPL-chapter-dependencies}
 \end{figure}
 
-Le projet formalisera séquentiellement les différents chapitres en se basant sur le travail
-des chapitres précédents. Pour cette raison, le premier chapitre sera le plus long à formaliser :
-tout devant être fait à partir de zéro. Pour les chapitres suivants, la première étape sera
-de copier la formalisation des dépendances et de la modifier pour inclure les nouveaux concepts
+Le projet consiste à formaliser séquentiellement les différents chapitres en se basant sur le
+travail des chapitres précédents. Pour cette raison, le premier chapitre fut le plus long à
+formaliser : tout devant être fait à partir de zéro. Pour les chapitres suivants, la première étape
+est de copier la formalisation des dépendances et de la modifier pour inclure les nouveaux concepts
 introduits.
 
-Chacune des formalisations se fera en quatre étapes :
+Chacune des formalisations se fait en quatre étapes :
 
 \begin{enumerate}
   \item Lecture attentive du chapitre et compréhension générale des concepts énoncés;
