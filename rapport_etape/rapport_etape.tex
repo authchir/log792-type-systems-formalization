@@ -115,10 +115,10 @@ preuves qui les accompagnent est le sujet du présent projet.
 
 Les objectifs de ce projet sont quadruples :
 \begin{enumerate*}[label=\arabic*)]
-  \item s'initier à la formalisation avec l'assistant de preuve Isabelle/HOL;
-  \item s'initier à la théorie des types;
-  \item valider les preuves manuelles existantes et
-  \item clarifier les cas limites de ces dernières.
+  \item S'initier à la formalisation avec l'assistant de preuve Isabelle/HOL;
+  \item S'initier à la théorie des types;
+  \item Valider les preuves manuelles existantes;
+  \item Clarifier les cas limites de ces dernières.
 \end{enumerate*}
 
 \subsection{S'initier à la formalisation Isabelle/HOL}
@@ -255,7 +255,7 @@ introduits.
 Chacune des formalisations se fait en quatre étapes :
 
 \begin{enumerate}
-  \item Lecture attentive du chapitre et compréhension générale des concepts énoncés;
+  \item Lecture attentive du chapitre et compréhension générale des concepts en jeu;
   \item Définition dans Isabelle/HOL des structures nécessaires à la formalisation;
   \item Preuve des différents lemmes et théorèmes ainsi que, optionnellement, des exercices;
   \item Simplification des définitions et preuves.
@@ -281,7 +281,7 @@ un projet ambitieux, un certain nombre d'actions pourraient être entreprises si
   \item[Isabelle/Isar] Langage structuré permettant d'écrire des preuves plus lisibles.
   \item[Isabelle/jEdit] Environement de développement intégré pour Isabelle basé sur l'éditeur
     jEdit.
-  \item[Sledgehammer] Outil appliquant des trouveurs automatiques de théorèmes ainsi que des
+  \item[Sledgehammer] Outil appliquant des prouveurs automatiques de théorèmes ainsi que des
     solveurs de « satisfaisabilité modulo théories ».
 \end{description}
 
@@ -299,7 +299,7 @@ un projet ambitieux, un certain nombre d'actions pourraient être entreprises si
 
 Au cours de la première partie de ce projet, le travail d'apprentissage et la formalisation des deux
 premiers chapitres du livre de référence ont été complétés. La liste exhaustive des activitées
-réalisés se trouve dans la plan de travail à l'annexe~A.
+réalisés se trouve dans le plan de travail de l'annexe~A.
 
 \subsubsection{Apprentissage de la formalisation avec Isabelle/HOL}
 
@@ -319,18 +319,18 @@ l'ordinateur et l'utilisateur.
 
 \subsubsection{Expressions arithmétiques non-typés}
 
-Ce chapitre contient deux languages : le premier permet de représenter des expressions booléennes
+Ce chapitre contient deux langages : le premier permet de représenter des expressions booléennes
 (i.e. vrai, faux et conditions) et le second, en plus des expressions booléennes, des expressions
 numériques (i.e. zéro, incrémenter, décrémenter et tester l'égalité avec zéro). Dans les deux cas,
-la formalisation consiste à définir le langage, les règles d'évaluations et prouvers certains
+la formalisation consiste à définir le langage, les règles d'évaluations pour, ensuite, prouver certains
 théorèmes de la relation d'évaluation tels que la transitivité, l'univalence, la terminaison, etc.
 
 \subsubsection{Le lambda-calcul non typé}
 
 Ce chapitre contient la définition minimale du $\lambda$-calcul : variable, abstraction de fonction
 et application de fonction. La formalisation prend la même forme que pour les expressions
-arithmétiques non typés et, lorsque possible, les mêmes théorèmes sont prouvés. Cependant, certaines
-propriétés qui étaient vrai pour les autres langages à l'étude ne le sont pas pour le
+arithmétiques non typées et, lorsque possible, les mêmes théorèmes sont prouvés. Cependant, certaines
+propriétés qui étaient vraies pour les autres langages à l'étude ne le sont pas pour le
 $\lambda$-calcul simplement typé (e.g. la terminaison de l'évaluation). Dans ces situations, une
 preuve que la propriété ne tient pas été développée.
 
@@ -341,10 +341,10 @@ preuve que la propriété ne tient pas été développée.
 % comment elles pourraient être réalisées, faut-il en réduire ou étendre la portée? Changer
 % d’approche? Etc.
 
-Au vu du temps et du travail qui fut nécessaire pour formaliser les deux premier chapitre, les
-objectifs du projet sont raisonnables et ne nécessitent pas d'être modifiés; La formalisation des
-deux derniers chapitres devraient ressembler aux précédents. Il est recommendable que la majorité
-des ressources soit investi dans la rédaction du rapport et l'intégration des formalisations à
+Au vu du temps et du travail qui fut nécessaire pour formaliser les deux premiers chapitres, les
+objectifs du projet sont raisonnables et ne nécessitent pas d'être modifiés; la formalisation des
+deux derniers chapitres devrait ressembler aux précédents. Il est recommandable que la majorité
+des ressources soit investie dans la rédaction du rapport et l'intégration des formalisations à
 celui-ci.
 
 \section{Livrables et planification}
@@ -379,12 +379,12 @@ celui-ci.
 
 % Voir Annexe A. Commentez le tableau de l’annexe A. Une approche itérative est recommandée.
 
-Le plan de projet se trouve à l'annexe A. En comparaison avec la proposition de projet, les
+Le plan de projet se trouve à l'annexe A. Par rapport à la proposition de projet, les
 modifications suivantes ont été apportées :
 
 \begin{itemize}
-  \item Les efforts actuels, en heures, ont été ajoutés.
-  \item Les tâches complétées ont été identifiées.
+  \item Les efforts actuels, en heures, ont été ajoutés;
+  \item Les tâches complétées ont été identifiées;
   \item L'échéancer des tâches 3.3.*, 3.4.* et 4 a été repoussé afin de prendre en considération que
     le projet ne pourra pas progresser du 25 octobre au 2 novembre.
 \end{itemize}
@@ -412,13 +412,13 @@ modifications suivantes ont été apportées :
 % Toutefois, faire attention de ne pas ainsi identifier des risques et mitigations qui sont
 % applicables à la majorité des projets.}
 
-Un certain nombre de risques sont identifiés dans le tableau \ref{tab:risks}. En comparaison de la
+Un certain nombre de risques sont identifiés dans le tableau \ref{tab:risks}. Par rapport à la
 proposition de projet, les modifications suivantes ont été apportées :
 
 \begin{itemize}
-  \item Ajout d'une évaluation subjective des impacts.
-  \item Ajout d'une explications pour les probabilités.
-  \item Diminution de la probabilité du risque 2 de « Forte » à « Moyenne ».
+  \item Ajout d'une évaluation subjective des impacts;
+  \item Ajout d'une explication pour les probabilités;
+  \item Diminution de la probabilité du risque 2 de « Forte » à « Moyenne »;
   \item Diminution de la probabilité du risque 3 de « Forte » à « Moyenne ».
 \end{itemize}
 
@@ -451,7 +451,7 @@ proposition de projet, les modifications suivantes ont été apportées :
     \hline
     Objectifs trop ambitieux &
     Fort : Ne pas réaliser toutes les formalisations prévues. &
-    Moyenne : La formalisation des chapitres s'est fait selon l'échéancier prévu. &
+    Moyenne : La formalisation des chapitres s'est faite selon l'échéancier prévu. &
     Un certain nombre de mitigations sont décrites à la page \pageref{lower-objectives} de la
     section \ref{lower-objectives}. \\
     \hline
@@ -474,7 +474,7 @@ proposition de projet, les modifications suivantes ont été apportées :
 
 \section{Table des matières du rapport}
 
-\emph{Sur recommendation du directeur du département de génie logiciel et des TI, monsieur Jean-Marc
+\emph{Sur recommandation du directeur du département de génie logiciel et des TI, monsieur Jean-Marc
 Robert, le doyen des études, monsieur Pierre Bourque, a autorisé que la rédaction du rapport soit
 effectuée en anglais.}
 
