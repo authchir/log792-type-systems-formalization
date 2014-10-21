@@ -10,6 +10,8 @@
 \usepackage{array}
 \usepackage[pdftex]{graphicx}
 \usepackage{amssymb}
+\usepackage[titletoc,title]{appendix}
+\usepackage{pdfpages}
 
 \newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
 \newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
@@ -299,7 +301,7 @@ un projet ambitieux, un certain nombre d'actions pourraient être entreprises si
 
 Au cours de la première partie de ce projet, le travail d'apprentissage et la formalisation des deux
 premiers chapitres du livre de référence ont été complétés. La liste exhaustive des activitées
-réalisés se trouve dans le plan de travail de l'annexe~A.
+réalisés se trouve dans le plan de travail de l'annexe~\ref{app:tasks-plan}.
 
 \subsubsection{Apprentissage de la formalisation avec Isabelle/HOL}
 
@@ -322,17 +324,19 @@ l'ordinateur et l'utilisateur.
 Ce chapitre contient deux langages : le premier permet de représenter des expressions booléennes
 (i.e. vrai, faux et conditions) et le second, en plus des expressions booléennes, des expressions
 numériques (i.e. zéro, incrémenter, décrémenter et tester l'égalité avec zéro). Dans les deux cas,
-la formalisation consiste à définir le langage, les règles d'évaluations pour, ensuite, prouver certains
-théorèmes de la relation d'évaluation tels que la transitivité, l'univalence, la terminaison, etc.
+la formalisation consiste à définir le langage, les règles d'évaluations pour, ensuite, prouver
+certains théorèmes de la relation d'évaluation tels que la transitivité, l'univalence, la
+terminaison, etc. Elle peut être consultée à l'annexe~\ref{app:untyped-arith-expr}.
 
 \subsubsection{Le lambda-calcul non typé}
 
 Ce chapitre contient la définition minimale du $\lambda$-calcul : variable, abstraction de fonction
 et application de fonction. La formalisation prend la même forme que pour les expressions
-arithmétiques non typées et, lorsque possible, les mêmes théorèmes sont prouvés. Cependant, certaines
-propriétés qui étaient vraies pour les autres langages à l'étude ne le sont pas pour le
+arithmétiques non typées et, lorsque possible, les mêmes théorèmes sont prouvés. Cependant,
+certaines propriétés qui étaient vraies pour les autres langages à l'étude ne le sont pas pour le
 $\lambda$-calcul simplement typé (e.g. la terminaison de l'évaluation). Dans ces situations, une
-preuve que la propriété ne tient pas été développée.
+preuve que la propriété ne tient pas été développée. Elle peut être consultée à
+l'annexe~\ref{app:untyped-lambda-calculus}.
 
 \subsection{Recommandations}
 
@@ -451,9 +455,8 @@ proposition de projet, les modifications suivantes ont été apportées :
     \hline
     Objectifs trop ambitieux &
     Fort : Ne pas réaliser toutes les formalisations prévues. &
-    Moyenne : La formalisation des chapitres s'est faite selon l'échéancier prévu. &
-    Un certain nombre de mitigations sont décrites à la page \pageref{lower-objectives} de la
-    section \ref{lower-objectives}. \\
+    Moyenne : La formalisation des chapitres progresse selon l'échéancier prévu. &
+    Un certain nombre de mitigations sont décrites à la section~\ref{lower-objectives}. \\
     \hline
   \end{tabular}
   }
@@ -480,19 +483,21 @@ effectuée en anglais.}
 
 \begin{otherlanguage}{english}
   This section discusses a possible thesis outline. It consists of seven main sections: three to
-  introduce reader to the formalization of type systems and four containing the proper formlizations.
+  introduce the reader to the formalization of type systems and four containing the proper
+  formlizations.
 
   \begin{enumerate}[label=\textbf{\Roman*}]
     \item \textbf{Introduction}
       \begin{enumerate}[label=\textbf{\arabic*}]
         \item \textbf{Introduction to Type Systems} ~ \\
-          This section will provide a brief introduction to type systems, their history, current use
-          and possible future directions.
+          This section will provide a brief introduction to type systems, their history, current
+          uses and possible future directions.
         \item \textbf{Introduction to Formalization} ~ \\
-          This section will provide a brief introduction to logic, formal reasoning and formalization.
-        \item \textbf{Introduction to Isabelle} ~ \\
-          This section will provide a brief introduction to the Isabelle/HOL: a proof
-          assistant based on higher-order logic.
+          This section will provide a brief introduction to logic, formal reasoning and
+          formalization.
+        \item \textbf{Introduction to Isabelle/HOL} ~ \\
+          This section will provide a brief introduction to Isabelle/HOL: a proof assistant
+          based on higher-order logic.
       \end{enumerate}
     \item \textbf{Untyped Systems}
       \begin{enumerate}[label=\textbf{\arabic*}]
@@ -504,8 +509,8 @@ effectuée en anglais.}
         \item \textbf{Untyped Lambda Calculus} ~ \\
           This section will present the formalization of the language introduced in the Chapter 5 of
           the reference book. It will consist of the definitions and theorems defining the formal
-          system. It will also feature a brief introduction to the $\lambda$-calculus and its relation
-          to programming language theory.
+          system. It will also feature a brief introduction to the $\lambda$-calculus and its
+          relation to programming language theory.
       \end{enumerate}
     \item \textbf{Simple Types}
       \begin{enumerate}[label=\textbf{\arabic*}]
@@ -523,11 +528,14 @@ effectuée en anglais.}
   \end{enumerate}
 \end{otherlanguage}
 
+\begin{appendices}
+
 \newgeometry{margin=2.5cm}
 \begin{landscape}
 \thispagestyle{empty}
 
-\section{Annexe A : Plan de travail}
+\section{Plan de travail}
+\label{app:tasks-plan}
 
 % \emph{Le tableau suivant présente la planification pour la réalisation des tâches ou artefacts
 % décrits précédemment.}
@@ -543,7 +551,7 @@ effectuée en anglais.}
 \begin{table}[!h]
   \small
   \centering
-  \begin{tabular}{|l||l|l|p{1.6cm}|p{1.6cm}|c||l|l|}
+  \begin{tabular}{|l||l|l|p{1.6cm}|p{1.6cm}|c||l|p{5cm}|}
     \hline
     \textbf{\#} &
     \textbf{Commence} &
@@ -593,5 +601,15 @@ effectuée en anglais.}
 
 \end{landscape}
 \restoregeometry
+
+\section{Expressions arithmétiques non typées}
+\label{app:untyped-arith-expr}
+\includepdf[pages={-}]{Untyped_Arithmetic_Expressions.pdf}
+
+\section{Lambda-calcul non typées}
+\label{app:untyped-lambda-calculus}
+\includepdf[pages={-}]{Untyped_Lambda_Calculus.pdf}
+
+\end{appendices}
 
 \end{document}
