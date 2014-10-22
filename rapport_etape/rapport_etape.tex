@@ -12,6 +12,7 @@
 \usepackage{amssymb}
 \usepackage[titletoc,title]{appendix}
 \usepackage{pdfpages}
+\usepackage[colorlinks]{hyperref}
 
 \newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
 \newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
@@ -383,8 +384,8 @@ celui-ci.
 
 % Voir Annexe A. Commentez le tableau de l’annexe A. Une approche itérative est recommandée.
 
-Le plan de projet se trouve à l'annexe A. Par rapport à la proposition de projet, les
-modifications suivantes ont été apportées :
+Le plan de projet se trouve à l'annexe \ref{app:tasks-plan}. Par rapport à la proposition de projet,
+les modifications suivantes ont été apportées :
 
 \begin{itemize}
   \item Les efforts actuels, en heures, ont été ajoutés;
@@ -431,11 +432,11 @@ proposition de projet, les modifications suivantes ont été apportées :
   \small
   \begin{tabular}{|p{3.5cm}|p{3.5cm}|p{4.3cm}|p{3.9cm}|}
     \hline
-    \textbf{Risque} &
-    \textbf{Impact} &
-    \textbf{Probabilité} &
-    \textbf{Mitigation / \newline atténuation} \\
-    \hline
+    \multicolumn{1}{|c}{\textbf{Risque}} &
+    \multicolumn{1}{|c}{\textbf{Impact}} &
+    \multicolumn{1}{|c}{\textbf{Probabilité}} &
+    \multicolumn{1}{|C{3.9cm}|}{\textbf{Mitigation / \newline atténuation}} \\
+    \hline \hline
     Manque d'expérience avec la théorie des types &
     Faible : Monopolise du temps pour apprendre la théorie. &
     Faible : Le $\lambda$-calcul simplement typé est le plus simple de sa catégorie. &
@@ -551,16 +552,16 @@ effectuée en anglais.}
 \begin{table}[!h]
   \small
   \centering
-  \begin{tabular}{|l||l|l|p{1.6cm}|p{1.6cm}|c||l|p{5cm}|}
+  \begin{tabular}{|l|l|l|p{1.6cm}|p{1.6cm}|c|l|p{5cm}|}
     \hline
-    \textbf{\#} &
-    \textbf{Commence} &
-    \textbf{Termine} &
-    \textbf{Efforts estimés (heures)} &
-    \textbf{Efforts actuels (heures)} &
-    \textbf{Complété} &
-    \textbf{Jalon} &
-    \textbf{Artéfacts} \\
+    \multicolumn{1}{|c}{\textbf{\#}} &
+    \multicolumn{1}{|c}{\textbf{Commence}} &
+    \multicolumn{1}{|c}{\textbf{Termine}} &
+    \multicolumn{1}{|C{1.6cm}}{\textbf{Efforts estimés (heures)}} &
+    \multicolumn{1}{|C{1.6cm}}{\textbf{Efforts actuels (heures)}} &
+    \multicolumn{1}{|c}{\textbf{Complété}} &
+    \multicolumn{1}{|c}{\textbf{Jalon}} &
+    \multicolumn{1}{|c|}{\textbf{Artéfact}} \\
     \hline \hline
     1   & & 2014-09-02 & 1 & 1 & \checkmark & Remise de la fiche de renseignement & Fiche de renseignements \\
     1.1 & & 2014-09-01 & 1 & 1 & \checkmark & Rencontre --- professeur superviseur & \\
