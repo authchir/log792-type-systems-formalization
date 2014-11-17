@@ -1,20 +1,24 @@
+(*<*)
 theory Untyped_Lambda_Calculus
 imports Complex_Main
 begin
+(*>*)
+
+chapter {* Untyped Lambda Calculus *}
 
 datatype Term
   = Var nat
   | Abs Term
   | App Term Term
 
-text {* Definition 6.1.2 | n_terms *}
+text {* Definition 6.1.2 *}
 
 inductive n_term :: "nat \<Rightarrow> Term \<Rightarrow> bool" where
   n_term_Var: "0 \<le> k \<Longrightarrow> k < n \<Longrightarrow> n_term n (Var k)" |
   n_term_Abs: "n_term n t \<Longrightarrow> n > 0 \<Longrightarrow> n_term (n - 1) (Abs t)" |
   n_term_App: "n_term n t1 \<Longrightarrow> n_term n t2 \<Longrightarrow> n_term n (App t1 t2)"
 
-text {* Definition 6.2.1 | Shifting *}
+text {* Definition 6.2.1 *}
 
 primrec shift :: "int \<Rightarrow> nat \<Rightarrow> Term \<Rightarrow> Term" where
   shift_Var: "shift d c (Var k) = Var (if k < c then k else nat (k + d))" |
@@ -48,7 +52,7 @@ next
     by (simp add: n_term.n_term_App n_term_App.IH)
 qed
 
-text {* Definition 6.2.4 | Substitution *}
+text {* Definition 6.2.4 *}
 
 primrec subst :: "nat \<Rightarrow> Term \<Rightarrow> Term \<Rightarrow> Term" where
   subst_Var: "subst j s (Var k) = (if k = j then s else Var k)" |

@@ -1,4 +1,4 @@
-\documentclass[11pt,a4paper]{article}
+\documentclass[11pt,a4paper]{report}
 \usepackage{isabelle,isabellesym}
 
 % further packages required for unusual symbols (see also
@@ -36,16 +36,29 @@
 \begin{document}
 
 \title{log792}
-\author{By admin}
+\author{Martin Desharnais}
 \maketitle
 
 \tableofcontents
 
+\part{Introduction}
+\input{introduction_to_type_systems}
+\input{introduction_to_formalization}
+\input{introduction_to_isabelle_hol}
+
 % sane default for proof documents
 \parindent 0pt\parskip 0.5ex
 
-% generated text of all theories
-\input{session}
+\part{Untyped Systems}
+\input{Untyped_Arithmetic_Expressions.tex}
+\input{Untyped_Lambda_Calculus.tex}
+
+\part{Untyped Systems}
+\input{Typed_Arithmetic_Expressions.tex}
+\input{Typed_Lambda_Calculus.tex}
+
+\part{Conclusion}
+\input{conclusion}
 
 % optional bibliography
 %\bibliographystyle{abbrv}

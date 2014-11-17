@@ -1,6 +1,10 @@
+(*<*)
 theory Typed_Arithmetic_Expressions
 imports Main
 begin
+(*>*)
+
+chapter {* Typed Arithmetic Expressions *}
 
 datatype_new NBTerm
   = NBTrue
@@ -141,7 +145,7 @@ next
         using has_type_NBSucc
         apply -
         apply (erule disjE)
-        apply (erule notE[OF False]) 
+        apply (erule notE[OF False])
         apply (erule exE) *)
     qed
 next

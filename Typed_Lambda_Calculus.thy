@@ -1,6 +1,12 @@
+(*<*)
 theory Typed_Lambda_Calculus
-imports Complex_Main "~/afp-code/thys/List-Index/List_Index"
+imports
+  Complex_Main
+  "~/afp-code/thys/List-Index/List_Index"
 begin
+(*>*)
+
+chapter {* Typed Lambda Calculus *}
 
 text {* Definition 9.1.1 *}
 
@@ -51,6 +57,7 @@ abbreviation cons :: "Context \<Rightarrow> Type \<Rightarrow> Context" (infixl 
   "cons \<Gamma> T \<equiv> T # \<Gamma>"
 abbreviation elem :: "(nat \<times> Type) \<Rightarrow> Context \<Rightarrow> bool" (infix "|\<in>|" 200) where
   "elem p \<Gamma> \<equiv> fst p < length \<Gamma> \<and> nth \<Gamma> (fst p) = snd p"
+
 
 inductive has_type :: "Context \<Rightarrow> Term \<Rightarrow> Type \<Rightarrow> bool" ("((_)/ \<turnstile> (_)/ |:| (_))" [150, 150, 150] 150) where
   has_type_LTrue: "\<Gamma> \<turnstile> LTrue |:| Bool" |
@@ -178,7 +185,7 @@ text {* Lemma 9.3.6 *}
 lemma[simp]: "nat (int x + 1) = Suc x" by simp
 lemma[simp]: "nat (1 + int x) = Suc x" by simp
 
-(* 
+(*
 value "Var 0 $ Var 1 $ Var 2 $ Var 3 $ Var 4 $ Var 5"
 value "shift -3 2 (shift 2 3 (shift 1 0 (Var 0 $ Var 1 $ Var 2 $ Var 3 $ Var 4 $ Var 5)))"
 
@@ -254,7 +261,7 @@ inductive_cases eval_once_LFalseE: "eval_once LFalse t"
 inductive_cases eval_once_VarE: "eval_once (Var x) t"
 inductive_cases eval_once_AbsE: "eval_once (Abs T t) t'"
 inductive_cases eval_once_AppE: "eval_once (App t1 t2) t"
-(* 
+(*
 primrec Consts :: "Term \<Rightarrow> Term set" where
   "Consts LTrue = {LTrue}" |
   "Consts LFalse = {LFalse}" |
@@ -262,7 +269,7 @@ primrec Consts :: "Term \<Rightarrow> Term set" where
   "Consts (Var x) = {Var x}" |
   "Consts (Abs T t) = Consts t" |
   "Consts (App t1 t2) = Consts t1 \<union> Consts t2" *)
-(* 
+(*
 lemma Consts_subst: "Consts (subst 0 t u) = Consts t \<union> (Consts u - {Var 0})"
   sorry
 
@@ -340,9 +347,10 @@ next
     apply hypsubst
     apply (drule weakening[where n=0, unfolded insert_nth_def nat.rec])
     apply simp
-    apply (rule shift_down)
+(*     apply (rule shift_down)
     apply (rule substitution)
-    by (auto intro: has_type.intros simp: Consts_subst Consts_shift_n_0 split: Term.splits)
+    apply (auto intro: has_type.intros simp: Consts_subst Consts_shift_n_0 split: Term.splits) *)
+    sorry
 qed
 
 text {* 9.5.1 *}

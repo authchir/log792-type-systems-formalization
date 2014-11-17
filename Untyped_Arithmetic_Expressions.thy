@@ -4,9 +4,7 @@ imports Main
 begin
 (*>*)
 
-section {* Boolean Expressions *}
-
-text {* Blah goes here *}
+chapter {* Untyped Arithmetic Expressions *}
 
 datatype B_term
   = BTrue
@@ -305,7 +303,7 @@ proof (induction nv arbitrary: t rule: is_numeric_value_NB.induct)
 next
   case is_numeric_value_NBSucc
   show ?case
-    by (auto 
+    by (auto
       intro: is_numeric_value_NBSucc.prems[THEN eval_once_NB.cases]
       elim: is_numeric_value_NBSucc.IH)
 qed
