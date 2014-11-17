@@ -6,6 +6,14 @@ begin
 
 chapter {* Untyped Lambda Calculus *}
 
+section {* Basics *}
+
+section {* Programming in the Lambda-Calculus *}
+
+section {* Formalities *}
+
+subsection {* Syntax *}
+
 datatype Term
   = Var nat
   | Abs Term
@@ -103,6 +111,8 @@ next
 qed
 
 text {* Single step evaluation *}
+
+subsection {* Operational Semantics *}
 
 inductive is_value :: "Term \<Rightarrow> bool" where
   "is_value (Abs t)"

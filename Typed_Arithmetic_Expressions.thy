@@ -15,9 +15,13 @@ datatype_new NBTerm
   | NBPred NBTerm
   | NBIs_zero NBTerm
 
+section {* Types *}
+
 datatype_new Type
   = Bool
   | Nat
+
+section {* The Typing Relation *}
 
 text {* Definition 8.2.1 *}
 
@@ -68,6 +72,8 @@ next
   case has_type_NBIs_zero
   thus ?case by (metis inversion_of_typing_relation(7))
 qed
+
+section {* Safety = Progress + Preservation *}
 
 inductive is_numeric_value :: "NBTerm \<Rightarrow> bool" where
   is_numeric_value_NBZero: "is_numeric_value NBZero" |
@@ -139,14 +145,6 @@ next
       case False
       thus "is_value (NBSucc t) \<or> (\<exists>a. eval_once (NBSucc t) a)"
         by (metis eval_once_NBSucc has_type_NBSucc.IH)
-        (* apply (rule disjI2)
-        apply (rule exI)
-        apply (rule eval_once_NBSucc)
-        using has_type_NBSucc
-        apply -
-        apply (erule disjE)
-        apply (erule notE[OF False])
-        apply (erule exE) *)
     qed
 next
   case (has_type_NBPred t)
@@ -178,7 +176,6 @@ next
       thus "is_value (NBIs_zero t) \<or> (\<exists>a. eval_once (NBIs_zero t) a)"
         using has_type_NBIs_zero.IH
         by (auto intro: eval_once_NBIs_zero)
-        (* by (metis eval_once_NBIs_zero has_type_NBIs_zero.IH) *)
     qed
 qed
 
@@ -207,20 +204,14 @@ next
   thus ?case by (rule eval_once_NBZeroE)
 next
   case (has_type_NBSucc t)
-  thus ?case by (auto intro: has_type.has_type_NBSucc elim: eval_once_NBSuccE)
+  thus ?case by (auto intro: has_type.intros elim: eval_once_NBSuccE)
 next
   case (has_type_NBPred t)
   thus ?case
-    by (auto
-      intro: has_type.has_type_NBPred
-      dest: inversion_of_typing_relation
-      elim: eval_once_NBPredE)
+    by (auto intro: has_type.intros dest: inversion_of_typing_relation elim: eval_once_NBPredE)
 next
   case (has_type_NBIs_zero t)
-  thus ?case
-    by (auto
-      intro: has_type_NBTrue has_type_NBFalse has_type.has_type_NBIs_zero
-      elim: eval_once_NBIs_zeroE)
+  thus ?case by (auto intro: has_type.intros elim: eval_once_NBIs_zeroE)
 qed
 
 end

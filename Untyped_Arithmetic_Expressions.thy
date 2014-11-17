@@ -70,24 +70,6 @@ lemma card_union_leq_sum_card: "card (A \<union> B) \<le> card A + card B"
 
 lemma "card (const_NB t) \<le> size_NB t"
 proof (induction t)
-  case NBTrue
-  show ?case by simp
-next
-  case NBFalse
-  show ?case by simp
-next
-  case NBZero
-  show ?case by simp
-next
-  case (NBSucc t)
-  thus ?case by (simp add: le_SucI)
-next
-  case (NBPred t)
-  thus ?case by (simp add: le_SucI)
-next
-  case (NBIs_zero t)
-  thus ?case by (simp add: le_SucI)
-next
   case (NBIf t1 t2 t3)
   show ?case
   proof -
@@ -95,13 +77,12 @@ next
     let ?t2 = "const_NB t2"
     let ?t3 = "const_NB t3"
     have "card (?t1 \<union> ?t2 \<union> ?t3) \<le> card ?t1 + card ?t2 + card ?t3"
-      using card_union_leq_sum_card add_le_imp_le_right le_antisym le_trans nat_le_linear
       by (smt card_union_leq_sum_card add_le_imp_le_right le_antisym le_trans nat_le_linear)
     also have "\<dots> \<le> size_NB t1 + size_NB t2 + size_NB t3"
       using NBIf.IH by simp
     finally show ?thesis by simp
   qed
-qed
+qed (simp_all add: le_SucI)
 
 (* Theorem 3.3.4 *)
 
@@ -127,14 +108,14 @@ primrec size_B :: "BTerm \<Rightarrow> nat" where
   "size_B BFalse = 1" |
   "size_B (BIf t1 t2 t3) = 1 + size_B t1 + size_B t2 + size_B t3"
 
-inductive is_value :: "BTerm \<Rightarrow> bool" where
-  is_value_BTrue: "is_value BTrue" |
-  is_value_BFalse: "is_value BFalse"
+inductive is_value_B :: "BTerm \<Rightarrow> bool" where
+  is_value_BTrue: "is_value_B BTrue" |
+  is_value_BFalse: "is_value_B BFalse"
 
-inductive eval_once :: "BTerm \<Rightarrow> BTerm \<Rightarrow> bool" where
-  e_if_true: "eval_once (BIf BTrue t2 t3) t2" |
-  e_if_false: "eval_once (BIf BFalse t2 t3) t3" |
-  e_if: "eval_once t1 t1' \<Longrightarrow> eval_once (BIf t1 t2 t3) (BIf t1' t2 t3)"
+inductive eval_once_B :: "BTerm \<Rightarrow> BTerm \<Rightarrow> bool" where
+  eval_once_BIf_BTrue: "eval_once_B (BIf BTrue t2 t3) t2" |
+  eval_once_BIf_BFalse: "eval_once_B (BIf BFalse t2 t3) t3" |
+  eval_once_BIf: "eval_once_B t1 t1' \<Longrightarrow> eval_once_B (BIf t1 t2 t3) (BIf t1' t2 t3)"
 
 (* Example of definition 3.5.3 *)
 
@@ -143,50 +124,49 @@ lemma
     s: "s = BIf BTrue BFalse BFalse" and
     t: "t = BIf s BTrue BTrue" and
     u: "u = BIf BFalse BTrue BTrue"
-  shows "eval_once (BIf t BFalse BFalse) (BIf u BFalse BFalse)"
+  shows "eval_once_B (BIf t BFalse BFalse) (BIf u BFalse BFalse)"
 proof -
-  have "eval_once s BFalse" unfolding s by (rule e_if_true)
-  hence "eval_once t u" unfolding t u by (rule e_if)
-  thus ?thesis by (rule e_if)
+  have "eval_once_B s BFalse" unfolding s by (rule eval_once_BIf_BTrue)
+  hence "eval_once_B t u" unfolding t u by (rule eval_once_BIf)
+  thus ?thesis by (rule eval_once_BIf)
 qed
 
 
 (* Theorem 3.5.4 *)
 
-inductive_cases eval_once_BTrueE: "eval_once BTrue t"
-inductive_cases eval_once_BFalseE: "eval_once BFalse t"
+inductive_cases eval_once_BTrueE: "eval_once_B BTrue t"
+inductive_cases eval_once_BFalseE: "eval_once_B BFalse t"
 
 theorem eval_single_determinacy:
   fixes t t' t'' :: BTerm
-  shows "eval_once t t' \<Longrightarrow> eval_once t t'' \<Longrightarrow> t' = t''"
-proof (induction t t' arbitrary: t'' rule: eval_once.induct)
-  case (e_if_true t1 t2)
-  thus ?case by (auto elim: eval_once.cases)
+  shows "eval_once_B t t' \<Longrightarrow> eval_once_B t t'' \<Longrightarrow> t' = t''"
+proof (induction t t' arbitrary: t'' rule: eval_once_B.induct)
+  case (eval_once_BIf_BTrue t1 t2)
+  thus ?case by (auto elim: eval_once_B.cases)
 next
-  case (e_if_false t1 t2)
-  thus ?case by (auto elim: eval_once.cases)
+  case (eval_once_BIf_BFalse t1 t2)
+  thus ?case by (auto elim: eval_once_B.cases)
 next
-  case (e_if t1 t1' t2 t3)
+  case (eval_once_BIf t1 t1' t2 t3)
   show ?case
-    apply (rule eval_once.cases[OF e_if.prems])
-    using e_if.hyps by (auto dest: eval_once_BTrueE eval_once_BFalseE e_if.IH)
+    apply (rule eval_once_B.cases[OF eval_once_BIf.prems])
+    using eval_once_BIf.hyps by (auto dest: eval_once_BTrueE eval_once_BFalseE eval_once_BIf.IH)
 qed
 
 (* Theorem 3.5.7 *)
 
-definition is_normal_form :: "BTerm \<Rightarrow> bool" where
-  "is_normal_form t \<longleftrightarrow> (\<forall>t'. \<not> eval_once t t')"
+definition is_normal_form_B :: "BTerm \<Rightarrow> bool" where
+  "is_normal_form_B t \<longleftrightarrow> (\<forall>t'. \<not> eval_once_B t t')"
 
 theorem value_imp_normal_form:
   fixes t :: BTerm
-  shows "is_value t \<Longrightarrow> is_normal_form t"
-by (auto simp: is_normal_form_def elim: is_value.cases dest: eval_once_BTrueE eval_once_BFalseE)
+  shows "is_value_B t \<Longrightarrow> is_normal_form_B t"
+by (auto simp: is_normal_form_B_def elim: is_value_B.cases dest: eval_once_BTrueE eval_once_BFalseE)
 
 (* Theorem 3.5.8 *)
 
 theorem normal_form_imp_value:
-  fixes t :: BTerm
-  shows "is_normal_form t \<Longrightarrow> is_value t"
+  "is_normal_form_B t \<Longrightarrow> is_value_B t"
 proof (rule ccontr, induction t rule: BTerm.induct)
   case BTrue
   thus ?case by (simp add: is_value_BTrue)
@@ -195,42 +175,42 @@ next
   thus ?case by (simp add: is_value_BFalse)
 next
   case (BIf t1 t2 t3)
-  thus ?case by (metis e_if e_if_false e_if_true is_normal_form_def is_value.cases)
+  thus ?case by (metis eval_once_B.intros is_normal_form_B_def is_value_B.cases)
 qed
 
 (* Definition 3.5.9 *)
 
-inductive eval :: "BTerm \<Rightarrow> BTerm \<Rightarrow> bool" where
-  e_once: "eval_once t t' \<Longrightarrow> eval t t'" |
-  e_self: "eval t t" |
-  e_transitive: "eval t t' \<Longrightarrow> eval t' t'' \<Longrightarrow> eval t t''"
+inductive eval_B :: "BTerm \<Rightarrow> BTerm \<Rightarrow> bool" where
+  e_once: "eval_once_B t t' \<Longrightarrow> eval_B t t'" |
+  e_self: "eval_B t t" |
+  e_transitive: "eval_B t t' \<Longrightarrow> eval_B t' t'' \<Longrightarrow> eval_B t t''"
 
-inductive eval' :: "BTerm \<Rightarrow> BTerm \<Rightarrow> bool" where
-  e_base': "eval' t t" |
-  e_step': "eval_once t t' \<Longrightarrow> eval' t' t'' \<Longrightarrow> eval' t t''"
+inductive eval_B' :: "BTerm \<Rightarrow> BTerm \<Rightarrow> bool" where
+  e_base': "eval_B' t t" |
+  e_step': "eval_once_B t t' \<Longrightarrow> eval_B' t' t'' \<Longrightarrow> eval_B' t t''"
 
-lemma e_once': "eval_once t t' \<Longrightarrow> eval' t t'"
+lemma e_once': "eval_once_B t t' \<Longrightarrow> eval_B' t t'"
   by (simp add: e_base' e_step')
 
-lemma e_transitive': "eval' t t' \<Longrightarrow> eval' t' t'' \<Longrightarrow> eval' t t''"
-proof (induction t t' arbitrary: t'' rule: eval'.induct)
+lemma e_transitive': "eval_B' t t' \<Longrightarrow> eval_B' t' t'' \<Longrightarrow> eval_B' t t''"
+proof (induction t t' arbitrary: t'' rule: eval_B'.induct)
   case (e_base' t t'') thus ?case .
 next
   case (e_step' t t' t'' t''')
-  thus ?case using eval'.e_step' by blast
+  thus ?case using eval_B'.e_step' by blast
 qed
 
 (* rewrite as an Isar proof *)
-lemma eval_eq_eval': "eval = eval'"
+lemma eval_eq_eval': "eval_B = eval_B'"
   apply (rule ext)+
   apply (rule iffI)
    apply (rename_tac t t')
-   apply (erule eval.induct)
+   apply (erule eval_B.induct)
       apply (erule e_once')
     apply (rule e_base')
    apply (erule e_transitive')
    apply assumption
-  apply (erule eval'.induct)
+  apply (erule eval_B'.induct)
    apply (rule e_self)
   using e_once e_transitive by blast
 
@@ -238,54 +218,30 @@ lemma eval_eq_eval': "eval = eval'"
 (* Corollary 3.5.11 *)
 
 corollary uniqueness_of_normal_form:
-  fixes t u u' :: BTerm
-  assumes
-    "eval t u" and
-    "eval t u'" and
-    "is_normal_form u" and
-    "is_normal_form u'"
-  shows "u = u'"
-using assms
+  "eval_B t u \<Longrightarrow> eval_B t u' \<Longrightarrow> is_normal_form_B u \<Longrightarrow> is_normal_form_B u' \<Longrightarrow> u = u'"
 unfolding eval_eq_eval'
-proof (induction t u rule: eval'.induct)
+proof (induction t u rule: eval_B'.induct)
   case (e_base' t)
-  thus ?case by (metis eval'.simps is_normal_form_def)
+  thus ?case by (metis eval_B'.simps is_normal_form_B_def)
 next
   case (e_step' t t' t'')
-  thus ?case by (metis eval'.cases is_normal_form_def eval_single_determinacy)
+  thus ?case by (metis eval_B'.cases is_normal_form_B_def eval_single_determinacy)
 qed
 
 
 (* Util *)
 
 lemma eval_once_size_B:
-  assumes "eval_once t t'"
-  shows "size_B t > size_B t'"
-using assms
-proof (induction rule: eval_once.induct)
-  case e_if_true
-  thus ?case by simp
-next
-  case e_if_false
-  thus ?case by simp
-next
-  case e_if
-  thus ?case by simp
-qed
-
+  "eval_once_B t t' \<Longrightarrow> size_B t > size_B t'"
+by (induction t t' rule: eval_once_B.induct) (simp_all)
 
 (* Theorem 3.5.12 *)
 
 theorem eval_always_terminate:
-  "\<exists>t'. eval t t' \<and> is_normal_form t'"
+  "\<exists>t'. eval_B t t' \<and> is_normal_form_B t'"
 unfolding eval_eq_eval'
-proof (induction rule: measure_induct_rule[of size_B])
-  case (less t)
-  show ?case
-    apply (cases "is_normal_form t")
-    using e_base' apply blast
-    using e_step' is_normal_form_def eval_once_size_B less.IH by blast
-qed
+by (induction rule: measure_induct_rule[of size_B])
+  (metis e_base' e_step' eval_once_size_B is_normal_form_B_def)
 
 subsection {* Arithmetic Expressions *}
 
@@ -331,9 +287,9 @@ next
   thus ?case using eval_NB.eval_NB_step by blast
 qed
 
-inductive_cases eval_once_NBTrueD: "eval_once_NB NBTrue t"
-inductive_cases eval_once_NBFalseD: "eval_once_NB NBFalse t"
-inductive_cases eval_once_NBZeroD: "eval_once_NB NBZero t"
+inductive_cases eval_once_NBTrueE: "eval_once_NB NBTrue t"
+inductive_cases eval_once_NBFalseE: "eval_once_NB NBFalse t"
+inductive_cases eval_once_NBZeroE: "eval_once_NB NBZero t"
 
 lemma not_eval_once_numeric_value: "is_numeric_value_NB nv \<Longrightarrow> eval_once_NB nv t \<Longrightarrow> P"
 proof (induction nv arbitrary: t rule: is_numeric_value_NB.induct)
@@ -364,14 +320,14 @@ next
   from eval_once_NBIf.prems eval_once_NBIf.hyps show ?case
     by (auto
       intro: eval_once_NB.cases
-      dest: eval_once_NBTrueD eval_once_NBFalseD eval_once_NBIf.IH)
+      dest: eval_once_NBTrueE eval_once_NBFalseE eval_once_NBIf.IH)
 next
   case (eval_once_NBSucc t1 t2)
   from eval_once_NBSucc.prems eval_once_NBSucc.IH show ?case
     by (auto elim: eval_once_NB.cases)
 next
   case eval_once_NBPred_NBZero
-  thus ?case by (auto intro: eval_once_NB.cases dest: eval_once_NBZeroD)
+  thus ?case by (auto intro: eval_once_NB.cases dest: eval_once_NBZeroE)
 next
   case (eval_once_NBPred_NBSucc nv1)
   show ?case
@@ -389,7 +345,7 @@ next
 next
   case eval_once_NBIs_zero_NBZero
   thus ?case
-    by (auto intro: eval_once_NB.cases dest: eval_once_NBZeroD)
+    by (auto intro: eval_once_NB.cases dest: eval_once_NBZeroE)
 next
   case (eval_once_NBIs_zero_NBSucc nv)
   thus ?case
@@ -400,10 +356,9 @@ next
     apply (rule eval_once_NBIs_zero.prems[THEN eval_once_NB.cases])
     using eval_once_NBIs_zero.hyps
     by (auto
-      intro: eval_once_NBZeroD eval_once_NBIs_zero.IH
+      intro: eval_once_NBZeroE eval_once_NBIs_zero.IH
       elim: not_eval_once_numeric_value[rotated] is_numeric_value_NBSucc)
 qed
-
 
 (* Theorem 3.5.7 for Arithmetic Expressions *)
 
@@ -412,12 +367,12 @@ theorem value_imp_normal_form_NB:
   by (auto
     simp: is_normal_form_NB_def
     elim: is_value_NB.cases
-    dest: eval_once_NBFalseD eval_once_NBTrueD not_eval_once_numeric_value)
-
+    dest: eval_once_NBFalseE eval_once_NBTrueE not_eval_once_numeric_value)
 
 (* Theorem 3.5.8 does not hold for Arithmetic Expressions *)
 
-theorem not_normal_form_imp_value_NB: "\<exists>t. is_normal_form_NB t \<and> \<not> is_value_NB t" (is "\<exists>t. ?P t")
+theorem not_normal_form_imp_value_NB:
+  "\<exists>t. is_normal_form_NB t \<and> \<not> is_value_NB t" (is "\<exists>t. ?P t")
 proof
   have a: "is_normal_form_NB (NBSucc NBTrue)"
     by (auto elim: eval_once_NB.cases simp: is_normal_form_NB_def)
@@ -425,7 +380,6 @@ proof
     by (auto elim: is_numeric_value_NB.cases simp: is_value_NB.simps)
   from a b show "?P (NBSucc NBTrue)" by simp
 qed
-
 
 (* Corollary 3.5.11 for Arithmetic Expressions *)
 
@@ -444,7 +398,6 @@ next
   case (eval_NB_step t1 t2 t3)
   thus ?case by (metis eval_NB.cases is_normal_form_NB_def eval_once_NB_right_unique)
 qed
-
 
 (* Theorem 3.5.12 for Arithmetic Expressions *)
 

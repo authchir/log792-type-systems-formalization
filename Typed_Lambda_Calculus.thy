@@ -8,11 +8,15 @@ begin
 
 chapter {* Typed Lambda Calculus *}
 
+section {* Function Types *}
+
 text {* Definition 9.1.1 *}
 
 datatype_new Type
   = Bool
   | Fun (domain: Type) (codomain: Type) (infixr "\<rightarrow>" 225)
+
+section {* The Typing Relation *}
 
 datatype_new Term
   = LTrue
@@ -88,6 +92,8 @@ lemma
   assumes "\<Gamma> = \<emptyset> |,| Bool \<rightarrow> Bool \<rightarrow> Bool |,| Bool |,| Bool"
   shows "\<Gamma> \<turnstile> App (App (Var 2) (Var 1)) (Var 0) |:| Bool"
   by (auto intro!: has_type.intros simp: assms)
+
+section {* Properties of Typing *}
 
 text {* Lemma 9.3.1 *}
 
@@ -352,6 +358,8 @@ next
     apply (auto intro: has_type.intros simp: Consts_subst Consts_shift_n_0 split: Term.splits) *)
     sorry
 qed
+
+section {* Erasure and Typability *}
 
 text {* 9.5.1 *}
 
