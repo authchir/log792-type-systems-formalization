@@ -6,117 +6,135 @@ begin
 
 chapter {* Untyped Arithmetic Expressions *}
 
-datatype B_term
-  = BTrue
-  | BFalse
-  | BIf B_term B_term B_term
+text {* The language of untyped arithmetic expressions contains the boolean constants @{text true}
+and @{text false}, the conditional expression @{text "if \<dots> then \<dots> else \<dots>"}, the numeric constant
+@{text zero}, the arithmetic operators successor (@{text succ}) and predecessor (@{text pred}) and a
+function @{text is_zero} that returns @{text true} when applied to @{text zero} and @{text false}
+when applied to some other number. An arbitrary natural number $n$ can be expressed by applying the
+@{text succ} operator $n$ times to @{text zero} (e.g. the number three is @{text "succ (succ (succ
+zero))"}).*}
 
+section {* Syntax *}
 
-text {* Definition 3.3.1 by primitive recursion on @{typ B_term} *}
+text {* The syntax of this language is represented by the @{term NBTerm} datatype \footnote{To
+prevent name clashes with the \emph{Isabelle} constants of the same name, the types and type
+constructors are prefix with @{text NB}, which stand for "Numeric and Booleans". Functions have a
+use a suffix for the same purpose.}. *}
 
-primrec consts_B :: "B_term \<Rightarrow> B_term set" where
-  "consts_B BTrue = {BTrue}" |
-  "consts_B BFalse = {BFalse}" |
-  "consts_B (BIf t1 t2 t3) = consts_B t1 \<union> consts_B t2 \<union> consts_B t3"
+datatype NBTerm
+  = NBTrue
+  | NBFalse
+  | NBIf NBTerm NBTerm NBTerm
+  | NBZero
+  | NBSucc NBTerm
+  | NBPred NBTerm
+  | NBIs_zero NBTerm
 
+section {* Induction on Terms *}
+
+(* Definition 3.3.1 *)
+
+primrec const_NB :: "NBTerm \<Rightarrow> NBTerm set" where
+  "const_NB NBTrue = {NBTrue}" |
+  "const_NB NBFalse = {NBFalse}" |
+  "const_NB NBZero = {NBZero}" |
+  "const_NB (NBSucc t) = const_NB t" |
+  "const_NB (NBPred t) = const_NB t" |
+  "const_NB (NBIs_zero t) = const_NB t" |
+  "const_NB (NBIf t1 t2 t3) = const_NB t1 \<union> const_NB t2 \<union> const_NB t3"
 
 (* Definition 3.3.2 *)
 
-primrec size_B :: "B_term \<Rightarrow> nat" where
-  "size_B BTrue = 1" |
-  "size_B BFalse = 1" |
-  "size_B (BIf t1 t2 t3) = 1 + size_B t1 + size_B t2 + size_B t3"
+primrec size_NB :: "NBTerm \<Rightarrow> nat" where
+  "size_NB NBTrue = 1" |
+  "size_NB NBFalse = 1" |
+  "size_NB NBZero = 1" |
+  "size_NB (NBSucc t) = size_NB t + 1" |
+  "size_NB (NBPred t) = size_NB t + 1" |
+  "size_NB (NBIs_zero t) = size_NB t + 1" |
+  "size_NB (NBIf t1 t2 t3) = size_NB t1 + size_NB t2 + size_NB t3 + 1"
 
-primrec depth_B :: "B_term \<Rightarrow> nat" where
-  "depth_B BTrue = 1" |
-  "depth_B BFalse = 1" |
-  "depth_B (BIf t1 t2 t3) = 1 + max (depth_B t1) (max (depth_B t2) (depth_B t3))"
+primrec depth_NB :: "NBTerm \<Rightarrow> nat" where
+  "depth_NB NBTrue = 1" |
+  "depth_NB NBFalse = 1" |
+  "depth_NB NBZero = 1" |
+  "depth_NB (NBSucc t) = depth_NB t + 1" |
+  "depth_NB (NBPred t) = depth_NB t + 1" |
+  "depth_NB (NBIs_zero t) = depth_NB t + 1" |
+  "depth_NB (NBIf t1 t2 t3) = max (depth_NB t1) (max (depth_NB t2) (depth_NB t3)) + 1"
 
-
-(* Util *)
+(* Lemma 3.3.3 *)
 
 lemma card_union_leq_sum_card: "card (A \<union> B) \<le> card A + card B"
   by (cases "finite A \<and> finite B") (simp only: card_Un_Int, auto)
 
-(* Lemma 3.3.3 *)
-
-lemma "card (consts_B t) \<le> size_B t"
+lemma "card (const_NB t) \<le> size_NB t"
 proof (induction t)
-  case BTrue
+  case NBTrue
   show ?case by simp
 next
-  case BFalse
+  case NBFalse
   show ?case by simp
 next
-  case (BIf t1 t2 t3)
+  case NBZero
+  show ?case by simp
+next
+  case (NBSucc t)
+  thus ?case by (simp add: le_SucI)
+next
+  case (NBPred t)
+  thus ?case by (simp add: le_SucI)
+next
+  case (NBIs_zero t)
+  thus ?case by (simp add: le_SucI)
+next
+  case (NBIf t1 t2 t3)
   show ?case
   proof -
-    let ?t1 = "consts_B t1"
-    let ?t2 = "consts_B t2"
-    let ?t3 = "consts_B t3"
+    let ?t1 = "const_NB t1"
+    let ?t2 = "const_NB t2"
+    let ?t3 = "const_NB t3"
     have "card (?t1 \<union> ?t2 \<union> ?t3) \<le> card ?t1 + card ?t2 + card ?t3"
+      using card_union_leq_sum_card add_le_imp_le_right le_antisym le_trans nat_le_linear
       by (smt card_union_leq_sum_card add_le_imp_le_right le_antisym le_trans nat_le_linear)
-    also have "\<dots> \<le> size_B t1 + size_B t2 + size_B t3"
-      using BIf.IH by simp
+    also have "\<dots> \<le> size_NB t1 + size_NB t2 + size_NB t3"
+      using NBIf.IH by simp
     finally show ?thesis by simp
   qed
 qed
 
-(* Definitions: Booleans *)
+(* Theorem 3.3.4 *)
 
-inductive is_value :: "B_term \<Rightarrow> bool" where
+theorems induct_depth = measure_induct_rule[of depth_NB]
+theorems induct_size = measure_induct_rule[of size_NB]
+theorems structural_induction = NBTerm.induct
+
+section {* Semantic Styles *}
+
+text {* Operational semantics is used exclusively in this book. [TAPL p.34] *}
+
+section {* Evaluation *}
+
+subsection {* Booleans *}
+
+datatype_new BTerm
+  = BTrue
+  | BFalse
+  | BIf BTerm BTerm BTerm
+
+primrec size_B :: "BTerm \<Rightarrow> nat" where
+  "size_B BTrue = 1" |
+  "size_B BFalse = 1" |
+  "size_B (BIf t1 t2 t3) = 1 + size_B t1 + size_B t2 + size_B t3"
+
+inductive is_value :: "BTerm \<Rightarrow> bool" where
   is_value_BTrue: "is_value BTrue" |
   is_value_BFalse: "is_value BFalse"
 
-inductive_cases is_value_BIfD: "is_value (BIf t1 t2 t3)"
-
-inductive eval_once :: "B_term \<Rightarrow> B_term \<Rightarrow> bool" where
+inductive eval_once :: "BTerm \<Rightarrow> BTerm \<Rightarrow> bool" where
   e_if_true: "eval_once (BIf BTrue t2 t3) t2" |
   e_if_false: "eval_once (BIf BFalse t2 t3) t3" |
   e_if: "eval_once t1 t1' \<Longrightarrow> eval_once (BIf t1 t2 t3) (BIf t1' t2 t3)"
-
-inductive_cases eval_once_BTrueD: "eval_once BTrue t"
-inductive_cases eval_once_BFalseD: "eval_once BFalse t"
-
-inductive eval :: "B_term \<Rightarrow> B_term \<Rightarrow> bool" where
-  e_once: "eval_once t t' \<Longrightarrow> eval t t'" |
-  e_self: "eval t t" |
-  e_transitive: "eval t t' \<Longrightarrow> eval t' t'' \<Longrightarrow> eval t t''"
-
-inductive eval' :: "B_term \<Rightarrow> B_term \<Rightarrow> bool" where
-  e_base': "eval' t t" |
-  e_step': "eval_once t t' \<Longrightarrow> eval' t' t'' \<Longrightarrow> eval' t t''"
-
-lemma e_once': "eval_once t t' \<Longrightarrow> eval' t t'"
-  by (simp add: e_base' e_step')
-
-lemma e_transitive': "eval' t t' \<Longrightarrow> eval' t' t'' \<Longrightarrow> eval' t t''"
-proof (induction t t' arbitrary: t'' rule: eval'.induct)
-  case (e_base' t t'') thus ?case .
-next
-  case (e_step' t t' t'' t''')
-  thus ?case using eval'.e_step' by blast
-qed
-
-
-(* rewrite as an Isar proof *)
-lemma eval_eq_eval': "eval = eval'"
-  apply (rule ext)+
-  apply (rule iffI)
-   apply (rename_tac t t')
-   apply (erule eval.induct)
-      apply (erule e_once')
-    apply (rule e_base')
-   apply (erule e_transitive')
-   apply assumption
-
-  apply (erule eval'.induct)
-   apply (rule e_self)
-  using e_once e_transitive by blast
-
-definition is_normal_form :: "B_term \<Rightarrow> bool" where
-  "is_normal_form t \<longleftrightarrow> (\<forall>t'. \<not> eval_once t t')"
-
 
 (* Example of definition 3.5.3 *)
 
@@ -135,8 +153,11 @@ qed
 
 (* Theorem 3.5.4 *)
 
+inductive_cases eval_once_BTrueE: "eval_once BTrue t"
+inductive_cases eval_once_BFalseE: "eval_once BFalse t"
+
 theorem eval_single_determinacy:
-  fixes t t' t'' :: B_term
+  fixes t t' t'' :: BTerm
   shows "eval_once t t' \<Longrightarrow> eval_once t t'' \<Longrightarrow> t' = t''"
 proof (induction t t' arbitrary: t'' rule: eval_once.induct)
   case (e_if_true t1 t2)
@@ -148,24 +169,25 @@ next
   case (e_if t1 t1' t2 t3)
   show ?case
     apply (rule eval_once.cases[OF e_if.prems])
-    using e_if.hyps by (auto dest: eval_once_BTrueD eval_once_BFalseD e_if.IH)
+    using e_if.hyps by (auto dest: eval_once_BTrueE eval_once_BFalseE e_if.IH)
 qed
-
 
 (* Theorem 3.5.7 *)
 
-theorem value_imp_normal_form:
-  fixes t :: B_term
-  shows "is_value t \<Longrightarrow> is_normal_form t"
-by (auto simp: is_normal_form_def elim: is_value.cases dest: eval_once_BTrueD eval_once_BFalseD)
+definition is_normal_form :: "BTerm \<Rightarrow> bool" where
+  "is_normal_form t \<longleftrightarrow> (\<forall>t'. \<not> eval_once t t')"
 
+theorem value_imp_normal_form:
+  fixes t :: BTerm
+  shows "is_value t \<Longrightarrow> is_normal_form t"
+by (auto simp: is_normal_form_def elim: is_value.cases dest: eval_once_BTrueE eval_once_BFalseE)
 
 (* Theorem 3.5.8 *)
 
 theorem normal_form_imp_value:
-  fixes t :: B_term
+  fixes t :: BTerm
   shows "is_normal_form t \<Longrightarrow> is_value t"
-proof (rule ccontr, induction t rule: B_term.induct)
+proof (rule ccontr, induction t rule: BTerm.induct)
   case BTrue
   thus ?case by (simp add: is_value_BTrue)
 next
@@ -176,11 +198,47 @@ next
   thus ?case by (metis e_if e_if_false e_if_true is_normal_form_def is_value.cases)
 qed
 
+(* Definition 3.5.9 *)
+
+inductive eval :: "BTerm \<Rightarrow> BTerm \<Rightarrow> bool" where
+  e_once: "eval_once t t' \<Longrightarrow> eval t t'" |
+  e_self: "eval t t" |
+  e_transitive: "eval t t' \<Longrightarrow> eval t' t'' \<Longrightarrow> eval t t''"
+
+inductive eval' :: "BTerm \<Rightarrow> BTerm \<Rightarrow> bool" where
+  e_base': "eval' t t" |
+  e_step': "eval_once t t' \<Longrightarrow> eval' t' t'' \<Longrightarrow> eval' t t''"
+
+lemma e_once': "eval_once t t' \<Longrightarrow> eval' t t'"
+  by (simp add: e_base' e_step')
+
+lemma e_transitive': "eval' t t' \<Longrightarrow> eval' t' t'' \<Longrightarrow> eval' t t''"
+proof (induction t t' arbitrary: t'' rule: eval'.induct)
+  case (e_base' t t'') thus ?case .
+next
+  case (e_step' t t' t'' t''')
+  thus ?case using eval'.e_step' by blast
+qed
+
+(* rewrite as an Isar proof *)
+lemma eval_eq_eval': "eval = eval'"
+  apply (rule ext)+
+  apply (rule iffI)
+   apply (rename_tac t t')
+   apply (erule eval.induct)
+      apply (erule e_once')
+    apply (rule e_base')
+   apply (erule e_transitive')
+   apply assumption
+  apply (erule eval'.induct)
+   apply (rule e_self)
+  using e_once e_transitive by blast
+
 
 (* Corollary 3.5.11 *)
 
 corollary uniqueness_of_normal_form:
-  fixes t u u' :: B_term
+  fixes t u u' :: BTerm
   assumes
     "eval t u" and
     "eval t u'" and
@@ -229,26 +287,7 @@ proof (induction rule: measure_induct_rule[of size_B])
     using e_step' is_normal_form_def eval_once_size_B less.IH by blast
 qed
 
-
-(* Definitions: Arithmetic Expressions *)
-
-datatype NBTerm
-  = NBTrue
-  | NBFalse
-  | NBIf NBTerm NBTerm NBTerm
-  | NBZero
-  | NBSucc NBTerm
-  | NBPred NBTerm
-  | NBIs_zero NBTerm
-
-primrec size_NB :: "NBTerm \<Rightarrow> nat" where
-  "size_NB NBTrue = 1" |
-  "size_NB NBFalse = 1" |
-  "size_NB NBZero = 1" |
-  "size_NB (NBSucc t) = 1 + size_NB t" |
-  "size_NB (NBPred t) = 1 + size_NB t" |
-  "size_NB (NBIs_zero t) = 1 + size_NB t" |
-  "size_NB (NBIf t1 t2 t3) = 1 + size_NB t1 + size_NB t2 + size_NB t3"
+subsection {* Arithmetic Expressions *}
 
 inductive is_numeric_value_NB :: "NBTerm \<Rightarrow> bool" where
   is_numeric_value_NBZero: "is_numeric_value_NB NBZero" |
