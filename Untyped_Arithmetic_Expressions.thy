@@ -18,21 +18,22 @@ section {* Syntax *}
 
 text {* The syntax of this language is represented by the @{term NBTerm} datatype \footnote{To
 prevent name clashes with the \emph{Isabelle} constants of the same name, the types and type
-constructors are prefix with @{text NB}, which stand for "Numeric and Booleans". Functions have a
-use a suffix for the same purpose.}. *}
+constructors are prefix with @{text NB}, which stand for "Numeric and Booleans". Functions use a
+suffix for the same purpose.}. *}
 
-datatype NBTerm
-  = NBTrue
-  | NBFalse
-  | NBIf NBTerm NBTerm NBTerm
-  | NBZero
-  | NBSucc NBTerm
-  | NBPred NBTerm
-  | NBIs_zero NBTerm
+text {* \label{untyped-arith-NBTerm}*}
+datatype NBTerm =
+  NBTrue
+| NBFalse
+| NBIf NBTerm NBTerm NBTerm
+| NBZero
+| NBSucc NBTerm
+| NBPred NBTerm
+| NBIs_zero NBTerm
 
 section {* Induction on Terms *}
 
-(* Definition 3.3.1 *)
+subsubsection {* Definition 3.3.1 *}
 
 primrec const_NB :: "NBTerm \<Rightarrow> NBTerm set" where
   "const_NB NBTrue = {NBTrue}" |
@@ -43,7 +44,7 @@ primrec const_NB :: "NBTerm \<Rightarrow> NBTerm set" where
   "const_NB (NBIs_zero t) = const_NB t" |
   "const_NB (NBIf t1 t2 t3) = const_NB t1 \<union> const_NB t2 \<union> const_NB t3"
 
-(* Definition 3.3.2 *)
+subsubsection {* Definition 3.3.2 *}
 
 primrec size_NB :: "NBTerm \<Rightarrow> nat" where
   "size_NB NBTrue = 1" |
@@ -63,7 +64,7 @@ primrec depth_NB :: "NBTerm \<Rightarrow> nat" where
   "depth_NB (NBIs_zero t) = depth_NB t + 1" |
   "depth_NB (NBIf t1 t2 t3) = max (depth_NB t1) (max (depth_NB t2) (depth_NB t3)) + 1"
 
-(* Lemma 3.3.3 *)
+subsubsection {* Lemma 3.3.3 *}
 
 lemma card_union_leq_sum_card: "card (A \<union> B) \<le> card A + card B"
   by (cases "finite A \<and> finite B") (simp only: card_Un_Int, auto)
@@ -84,7 +85,7 @@ proof (induction t)
   qed
 qed (simp_all add: le_SucI)
 
-(* Theorem 3.3.4 *)
+subsubsection {* Theorem 3.3.4 *}
 
 theorems induct_depth = measure_induct_rule[of depth_NB]
 theorems induct_size = measure_induct_rule[of size_NB]
@@ -96,21 +97,25 @@ text {* Operational semantics is used exclusively in this book. [TAPL p.34] *}
 
 section {* Evaluation *}
 
+text {* Before to attack our fully fledge arithmetic expression language, we will consider boolean
+expressions alone. *}
+
 subsection {* Booleans *}
 
-datatype_new BTerm
-  = BTrue
-  | BFalse
-  | BIf BTerm BTerm BTerm
+text {* The syntax of the boolean expressions language substert have only three constructs. *}
 
-primrec size_B :: "BTerm \<Rightarrow> nat" where
-  "size_B BTrue = 1" |
-  "size_B BFalse = 1" |
-  "size_B (BIf t1 t2 t3) = 1 + size_B t1 + size_B t2 + size_B t3"
+datatype_new BTerm =
+  BTrue |
+  BFalse |
+  BIf BTerm BTerm BTerm
+
+text {* Out of which two are values. *}
 
 inductive is_value_B :: "BTerm \<Rightarrow> bool" where
-  is_value_BTrue: "is_value_B BTrue" |
-  is_value_BFalse: "is_value_B BFalse"
+  "is_value_B BTrue" |
+  "is_value_B BFalse"
+
+text {* And the single step evaluation can proceed as follow. *}
 
 inductive eval_once_B :: "BTerm \<Rightarrow> BTerm \<Rightarrow> bool" where
   eval_once_BIf_BTrue: "eval_once_B (BIf BTrue t2 t3) t2" |
@@ -131,15 +136,10 @@ proof -
   thus ?thesis by (rule eval_once_BIf)
 qed
 
-
-(* Theorem 3.5.4 *)
-
-inductive_cases eval_once_BTrueE: "eval_once_B BTrue t"
-inductive_cases eval_once_BFalseE: "eval_once_B BFalse t"
+subsubsection {* Theorem 3.5.4 *}
 
 theorem eval_single_determinacy:
-  fixes t t' t'' :: BTerm
-  shows "eval_once_B t t' \<Longrightarrow> eval_once_B t t'' \<Longrightarrow> t' = t''"
+  "eval_once_B t t' \<Longrightarrow> eval_once_B t t'' \<Longrightarrow> t' = t''"
 proof (induction t t' arbitrary: t'' rule: eval_once_B.induct)
   case (eval_once_BIf_BTrue t1 t2)
   thus ?case by (auto elim: eval_once_B.cases)
@@ -148,37 +148,30 @@ next
   thus ?case by (auto elim: eval_once_B.cases)
 next
   case (eval_once_BIf t1 t1' t2 t3)
-  show ?case
-    apply (rule eval_once_B.cases[OF eval_once_BIf.prems])
-    using eval_once_BIf.hyps by (auto dest: eval_once_BTrueE eval_once_BFalseE eval_once_BIf.IH)
+  from eval_once_BIf.prems eval_once_BIf.hyps show ?case
+    by (cases rule: eval_once_B.cases) (auto dest: eval_once_BIf.IH elim: eval_once_B.cases)
 qed
 
-(* Theorem 3.5.7 *)
+subsubsection {* Theorem 3.5.7 *}
 
 definition is_normal_form_B :: "BTerm \<Rightarrow> bool" where
   "is_normal_form_B t \<longleftrightarrow> (\<forall>t'. \<not> eval_once_B t t')"
 
 theorem value_imp_normal_form:
-  fixes t :: BTerm
-  shows "is_value_B t \<Longrightarrow> is_normal_form_B t"
-by (auto simp: is_normal_form_B_def elim: is_value_B.cases dest: eval_once_BTrueE eval_once_BFalseE)
+  "is_value_B t \<Longrightarrow> is_normal_form_B t"
+by (auto simp: is_normal_form_B_def elim: is_value_B.cases eval_once_B.cases)
 
-(* Theorem 3.5.8 *)
+subsubsection {* Theorem 3.5.8 *}
 
 theorem normal_form_imp_value:
   "is_normal_form_B t \<Longrightarrow> is_value_B t"
-proof (rule ccontr, induction t rule: BTerm.induct)
-  case BTrue
-  thus ?case by (simp add: is_value_BTrue)
-next
-  case BFalse
-  thus ?case by (simp add: is_value_BFalse)
-next
-  case (BIf t1 t2 t3)
-  thus ?case by (metis eval_once_B.intros is_normal_form_B_def is_value_B.cases)
-qed
+by (rule ccontr, induction t rule: BTerm.induct)
+  (auto
+    intro: eval_once_B.intros is_value_B.intros
+    elim: is_value_B.cases
+    simp: is_normal_form_B_def)
 
-(* Definition 3.5.9 *)
+subsubsection {* Definition 3.5.9 *}
 
 inductive eval_B :: "BTerm \<Rightarrow> BTerm \<Rightarrow> bool" where
   e_once: "eval_once_B t t' \<Longrightarrow> eval_B t t'" |
@@ -231,11 +224,16 @@ qed
 
 (* Util *)
 
+primrec size_B :: "BTerm \<Rightarrow> nat" where
+  "size_B BTrue = 1" |
+  "size_B BFalse = 1" |
+  "size_B (BIf t1 t2 t3) = 1 + size_B t1 + size_B t2 + size_B t3"
+
 lemma eval_once_size_B:
   "eval_once_B t t' \<Longrightarrow> size_B t > size_B t'"
 by (induction t t' rule: eval_once_B.induct) (simp_all)
 
-(* Theorem 3.5.12 *)
+subsubsection {* Theorem 3.5.12 *}
 
 theorem eval_always_terminate:
   "\<exists>t'. eval_B t t' \<and> is_normal_form_B t'"
@@ -245,6 +243,8 @@ by (induction rule: measure_induct_rule[of size_B])
 
 subsection {* Arithmetic Expressions *}
 
+text {* \label{untyped-arith-is_value} *}
+
 inductive is_numeric_value_NB :: "NBTerm \<Rightarrow> bool" where
   is_numeric_value_NBZero: "is_numeric_value_NB NBZero" |
   is_numeric_value_NBSucc: "is_numeric_value_NB nv \<Longrightarrow> is_numeric_value_NB (NBSucc nv)"
@@ -253,6 +253,8 @@ inductive is_value_NB :: "NBTerm \<Rightarrow> bool" where
   is_value_NBTrue: "is_value_NB NBTrue" |
   is_value_NBFalse: "is_value_NB NBFalse" |
   is_value_NB_numeric_value: "is_numeric_value_NB nv \<Longrightarrow> is_value_NB nv"
+
+text {* \label{untyped-arith-eval_once} *}
 
 inductive eval_once_NB :: "NBTerm \<Rightarrow> NBTerm \<Rightarrow> bool" where
   eval_once_NBIf_NBTrue: "eval_once_NB (NBIf NBTrue t2 t3) t2" |
@@ -300,11 +302,12 @@ next
   show ?case
     by (auto
       intro: is_numeric_value_NBSucc.prems[THEN eval_once_NB.cases]
+      elim: eval_once_NB.cases
       elim: is_numeric_value_NBSucc.IH)
 qed
 
 
-(* Theorem 3.5.4 for Arithmetic Expressions *)
+subsubsection {* Theorem 3.5.4 for Arithmetic Expressions *}
 
 theorem eval_once_NB_right_unique:
   fixes t t' t'' :: NBTerm
@@ -360,7 +363,7 @@ next
       elim: not_eval_once_numeric_value[rotated] is_numeric_value_NBSucc)
 qed
 
-(* Theorem 3.5.7 for Arithmetic Expressions *)
+subsubsection {* Theorem 3.5.7 for Arithmetic Expressions *}
 
 theorem value_imp_normal_form_NB:
   "is_value_NB t \<Longrightarrow> is_normal_form_NB t"
@@ -369,7 +372,7 @@ theorem value_imp_normal_form_NB:
     elim: is_value_NB.cases
     dest: eval_once_NBFalseE eval_once_NBTrueE not_eval_once_numeric_value)
 
-(* Theorem 3.5.8 does not hold for Arithmetic Expressions *)
+subsubsection {* Theorem 3.5.8 does not hold for Arithmetic Expressions *}
 
 theorem not_normal_form_imp_value_NB:
   "\<exists>t. is_normal_form_NB t \<and> \<not> is_value_NB t" (is "\<exists>t. ?P t")
@@ -381,7 +384,7 @@ proof
   from a b show "?P (NBSucc NBTrue)" by simp
 qed
 
-(* Corollary 3.5.11 for Arithmetic Expressions *)
+subsubsection {* Corollary 3.5.11 for Arithmetic Expressions *}
 
 corollary uniqueness_of_normal_form_NB:
   assumes
@@ -399,7 +402,7 @@ next
   thus ?case by (metis eval_NB.cases is_normal_form_NB_def eval_once_NB_right_unique)
 qed
 
-(* Theorem 3.5.12 for Arithmetic Expressions *)
+subsubsection {* Theorem 3.5.12 for Arithmetic Expressions *}
 
 lemma eval_once_size_NB:
   "eval_once_NB t t' \<Longrightarrow> size_NB t > size_NB t'"
