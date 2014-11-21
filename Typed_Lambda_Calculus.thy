@@ -59,8 +59,8 @@ type_synonym Context = "Type list"
 notation Nil ("\<emptyset>")
 abbreviation cons :: "Context \<Rightarrow> Type \<Rightarrow> Context" (infixl "|,|" 200) where
   "cons \<Gamma> T \<equiv> T # \<Gamma>"
-abbreviation elem :: "(nat \<times> Type) \<Rightarrow> Context \<Rightarrow> bool" (infix "|\<in>|" 200) where
-  "elem p \<Gamma> \<equiv> fst p < length \<Gamma> \<and> nth \<Gamma> (fst p) = snd p"
+abbreviation elem' :: "(nat \<times> Type) \<Rightarrow> Context \<Rightarrow> bool" (infix "|\<in>|" 200) where
+  "elem' p \<Gamma> \<equiv> fst p < length \<Gamma> \<and> snd p = nth \<Gamma> (fst p)"
 
 
 inductive has_type :: "Context \<Rightarrow> Term \<Rightarrow> Type \<Rightarrow> bool" ("((_)/ \<turnstile> (_)/ |:| (_))" [150, 150, 150] 150) where
@@ -191,36 +191,6 @@ text {* Lemma 9.3.6 *}
 lemma[simp]: "nat (int x + 1) = Suc x" by simp
 lemma[simp]: "nat (1 + int x) = Suc x" by simp
 
-(*
-value "Var 0 $ Var 1 $ Var 2 $ Var 3 $ Var 4 $ Var 5"
-value "shift -3 2 (shift 2 3 (shift 1 0 (Var 0 $ Var 1 $ Var 2 $ Var 3 $ Var 4 $ Var 5)))"
-
-lemma permutation:
-  "\<Gamma> |,| U |,| S \<turnstile> t |:| T \<Longrightarrow> \<Gamma> |,| S |,| U \<turnstile> shift -3 2 (shift 2 3 (shift 1 0 t)) |:| T"
-proof (induction "\<Gamma> |,| U |,| S" t T arbitrary: \<Gamma> U S rule: has_type.induct)
-  case has_type_LTrue
-  thus ?case by (simp add: has_type.intros)
-next
-  case has_type_LFalse
-  thus ?case by (simp add: has_type.intros)
-next
-  case (has_type_LIf t1 t2 T t3)
-  thus ?case by (simp add: has_type.intros)
-next
-  case (has_type_Var x T)
-  thus ?case by (auto intro: has_type.intros)
-next
-  case (has_type_Abs V t2 T)
-  show ?case
-    apply (auto intro!: has_type.intros)
-    using has_type_Abs.hyps
-    apply simp
-    sorry
-next
-  case (has_type_App t1 T11 T12 t2)
-  thus ?case by (auto intro!: has_type.intros)
-qed *)
-
 text {* Lemma 9.3.7 *}
 
 lemma weakening:
@@ -267,26 +237,13 @@ inductive_cases eval_once_LFalseE: "eval_once LFalse t"
 inductive_cases eval_once_VarE: "eval_once (Var x) t"
 inductive_cases eval_once_AbsE: "eval_once (Abs T t) t'"
 inductive_cases eval_once_AppE: "eval_once (App t1 t2) t"
-(*
-primrec Consts :: "Term \<Rightarrow> Term set" where
-  "Consts LTrue = {LTrue}" |
-  "Consts LFalse = {LFalse}" |
-  "Consts (LIf t1 t2 t3) = Consts t1 \<union> Consts t2 \<union> Consts t3" |
-  "Consts (Var x) = {Var x}" |
-  "Consts (Abs T t) = Consts t" |
-  "Consts (App t1 t2) = Consts t1 \<union> Consts t2" *)
-(*
-lemma Consts_subst: "Consts (subst 0 t u) = Consts t \<union> (Consts u - {Var 0})"
-  sorry
-
-lemma Consts_shift_n_0: "Consts (shift n 0 t) = image (\<lambda>t. case t of Var x \<Rightarrow> Var (Suc x) | x \<Rightarrow> x) (Consts t)"
-  sorry *)
 
 lemma[simp]: "nat (int x - 1) = x - 1" by simp
 
 code_pred has_type .
-values "{T. [Bool \<rightarrow> Bool] \<turnstile>  shift (- 1) 0 (Abs Bool LTrue) |:| T}"(*
-lemma shift_down: "insert_nth n U \<Gamma> \<turnstile> t |:| T \<Longrightarrow> n \<le> length \<Gamma> \<Longrightarrow> (\<And>x. x \<in> FV t \<Longrightarrow> x > n) \<Longrightarrow>
+values "{T. [Bool \<rightarrow> Bool] \<turnstile>  shift (- 1) 0 (Abs Bool LTrue) |:| T}"
+
+lemma shift_down: "insert_nth n U \<Gamma> \<turnstile> t |:| T \<Longrightarrow> n \<le> length \<Gamma> \<Longrightarrow> (\<And>x. x \<in> FV t \<Longrightarrow> x \<noteq> n) \<Longrightarrow>
    \<Gamma> \<turnstile> shift (- 1) n t |:| T"
 proof (induction "insert_nth n U \<Gamma>" t T arbitrary: \<Gamma> n rule: has_type.induct)
   case has_type_LTrue
@@ -302,23 +259,55 @@ next
   thus ?case by (fastforce intro: has_type.intros simp: nth_append min_def)
 next
   case (has_type_Abs V t T)
-  from this(1,3,4) show ?case nitpick
+  from this(1,3,4) show ?case
     apply -
     unfolding shift.simps
     apply (rule has_type.intros)
     apply (rule has_type_Abs.hyps(2)[where n="Suc n"])
     apply simp
-    apply (auto simp: gr0_conv_Suc image_iff)
+    apply simp
+    apply (case_tac x)
+    apply simp
+    apply simp
     apply (drule meta_spec)
     apply (erule meta_mp)
-    apply auto find_theorems "0 < _ <-> _" name: conv
-    apply (auto intro!: has_type.intros has_type_Abs.hyps(2)[where n="Suc n"])
-    apply (case_tac x) apply auto nitpick  sorry
+    apply (rule image_eqI[rotated])
+    apply (erule DiffI)
+    by simp_all
+    (* by (metis DiffI One_nat_def diff_Suc_1 imageI nat.distinct(1) singletonD) *)
 next
   case (has_type_App t1 T11 T12 t2)
-  thus ?case by (auto intro: has_type.intros)
+  thus ?case by (fastforce intro!: has_type.intros)
 qed
-*)
+
+lemma gr_Suc_conv: "Suc x \<le> n \<longleftrightarrow> (\<exists>m. n = Suc m \<and> x \<le> m)"
+  by (cases n) auto
+
+lemma FV_shift: "FV (shift (int d) c t) = image (\<lambda>x. if x \<ge> c then x + d else x) (FV t)"
+  apply (induction t arbitrary: c rule: Term.induct)
+  apply simp
+  apply simp
+  apply simp
+  apply auto [1]
+  apply auto [1]
+  apply (auto simp: gr_Suc_conv image_iff) [1]
+apply (metis (mono_tags) DiffI One_nat_def diff_Suc_1 empty_iff insert_iff nat.distinct(1))
+apply (metis (mono_tags) DiffI One_nat_def diff_Suc_1 empty_iff insert_iff nat.distinct(1))
+apply (metis (mono_tags) DiffI One_nat_def diff_Suc_1 empty_iff insert_iff nat.distinct(1))
+apply (metis (mono_tags) DiffI One_nat_def diff_Suc_1 empty_iff insert_iff nat.distinct(1))
+apply (case_tac xb)
+apply simp
+apply (auto simp: image_iff Ball_def) []
+apply (smt2 IntI One_nat_def add_Suc diff_Suc_1 diff_Suc_Suc mem_Collect_eq zero_less_Suc)
+  by auto
+
+lemma FV_subst: "FV (subst n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"
+  apply (induction u arbitrary: n t rule: Term.induct)
+  apply (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1])
+  apply (case_tac xa)
+  apply auto
+  apply (metis DiffI One_nat_def UnCI diff_Suc_1 empty_iff imageI insert_iff nat.distinct(1))
+  by (metis DiffI One_nat_def diff_Suc_1 empty_iff insert_iff nat.distinct(1))+
 
 theorem preservation:
   "\<Gamma> \<turnstile> t |:| T \<Longrightarrow> eval_once t t' \<Longrightarrow> \<Gamma> \<turnstile> t' |:| T"
@@ -353,10 +342,12 @@ next
     apply hypsubst
     apply (drule weakening[where n=0, unfolded insert_nth_def nat.rec])
     apply simp
-(*     apply (rule shift_down)
+    apply (rule shift_down)
     apply (rule substitution)
-    apply (auto intro: has_type.intros simp: Consts_subst Consts_shift_n_0 split: Term.splits) *)
-    sorry
+    apply (auto intro: has_type.intros split: Term.splits)
+    unfolding FV_subst FV_shift[of 1, unfolded int_1]
+    apply (auto split: if_splits)
+    by (metis neq0_conv)
 qed
 
 section {* Erasure and Typability *}
@@ -409,37 +400,16 @@ primrec erase :: "Term \<Rightarrow> UTerm" where
   "erase (App t1 t2) = UApp (erase t1) (erase t2)"
 
 lemma shift_erasure: "erase (shift d c t) = shiftU d c (erase t)"
-  apply (rule Term.induct)
-  apply (auto)
-sorry
-(* proof (induction t arbitrary: d c rule: Term.induct)
-  case LTrue thus ?case by auto
-  case LFalse thus ?case by auto
-  case LIf thus ?case by auto
-  case Var thus ?case sorry
-  case Abs thus ?case sorry
-  case App thus ?case by auto
-qed *)
+  by (induction t arbitrary: d c rule: Term.induct) auto
 
 lemma subst_erasure: "erase (subst j s t) = substU j (erase s) (erase t)"
-  apply (rule Term.induct)
-  apply (auto)
-sorry
-(* proof (induction t rule: Term.induct)
-  print_cases
-  case LTrue thus ?case by auto
-  case LFalse thus ?case by auto
-  case LIf thus ?case by auto
-  case Var thus ?case sorry
-  case Abs thus ?case sorry
-  case App thus ?case by auto
-qed *)
+  by (induction t arbitrary: j s rule: Term.induct) (auto simp: shift_erasure)
 
 lemma is_value_erasure: "is_value t \<Longrightarrow> is_valueU (erase t)"
   by (auto  intro: is_valueU.intros elim!: is_value.cases)
 
 theorem "eval_once t t' \<Longrightarrow> eval_onceU (erase t) (erase t')"
-by (induction t t' rule: eval_once.induct)
-  (auto intro: eval_onceU.intros simp: shift_erasure subst_erasure is_value_erasure)
+  by (induction t t' rule: eval_once.induct)
+    (auto intro: eval_onceU.intros simp: shift_erasure subst_erasure is_value_erasure)
 
 end
