@@ -1,0 +1,114 @@
+# Title
+
+A partial Isabelle/HOL formalization of the book "Types and Programming Languages"
+
+# Abstract
+
+  * We present a short introduction of type systems and formalization.
+  * We formalized an arithmetic expressions language offering booleans and natural numbers.
+  * We formalized the De Bruijn indices as a representation for lambda-variables.
+  * We formalized the untyped lambda-calculus.
+  * We formalized a typed version of the arithmetic expressions language
+  * We formalized the simply typed lambda-calculus.
+
+We formalized, using Isabelle/HOL, some languages presented in the first two sections, namely
+"Untyped Systems" and "Simple Types", of the book "Types and Programming Languages" by Benjamen C.
+Pierce. We first begin with a short tour of the field of type theory and formalization before to
+attack the formalization per se. Starting with an arithmetic expression language offering booleans
+and natural numbers, we pursue, after a brief digression to the "De Bruijn indices", to the untyped
+lambda-calculus. We then return to a typed variant of the arithmetic expression language before to
+conclude with the simply typed lambda-calculus.
+
+# Introduction
+
+Lorem ipsum dolor sit amet.
+
+# Notes
+
+## Untyped Arithmetic Expressions
+
+  * Most our definitions closely follow the ones presented in the book
+    * With the exception that some information implicit in the book must be explicitly state.
+      * e.g. "nv" that stand for numeric value must be a "is_numeric_value nv" assumption.
+    * The multistep evaluation relation is defined differently, take the shape of a list.
+      * With a base reflexive case (Nil)
+      * And a progress case (Cons)
+      * We then supply lemmas showing that our definition exibit the same properties as the one in
+        the book.
+  * We had to introduce an helper lemma (eval_once_size_B) that was implicit in the book about the
+    fact that each evaluation step reduce the size of the term.
+  * The formalization is separate in two, with first only booleans and then the fully fledged
+    arithmetic expression language.
+    * The second part is just an explanation and does not contains any theorems.
+      * We decided to reprove, or disprove, the theorems introduced in the section on booleans.
+  * Lemma 3.3.3: We choose to make an induction on the structure of terms instead of the depth.
+  * Lemma 3.3.4: Trivial because already provided by Isabelle/HOL modulo schematic variable
+    instanciation.
+
+## Nameless Representation of Terms
+
+  * We choosed this representation because, for ITP, we need a concreate representation and can not
+    just assume alpha-conversion when necessary as is done in the book.
+  * We defined a single shift function for both up and down shift.
+    * It use a integer as a shift size and we convert it to a natural number when need.
+      * rely on the fact that "nat (int 2 - 5) = 0" instead of -3
+    * It caused small difficulties in Typed Lambda-Calculus because we had to handle both case in
+      our proofs even if we were interested in only one.
+    * Maybe we could have defined two function functions, namely shift_up and shift_down
+
+## The Untyped Lambda-Calculus
+
+  * The main point of this chapter is the presentation of the lambda-calculus and explanations of
+    why it is so important as a basic representation of programming languages.
+  * The fact that Church numerals, booleans, etc. represent the real numerals and booleans took me a
+    while to understand.
+    * The main point of the story is that, we tend describe a concept through what can be achived
+      with it i.e. the operations that are available
+    * Church encoding is isomorphic to their natural counterpart because we can make the exact
+      operations and change freely from one representation to the other.
+  * Def 5.3.1 is quite different because we choosed De Bruijn indices.
+    * FV : term -> var set
+  * As said previously, the substitution is very different because we use De Bruijn indices while
+    the book assumes alpha-conversion when necessary.
+    * It did not caused problems in this chapter (but wait for simply typed lambda-calculus...)
+  * I was quited shocked when I realised that the given definition of the small-step evaluation
+    relation does not allow the beta reduction of (%x. x) y to y.
+    * I later realized that it is explained by the concept of bounded variables, free variables and
+      closed terms.
+  * The chapter does not contain theorems on the language per se, so we decieded to reprove, or
+    disprove, the theorems introduced in the section on booleans.
+
+## Typed Arithmetic expression
+
+  * The formalisation of this chapter trivially follow the book.
+
+## Simply Typed Lambda-Calculus
+
+  * We chosed to represent the typing context as a (type list).
+    * which is equivalent to ((nat * type) * set)
+    * while the book use ((string * type) * set)
+  * I was shocked when I realized that the simply typed lambda-calculus is degenerated.
+    * i.e. It have to be extand with some basic datatype to be used.
+    * Booleans in our case
+    * Could we achived a simpler language by only adding unit?
+  * Thm 9.3.5[Progress] This is the first place where we explicitly had to state that the term is
+    closed
+  * Lemma 9.3.6[Permutation of context] is not a theorem in our choosed representation of typing
+    context.
+    * Fortunatly, we manage without it.
+  * Lemma 9.3.7[Weakening of context] the form is quite different because of De Bruijn indices.
+    * Was difficult to come with.
+  * Lemma 9.3.7[preservation under substitution] the theorem (not just the form) is different.
+  * We needed to add an other helper lemma, shift_down, to prove thm 9.3.9
+    * Was horrible to come with and even more horrible to prove
+  * We also needed to add FV_shift and FV_subst helper lemmas
+    * Was moderatly difficult to come with and prove
+  * Thm 9.3.9[Preservation] Was very difficult to prove because, we did not had the required helper
+    lemmas (see above).
+    * Once the helper lemma were provided, the proof went quite smoothly.
+  * For the part on type erasure, we had to define a new untyped lambda calculus because of the
+    booleans.
+    * While the book only provide definitions and proofs for a subset of the simply typed lambda
+      calculus, our machined checked proofs required exhaustiveness.
+    * We could have use Church encoding for booleans, but at the price of changing the thm from
+      using the single-step evaluation relation to the multi-step evaluation relation.
