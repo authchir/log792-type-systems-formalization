@@ -126,7 +126,7 @@ theorem preservation: "t |:| T \<Longrightarrow> eval_once_NB t t' \<Longrightar
 proof (induction t T arbitrary: t' rule: has_type.induct)
   case (has_type_NBIf t1 t2 T t3)
   from has_type_NBIf.prems has_type_NBIf.IH has_type_NBIf.hyps show ?case
-    by (auto intro: has_type.has_type_NBIf elim: eval_once_NB.cases)
+    by (auto intro: has_type.intros elim: eval_once_NB.cases)
 qed (auto
   intro: has_type.intros
   dest: inversion_of_the_typing_relation

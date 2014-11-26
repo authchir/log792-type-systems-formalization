@@ -1,6 +1,6 @@
 (*<*)
 theory Untyped_Lambda_Calculus
-imports Complex_Main
+imports Main
 begin
 (*>*)
 
@@ -14,159 +14,152 @@ section {* Formalities *}
 
 subsection {* Syntax *}
 
-datatype Term
-  = Var nat
-  | Abs Term
-  | App Term Term
+datatype ulterm
+  = ULVar nat
+  | ULAbs ulterm
+  | ULApp ulterm ulterm
 
 text {* Definition 6.1.2 *}
 
-inductive n_term :: "nat \<Rightarrow> Term \<Rightarrow> bool" where
-  n_term_Var: "0 \<le> k \<Longrightarrow> k < n \<Longrightarrow> n_term n (Var k)" |
-  n_term_Abs: "n_term n t \<Longrightarrow> n > 0 \<Longrightarrow> n_term (n - 1) (Abs t)" |
-  n_term_App: "n_term n t1 \<Longrightarrow> n_term n t2 \<Longrightarrow> n_term n (App t1 t2)"
+inductive n_term :: "nat \<Rightarrow> ulterm \<Rightarrow> bool" where
+  n_term_ULVar: "0 \<le> k \<Longrightarrow> k < n \<Longrightarrow> n_term n (ULVar k)" |
+  n_term_ULAbs: "n_term n t \<Longrightarrow> n > 0 \<Longrightarrow> n_term (n - 1) (ULAbs t)" |
+  n_term_ULApp: "n_term n t1 \<Longrightarrow> n_term n t2 \<Longrightarrow> n_term n (ULApp t1 t2)"
 
 text {* Definition 6.2.1 *}
 
-primrec shift :: "int \<Rightarrow> nat \<Rightarrow> Term \<Rightarrow> Term" where
-  shift_Var: "shift d c (Var k) = Var (if k < c then k else nat (k + d))" |
-  shift_Abs: "shift d c (Abs t) = Abs (shift d (Suc c) t)" |
-  shift_App: "shift d c (App t1 t2) = App (shift d c t1) (shift d c t2)"
+primrec shiftUL :: "int \<Rightarrow> nat \<Rightarrow> ulterm \<Rightarrow> ulterm" where
+  "shiftUL d c (ULVar k) = ULVar (if k < c then k else nat (int k + d))" |
+  "shiftUL d c (ULAbs t) = ULAbs (shiftUL d (Suc c) t)" |
+  "shiftUL d c (ULApp t1 t2) = ULApp (shiftUL d c t1) (shiftUL d c t2)"
 
 text {* Exercice 6.2.2 *}
 
-lemma "shift 2 0 (Abs (Abs (App (Var 1) (App (Var 0) (Var 2))))) =
-                  Abs (Abs (App (Var 1) (App (Var 0) (Var 4))))"
+lemma "shiftUL 2 0 (ULAbs (ULAbs (ULApp (ULVar 1) (ULApp (ULVar 0) (ULVar 2))))) =
+  ULAbs (ULAbs (ULApp (ULVar 1) (ULApp (ULVar 0) (ULVar 4))))"
   by simp
 
-lemma "shift 2 0 (Abs (App (Var 0) (App (Var 1) (Abs (App (Var 0) (App (Var 1) (Var 2))))))) =
-                  Abs (App (Var 0) (App (Var 3) (Abs (App (Var 0) (App (Var 1) (Var 4))))))"
+lemma "shiftUL 2 0 (ULAbs (ULApp (ULVar 0) (ULApp (ULVar 1) (ULAbs (ULApp (ULVar 0) (ULApp (ULVar 1) (ULVar 2))))))) =
+  ULAbs (ULApp (ULVar 0) (ULApp (ULVar 3) (ULAbs (ULApp (ULVar 0) (ULApp (ULVar 1) (ULVar 4))))))"
   by simp
 
 text {* Exercice 6.2.3 *}
 
-lemma "n_term n t \<Longrightarrow> n_term (n + d) (shift d c t)"
+lemma "n_term n t \<Longrightarrow> n_term (n + nat d) (shiftUL d c t)"
 proof (induction n t arbitrary: d c rule: n_term.induct)
-  case (n_term_Var k n)
-  from n_term_Var.hyps show ?case
-    using  n_term.n_term_Var by simp
+  case (n_term_ULVar k n)
+  thus ?case by (auto intro: n_term.intros)
 next
-  case (n_term_Abs n t)
-  from n_term_Abs.hyps show ?case
-    using n_term.n_term_Abs  by (auto intro: n_term_Abs.IH)
+  case (n_term_ULAbs n t)
+  thus ?case
+    using n_term.n_term_ULAbs by (auto)
 next
-  case (n_term_App n t1 t2)
-  show ?case
-    by (simp add: n_term.n_term_App n_term_App.IH)
+  case (n_term_ULApp n t1 t2)
+  thus ?case by (auto intro: n_term.intros)
 qed
 
 text {* Definition 6.2.4 *}
 
-primrec subst :: "nat \<Rightarrow> Term \<Rightarrow> Term \<Rightarrow> Term" where
-  subst_Var: "subst j s (Var k) = (if k = j then s else Var k)" |
-  subst_Abs: "subst j s (Abs t) = Abs (subst (Suc j) (shift 1 0 s) t)" |
-  subst_App: "subst j s (App t1 t2) = App (subst j s t1) (subst j s t2)"
+primrec substUL :: "nat \<Rightarrow> ulterm \<Rightarrow> ulterm \<Rightarrow> ulterm" where
+  "substUL j s (ULVar k) = (if k = j then s else ULVar k)" |
+  "substUL j s (ULAbs t) = ULAbs (substUL (Suc j) (shiftUL 1 0 s) t)" |
+  "substUL j s (ULApp t1 t2) = ULApp (substUL j s t1) (substUL j s t2)"
 
 text {* Exercice 6.2.5 *}
 
-lemma "subst 0 (Var 1) (App (Var 0) (Abs (Abs (Var 2)))) =
-                        App (Var 1) (Abs (Abs (Var 3)))"
+lemma "substUL 0 (ULVar 1) (ULApp (ULVar 0) (ULAbs (ULAbs (ULVar 2)))) =
+  ULApp (ULVar 1) (ULAbs (ULAbs (ULVar 3)))"
   by simp
 
-lemma "subst 0 (App (Var 1) (Abs (Var 2))) (App (Var 0) (Abs (Var 1))) =
-  App (App (Var 1) (Abs (Var 2))) (Abs (App (Var 2) (Abs (Var 3))))"
+lemma "substUL 0 (ULApp (ULVar 1) (ULAbs (ULVar 2))) (ULApp (ULVar 0) (ULAbs (ULVar 1))) =
+  ULApp (ULApp (ULVar 1) (ULAbs (ULVar 2))) (ULAbs (ULApp (ULVar 2) (ULAbs (ULVar 3))))"
   by simp
 
-lemma "subst 0 (Var 1) (Abs (App (Var 0) (Var 2))) =
-                        Abs (App (Var 0) (Var 2))"
+lemma "substUL 0 (ULVar 1) (ULAbs (ULApp (ULVar 0) (ULVar 2))) = ULAbs (ULApp (ULVar 0) (ULVar 2))"
   by simp
 
-lemma "subst 0 (Var 1) (Abs (App (Var 1) (Var 0))) =
-                        Abs (App (Var 2) (Var 0))"
+lemma "substUL 0 (ULVar 1) (ULAbs (ULApp (ULVar 1) (ULVar 0))) = ULAbs (ULApp (ULVar 2) (ULVar 0))"
   by simp
 
 text {* Exercice 6.2.6 *}
 
-lemma n_term_shift: "n_term n t \<Longrightarrow> n_term (n + j) (shift j i t)"
+lemma n_term_shiftUL: "n_term n t \<Longrightarrow> n_term (n + nat j) (shiftUL j i t)"
   by (induction n t arbitrary: j i rule: n_term.induct)
-    (auto intro: n_term_Var n_term_Abs[unfolded One_nat_def] n_term_App)
+    (auto intro: n_term.intros n_term_ULAbs[unfolded One_nat_def])
 
-lemma "n_term n t \<Longrightarrow> n_term n s \<Longrightarrow> j \<le> n \<Longrightarrow> n_term n (subst j s t)"
+lemma "n_term n t \<Longrightarrow> n_term n s \<Longrightarrow> j \<le> n \<Longrightarrow> n_term n (substUL j s t)"
 proof (induction n t arbitrary: s j rule: n_term.induct)
-  case (n_term_Var k n)
-  thus ?case
-    by (auto intro: n_term.n_term_Var)
+  case (n_term_ULVar k n)
+  thus ?case by (auto intro: n_term.n_term_ULVar)
 next
-  case (n_term_Abs n t)
+  case (n_term_ULAbs n t)
   thus ?case
-    using n_term.n_term_Abs n_term_shift[OF n_term_Abs.prems(1), where j = 1]
+    using n_term.intros n_term_shiftUL[OF n_term_ULAbs.prems(1), where j = 1]
     by (auto
-      intro: n_term_Abs.IH
-      intro!: n_term.n_term_Abs[unfolded One_nat_def]
-      simp: n_term_shift[OF n_term_Abs.prems(1), where j = 1])
+      intro: n_term_ULAbs.IH
+      intro!: n_term.n_term_ULAbs[unfolded One_nat_def]
+      simp: n_term_shiftUL[OF n_term_ULAbs.prems(1), where j = 1])
 next
-  case (n_term_App n t1 t2)
-  thus ?case
-    by (simp add: n_term.n_term_App)
+  case (n_term_ULApp n t1 t2)
+  thus ?case by (simp add: n_term.intros)
 qed
 
 text {* Single step evaluation *}
 
 subsection {* Operational Semantics *}
 
-inductive is_value :: "Term \<Rightarrow> bool" where
-  "is_value (Abs t)"
+inductive is_valueUL :: "ulterm \<Rightarrow> bool" where
+  "is_valueUL (ULAbs t)"
 
-inductive eval_once :: "Term \<Rightarrow> Term \<Rightarrow> bool" where
-  eval_once_App1: "eval_once t1 t1' \<Longrightarrow> eval_once (App t1 t2) (App t1' t2)" |
-  eval_once_App2: "is_value v1 \<Longrightarrow> eval_once t2 t2' \<Longrightarrow> eval_once (App v1 t2) (App v1 t2')" |
-  eval_once_App_Abs: "is_value v2 \<Longrightarrow> eval_once (App (Abs t12) v2) (shift (-1) 0 (subst 0 (shift 1 0 v2) t12))"
+inductive eval_onceUL :: "ulterm \<Rightarrow> ulterm \<Rightarrow> bool" where
+  eval_once_ULApp1: "eval_onceUL t1 t1' \<Longrightarrow> eval_onceUL (ULApp t1 t2) (ULApp t1' t2)" |
+  eval_once_ULApp2: "is_valueUL v1 \<Longrightarrow> eval_onceUL t2 t2' \<Longrightarrow> eval_onceUL (ULApp v1 t2) (ULApp v1 t2')" |
+  eval_once_ULApp_ULAbs: "is_valueUL v2 \<Longrightarrow> eval_onceUL (ULApp (ULAbs t12) v2) (shiftUL (-1) 0 (substUL 0 (shiftUL 1 0 v2) t12))"
 
 text {* Theorem 3.5.4 for Untyped Lambda Calculus *}
 
-theorem eval_once_right_unique:
-  "eval_once t t' \<Longrightarrow> eval_once t t'' \<Longrightarrow> t' = t''"
-proof (induction t t' arbitrary: t'' rule: eval_once.induct)
-  case (eval_once_App1 t1 t1' t2)
-  from eval_once_App1.hyps eval_once_App1.prems show ?case
-    by (auto elim: eval_once.cases is_value.cases intro: eval_once_App1.IH)
+theorem eval_onceUL_right_unique:
+  "eval_onceUL t t' \<Longrightarrow> eval_onceUL t t'' \<Longrightarrow> t' = t''"
+proof (induction t t' arbitrary: t'' rule: eval_onceUL.induct)
+  case (eval_once_ULApp1 t1 t1' t2)
+  from eval_once_ULApp1.hyps eval_once_ULApp1.prems show ?case
+    by (auto elim: eval_onceUL.cases is_valueUL.cases intro: eval_once_ULApp1.IH)
 next
-  case (eval_once_App2 t1 t2 t2')
-  from eval_once_App2.hyps eval_once_App2.prems show ?case
-    by (auto elim: eval_once.cases is_value.cases intro: eval_once_App2.IH)
+  case (eval_once_ULApp2 t1 t2 t2')
+  from eval_once_ULApp2.hyps eval_once_ULApp2.prems show ?case
+    by (auto elim: eval_onceUL.cases is_valueUL.cases intro: eval_once_ULApp2.IH)
 next
-  case (eval_once_App_Abs v2 t12)
-  from eval_once_App_Abs.prems eval_once_App_Abs.hyps show ?case
-    by (auto elim: eval_once.cases simp: is_value.simps)
+  case (eval_once_ULApp_ULAbs v2 t12)
+  thus ?case by (auto elim: eval_onceUL.cases simp: is_valueUL.simps)
 qed
 
 text {* Definition 3.5.6 for Untyped Lambda Calculus *}
 
-definition is_normal_form :: "Term \<Rightarrow> bool" where
-  "is_normal_form t \<longleftrightarrow> (\<forall>t'. \<not> eval_once t t')"
+definition is_normal_formUL :: "ulterm \<Rightarrow> bool" where
+  "is_normal_formUL t \<longleftrightarrow> (\<forall>t'. \<not> eval_onceUL t t')"
 
 text {* Theorem 3.5.7 for Untyped Lambda Calculus *}
 
-theorem value_imp_normal_form: "is_value t \<Longrightarrow> is_normal_form t"
-  by (auto elim: is_value.cases eval_once.cases simp: is_normal_form_def)
+theorem value_imp_normal_form: "is_valueUL t \<Longrightarrow> is_normal_formUL t"
+  by (auto elim: is_valueUL.cases eval_onceUL.cases simp: is_normal_formUL_def)
 
 text {* Theorem 3.5.8 does not hold for Untyped Lambda calculus *}
 
 theorem normal_form_does_not_imp_value:
-  "\<exists>t. is_normal_form t \<and> \<not> is_value t" (is "\<exists>t. ?P t")
+  "\<exists>t. is_normal_formUL t \<and> \<not> is_valueUL t" (is "\<exists>t. ?P t")
 proof
-  have a: "is_normal_form (Var 0)"
-    by (auto simp: is_normal_form_def elim: eval_once.cases)
-  have b: "\<not> is_value (Var 0)"
-    by (auto simp: is_normal_form_def dest: is_value.cases)
-  from a b show "?P (Var 0)" by simp
+  have a: "is_normal_formUL (ULVar 0)"
+    by (auto simp: is_normal_formUL_def elim: eval_onceUL.cases)
+  have b: "\<not> is_valueUL (ULVar 0)"
+    by (auto simp: is_normal_formUL_def elim: is_valueUL.cases)
+  from a b show "?P (ULVar 0)" by simp
 qed
 
 text {* Multistep evaluation *}
 
-inductive eval :: "Term \<Rightarrow> Term \<Rightarrow> bool" where
+inductive eval :: "ulterm \<Rightarrow> ulterm \<Rightarrow> bool" where
   eval_base: "eval t t" |
-  eval_step: "eval_once t t' \<Longrightarrow> eval t' t'' \<Longrightarrow> eval t t''"
+  eval_step: "eval_onceUL t t' \<Longrightarrow> eval t' t'' \<Longrightarrow> eval t t''"
 
 text {* Corollary 3.5.11 for Untyped Lambda Calculus *}
 
@@ -174,43 +167,43 @@ corollary uniqueness_of_normal_form:
   assumes
     "eval t u" and
     "eval t u'" and
-    "is_normal_form u" and
-    "is_normal_form u'"
+    "is_normal_formUL u" and
+    "is_normal_formUL u'"
   shows "u = u'"
 using assms
 proof (induction t u rule: eval.induct)
   case (eval_base t)
-  thus ?case by (metis eval.simps is_normal_form_def)
+  thus ?case by (metis eval.simps is_normal_formUL_def)
 next
   case (eval_step t1 t2 t3)
-  thus ?case by (metis eval.cases is_normal_form_def eval_once_right_unique)
+  thus ?case by (metis eval.cases is_normal_formUL_def eval_onceUL_right_unique)
 qed
 
 (* Theorem 3.5.12 does not hold for Untyped Lambda calculus *)
 
-lemma eval_once_VarD: "eval_once (Var x) t \<Longrightarrow> P"
-  by (induction "Var x" t rule: eval_once.induct)
+lemma eval_onceUL_ULVarD: "eval_onceUL (ULVar x) t \<Longrightarrow> P"
+  by (induction "ULVar x" t rule: eval_onceUL.induct)
 
-lemma eval_once_AbsD: "eval_once (Abs x) t \<Longrightarrow> P"
-  by (induction "Abs x" t rule: eval_once.induct)
+lemma eval_onceUL_ULAbsD: "eval_onceUL (ULAbs x) t \<Longrightarrow> P"
+  by (induction "ULAbs x" t rule: eval_onceUL.induct)
 
 theorem eval_does_not_always_terminate:
-  "\<exists>t. \<forall>t'. eval t t' \<longrightarrow> \<not> is_normal_form t'" (is "\<exists>t. \<forall>t'. ?P t t'")
+  "\<exists>t. \<forall>t'. eval t t' \<longrightarrow> \<not> is_normal_formUL t'" (is "\<exists>t. \<forall>t'. ?P t t'")
 proof
-  let ?\<omega> = "Abs (App (Var 0) (Var 0))"
-  let ?\<Omega> = "App ?\<omega> ?\<omega>"
+  let ?\<omega> = "ULAbs (ULApp (ULVar 0) (ULVar 0))"
+  let ?\<Omega> = "ULApp ?\<omega> ?\<omega>"
   { fix t
-    have "eval_once ?\<Omega> t \<Longrightarrow> ?\<Omega> = t"
-      by (induction ?\<Omega> t rule: eval_once.induct) (auto elim: eval_once_AbsD)
-  } note eval_once_\<Omega> = this
+    have "eval_onceUL ?\<Omega> t \<Longrightarrow> ?\<Omega> = t"
+      by (induction ?\<Omega> t rule: eval_onceUL.induct) (auto elim: eval_onceUL_ULAbsD)
+  } note eval_onceUL_\<Omega> = this
   { fix t
     have eval_\<Omega>: "eval ?\<Omega> t \<Longrightarrow> ?\<Omega> = t"
-      by (induction ?\<Omega> t rule: eval.induct) (blast dest: eval_once_\<Omega>)+
+      by (induction ?\<Omega> t rule: eval.induct) (blast dest: eval_onceUL_\<Omega>)+
   } note eval_\<Omega> = this
   show "\<forall>t'. ?P ?\<Omega> t'"
     by (auto
-      simp: is_normal_form_def
-      intro: eval_once_App_Abs is_value.intros
+      simp: is_normal_formUL_def
+      intro: eval_once_ULApp_ULAbs is_valueUL.intros
       dest!: eval_\<Omega>)
 qed
 

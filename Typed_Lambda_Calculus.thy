@@ -93,6 +93,12 @@ lemma
   shows "\<Gamma> \<turnstile> App (App (Var 2) (Var 1)) (Var 0) |:| Bool"
   by (auto intro!: has_type.intros simp: assms)
 
+lemma ex9_2_3_general:
+  "\<emptyset> |,| T \<rightarrow> T \<rightarrow> Bool |,| T |,| T \<turnstile> Var 2 $ Var 1 $ Var 0 |:| Bool"
+  by (auto intro!: has_type.intros simp: assms)
+
+lemmas ex9_2_3_bool = ex9_2_3_general[of Bool]
+
 section {* Properties of Typing *}
 
 text {* Lemma 9.3.1 *}
@@ -149,7 +155,7 @@ text {* Lemma 9.3.4 *}
 
 lemma canonical_forms:
   "is_value v \<Longrightarrow> \<Gamma> \<turnstile> v |:| Bool \<Longrightarrow> v = LTrue \<or> v = LFalse"
-  "is_value v \<Longrightarrow> \<Gamma> \<turnstile> v |:| T1 \<rightarrow> T2 \<Longrightarrow> \<exists>t2. v = Abs T1 t2"
+  "is_value v \<Longrightarrow> \<Gamma> \<turnstile> v |:| T1 \<rightarrow> T2 \<Longrightarrow> \<exists>t. v = Abs T1 t"
   by (auto elim: has_type.cases is_value.cases)
 
 text {* Theorem 9.3.5 *}
@@ -183,10 +189,8 @@ proof (induction t T rule: has_type.induct)
 next
   case (has_type_App \<Gamma> t1 T11 T12 t2)
   thus ?case by (cases "is_value t1", cases "is_value t2")
-    (auto intro: eval_once.intros dest: canonical_forms(2) simp: is_closed_def)
+    (auto intro: eval_once.intros dest: canonical_forms simp: is_closed_def)
 qed (simp_all add: is_value.intros is_closed_def)
-
-text {* Lemma 9.3.6 *}
 
 lemma[simp]: "nat (int x + 1) = Suc x" by simp
 lemma[simp]: "nat (1 + int x) = Suc x" by simp
@@ -194,7 +198,7 @@ lemma[simp]: "nat (1 + int x) = Suc x" by simp
 text {* Lemma 9.3.7 *}
 
 lemma weakening:
-  "\<lbrakk>\<Gamma> \<turnstile> t |:| T; n \<le> length \<Gamma>\<rbrakk> \<Longrightarrow> insert_nth n S \<Gamma> \<turnstile> shift 1 n t |:| T"
+  "\<Gamma> \<turnstile> t |:| T \<Longrightarrow> n \<le> length \<Gamma> \<Longrightarrow> insert_nth n S \<Gamma> \<turnstile> shift 1 n t |:| T"
 proof (induction \<Gamma> t T arbitrary: n rule: has_type.induct)
   case (has_type_Var x T \<Gamma>)
   thus ?case by (auto simp: nth_append min_def intro: has_type.intros)
@@ -207,7 +211,7 @@ qed (auto intro: has_type.intros)
 text {* Lemma 9.3.8 *}
 
 lemma substitution:
-  "\<Gamma> \<turnstile> t |:| T \<Longrightarrow>  \<Gamma> \<turnstile> Var n |:| S \<Longrightarrow> n < length \<Gamma> \<Longrightarrow> \<Gamma> \<turnstile> s |:| S \<Longrightarrow> \<Gamma> \<turnstile> subst n s t |:| T"
+  "\<Gamma> \<turnstile> t |:| T \<Longrightarrow>  \<Gamma> \<turnstile> Var n |:| S \<Longrightarrow> \<Gamma> \<turnstile> s |:| S \<Longrightarrow> \<Gamma> \<turnstile> subst n s t |:| T"
 proof (induction \<Gamma> t T arbitrary: s n rule: has_type.induct)
   case has_type_LTrue
   thus ?case by (auto intro: has_type.intros)
@@ -232,18 +236,12 @@ qed
 
 text {* Theorem 9.3.9 *}
 
-inductive_cases eval_once_LTrueE: "eval_once LTrue t"
-inductive_cases eval_once_LFalseE: "eval_once LFalse t"
-inductive_cases eval_once_VarE: "eval_once (Var x) t"
-inductive_cases eval_once_AbsE: "eval_once (Abs T t) t'"
 inductive_cases eval_once_AppE: "eval_once (App t1 t2) t"
 
 lemma[simp]: "nat (int x - 1) = x - 1" by simp
 
-code_pred has_type .
-values "{T. [Bool \<rightarrow> Bool] \<turnstile>  shift (- 1) 0 (Abs Bool LTrue) |:| T}"
-
-lemma shift_down: "insert_nth n U \<Gamma> \<turnstile> t |:| T \<Longrightarrow> n \<le> length \<Gamma> \<Longrightarrow> (\<And>x. x \<in> FV t \<Longrightarrow> x \<noteq> n) \<Longrightarrow>
+lemma shift_down:
+  "insert_nth n U \<Gamma> \<turnstile> t |:| T \<Longrightarrow> n \<le> length \<Gamma> \<Longrightarrow> (\<And>x. x \<in> FV t \<Longrightarrow> x \<noteq> n) \<Longrightarrow>
    \<Gamma> \<turnstile> shift (- 1) n t |:| T"
 proof (induction "insert_nth n U \<Gamma>" t T arbitrary: \<Gamma> n rule: has_type.induct)
   case has_type_LTrue
@@ -313,19 +311,19 @@ theorem preservation:
   "\<Gamma> \<turnstile> t |:| T \<Longrightarrow> eval_once t t' \<Longrightarrow> \<Gamma> \<turnstile> t' |:| T"
 proof (induction \<Gamma> t T arbitrary: t' rule: has_type.induct)
   case (has_type_LTrue \<Gamma>)
-  thus ?case by (rule eval_once_LTrueE)
+  thus ?case by (auto elim: eval_once.cases)
 next
   case (has_type_LFalse \<Gamma>)
-  thus ?case by (rule eval_once_LFalseE)
+  thus ?case by (auto elim: eval_once.cases)
 next
   case (has_type_LIf \<Gamma> t1 t2 T t3)
   thus ?case by (auto intro: has_type.has_type_LIf eval_once.cases[OF has_type_LIf.prems])
 next
   case (has_type_Var x T \<Gamma>)
-  thus ?case by (auto intro: eval_once_VarE)
+  thus ?case by (auto elim: eval_once.cases)
 next
   case (has_type_Abs \<Gamma> T1 t T2)
-  thus ?case by (auto intro: eval_once_AbsE)
+  thus ?case by (auto elim: eval_once.cases)
 next
   case (has_type_App \<Gamma> t1 T11 T12 t2)
   thus ?case
