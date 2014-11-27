@@ -2,6 +2,7 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+\usepackage{amsmath}
 
 \begin{document}
 
@@ -98,25 +99,105 @@ theorems remains the same.
 
 \subsection{Lambda-Calculus}
 
-  * Minimalist language that contains only functions.
+The lambda-calculus is a minimalist language, where everything is a functions, that can be use as a
+core calculus capturing the essential features of complex programming languages. It was formulated
+by Alonzo Church \cite{???} in the 1930s as a model of computability. At the same time, Alan Turing
+was formulating what is now known as a Turing machine \cite{???} for the same purpose. It was later
+proved that both systems are equivalent in expressive power \cite{???}.
 
-  * term = Var x | Abs x t | App t1 t2
+As a programming language, it can be intriguing at first because everything reduces to function
+abstraction and application. The syntax comprises just three sorts of terms: variables, function
+abstractions over a variable and applications of a term to an other. Those three constructs are
+summarized in the following grammar using a BNF-like notation.
 
-  * Execution = beta-reduction
-    * care must be taken to avoid name clashes
+\begin{align*}
+  \lambda\text{-term} ::= & \\
+    & x && \text{variable} \\
+    & \lambda x. t && \text{abstraction} \\
+    & t_1 \text{ } t_2 && \text{application}
+\end{align*}
 
-  * Turing complete
+Following are a few standard $\lambda$-term show as examples of how the grammar is actually used.
 
-  * Expressive enough to express most features from high level programming languages.
-    * e.g. (Abs x t) = single argument function (arity 1)
-    * e.g. (Abs x (Abs y t)) = multi-argument function (aritiy 2)
-    * e.g. (Abs x t) y = let x = y in t
-    * e.g. (Abs t (Abs f (Var t))) = true
-    * e.g. (Abs t (Abs f (Var f))) = false
-    * there exists encoding for numbers, lists, etc.
-    * there exists encoding for arbitrary recursion
+\begin{align*}
+  & \lambda x. x && \text{identity} \\
+  & \lambda x. \lambda y. x && \text{constant} \\
+  & \lambda x. \lambda y. x \text{ } y \text{ } y && \text{double application} \\
+  & \lambda x. \lambda y. \lambda z. x (y \text{ } z) && \text{function composition}
+\end{align*}
 
-  * In real programming languages, those features are built-in for performance reason.
+Having no built-in constant or primitive operators (e.g. numbers, arithmetic operations,
+conditionals, loops, etc.), the only way to "compute" something is by function application (also
+known as $\beta$-reduction and noted $\to_\beta$). It consists of replacing every instance of the
+abstracted variable in the abstraction body by the effective argument. Following is an example of a
+$\lambda$-term that can be reduced twice.
+
+\begin{align*}
+  (\lambda x. (\lambda y. y) x) ((\lambda w. w) z)
+    & \to_\beta (\lambda x. (\lambda y. y) x) z \\
+    & \to_\beta (\lambda y. y) z \\
+    & \to_\beta z
+\end{align*}
+
+This apparently simple operation hide a complex corner case: name clashes. Nothing prevent two
+functions from using the same name for there abstracted variable. One can not simply replace every
+variable with the same name when performing a substitution but must also take variable scopes into
+account. Here is a simple example that demonstrate that a naïve approche can fail to preserve the
+semantic of the original $\lambda$-term.
+
+\begin{displaymath}
+  (\lambda x. \lambda y. x) y \not\to_\beta \lambda y. y \\
+\end{displaymath}
+
+One solution to this problem is to rename function arguments when necessary (also known as
+$\alpha$-equivalence and noted $=_\alpha$). Here is a correct $\beta$-reduction for the previous
+example.
+
+\begin{align*}
+  (\lambda x. \lambda y. x) y
+    & =_\alpha (\lambda x. \lambda w. x) y \\
+    & \to_\beta \lambda w. y \\
+\end{align*}
+
+The difference is important. Under the naïve approche, the $\lambda$-term was wrongly reduced to the
+identity function while the correct reduction lead to a function return the constant $y$.
+
+Many constructions from high level programming languages can be encoded using only those basic
+features.  Unary functions are already supported and n-ary functions can be straitforwardly emulate
+by having a function return an other function as was done in the previous examples.
+
+\begin{displaymath}
+  \text{n-ary function} \equiv \lambda x_1. \lambda x_2 \dots \lambda x_n. t
+\end{displaymath}
+
+An other common construction is a \emph{let binding} which serves to attach an identifier to a
+complex expression. It can be emulated in lambda-calculus with a single function abstraction.
+
+\begin{displaymath}
+  \text{let } x = y \text{ in } t \equiv (\lambda x. t) y
+\end{displaymath}
+
+Although significantly less obvious, it is also possible to express booleans only with functions.
+The encoding is based on the idea that any use of booleans can be express with only three
+primitives: a constant representing a true value, a constant representing false values and an
+operation to choose between two alternatives.
+
+\begin{align*}
+  \text{true}
+    & \equiv \lambda t. \lambda f. t \\
+  \text{false}
+    & \equiv \lambda t. \lambda f. f \\
+  \text{if } b \text{ then } t \text{ else } e
+    & \equiv \lambda b. \lambda t. \lambda f. b \text{ } t \text{ } f
+\end{align*}
+
+Using the rules already discussed, it is trivial to show that the following reduction is valid.
+
+\begin{displaymath}
+  \text{if true then } x \text{ else } y \to_\beta \dots \to_\beta x
+\end{displaymath}
+
+Other encodings exists for constructions such as numbers, list, datatypes, arbitrary recursion, etc.
 
 \subsection{Type Systems}
 
