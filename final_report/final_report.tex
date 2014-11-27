@@ -24,16 +24,47 @@ expression language before to conclude with the simply typed lambda-calculus.
 
 \section{Introduction}
 
-  * Motivations
-    * interested in programming languages
-    * want to learn about type systems theory
-      * TAPL is a reference often use to teach both
-    * internship where I worked on the implementation of Isabelle/HOL
-    * want to learn how to use it as a user
+This bachelor thesis deals with the formalisation, in the Isabelle/HOL theorem prover, of part of
+the book \emph{Types and Programming Languages}, hereafter abbreviated \emph{TAPL}, by
+Benjamen~C.~Pierce. This work concentrate on four of the languages, ranging from simple arithmetic
+expressions to fully fledged lambda-calculus, presented in the first two sections, namely "Untyped
+Systems" and "Simple Types".
 
-  * Presentation of what follows.
+The main motivation to have chosen this subject is the intersection of personal interested and of
+opportunities provided by our intership at the chair for logic and verification at TU München.
+Having gradually developped an interest for programming languages in the last years, we were
+eager to learn more about the foundations of type theory. Pierce's book stand out as one of the
+references recommended for a deep introduction to the main elements of the field. Also, as part of
+our intership, we worked on the implementation of the (Co)datatype module of the Isabelle/HOL
+theorem proover. Having experienced the implementator role, we also wanted to learn about the user
+role and about the process of formalization. The choise of the subject of this this thesis was thus
+a logic consequence.
+
+Before to dig into the realm of formalizations, we first introduce the necessary background (section
+\ref{sec:background}) in lambda-calculus, type systems and Isabelle/HOL.
+
+The formalizations we performed all have a direct corespondance with chapters from \emph{TAPL}
+(section \ref{sec:structure-of-formalization}).
+
+The untyped arithmetic expressions language (section \ref{sec:untyped-arith-expr}) served as a
+warm-up where to experiment with the general structure of formalizations.
+
+The formalization of the nameless representation of terms (section \ref{sec:nameless-rep-of-terms})
+was not initially planned but arrised from the need to use a concreate representation for variables
+in the lambda-calculus.
+
+While the previous formalizations were either a warm-up or a representation necessity, the untyped
+lambda-calculus (section \ref{sec:untyped-lambda-calculus}) is the first fully fledged programming
+language we formalized.
+
+The typed arithmetic expressions language (section \ref{sec:typed-arith-expr}) is again a warm-up,
+this time to experiment with the formalization of a type system.
+
+The simply typed lambda-calculus (section \ref{sec:simply-typed-lambda-calculus}) is the nearest to
+a real programming language that we formalize.
 
 \section{Background}
+\label{sec:background}
 
 \subsection{Lambda-Calculus}
 
@@ -111,6 +142,7 @@ expression language before to conclude with the simply typed lambda-calculus.
   * See examples
 
 \section{Structure of the Formalization}
+\label{sec:structure-of-formalization}
 
   * The formalization closely follows the chapter of the book.
     * One theory per chapter.
@@ -120,6 +152,7 @@ expression language before to conclude with the simply typed lambda-calculus.
       * Which implies that we must cover it before the untyped lambda-calculus
 
 \section{Untyped Arithmetic Expressions}
+\label{sec:untyped-arith-expr}
 
   * Most our definitions closely follow the ones presented in the book
     * With the exception that some information implicit in the book must be explicitly state.
@@ -143,6 +176,7 @@ expression language before to conclude with the simply typed lambda-calculus.
     instanciation.
 
 \section{Nameless Representation of Terms}
+\label{sec:nameless-rep-of-terms}
 
   * Representation of variable which free us to consider the case of variable name clashes.
 
@@ -156,6 +190,7 @@ expression language before to conclude with the simply typed lambda-calculus.
       our proofs even if we were interested in only one.
 
 \section{Untyped Lambda-Calculus}
+\label{sec:untyped-lambda-calculus}
 
   * The main point of this chapter is the presentation of the lambda-calculus and explanations of
     why it is so important as a basic representation of programming languages.
@@ -183,10 +218,12 @@ expression language before to conclude with the simply typed lambda-calculus.
     disprove, the theorems introduced in the section on booleans.
 
 \section{Typed Arithmetic Expressions}
+\label{sec:typed-arith-expr}
 
   * The formalisation of this chapter trivially follow the book.
 
 \section{Simply Typed Lambda-Calculus}
+\label{sec:simply-typed-lambda-calculus}
 
   * We chose to represent the typing context as a (type list).
     * which is equivalent to ((nat * type) * set)
