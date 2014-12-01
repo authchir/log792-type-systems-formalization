@@ -11,9 +11,9 @@ text {* In this chapter, we revisit the arithmetic expression language and augme
 types.
 
 Here is, as a reminder, the definition of the value predicate introduced in section
-\ref{untyped-arith-NBTerm}.
+\ref{untyped-arith-nbterm}.
 \newline \newline
-@{datatype NBTerm} *}
+@{datatype nbterm} *}
 
 section {* Types *}
 
@@ -25,12 +25,12 @@ section {* The Typing Relation *}
 
 subsubsection {* Definition 8.2.1 *}
 
-text {* The typing relation is a binary predicate that range over a @{term NBTerm} and
+text {* The typing relation is a binary predicate that range over a @{term nbterm} and
 a @{term Type}. It is defined inductively with @{term NBTrue}, @{term NBFalse} and  @{term NBZero}
 as base cases and @{term NBIf}, @{term NBSucc}, @{term NBPred} and @{term NBIs_zero} as inductive
 cases. *}
 
-inductive has_type :: "NBTerm \<Rightarrow> Type \<Rightarrow> bool" (infix "|:|" 150) where
+inductive has_type :: "nbterm \<Rightarrow> Type \<Rightarrow> bool" (infix "|:|" 150) where
   has_type_NBTrue: "NBTrue |:| Bool" |
   has_type_NBFalse: "NBFalse |:| Bool" |
   has_type_NBIf: "t1 |:| Bool \<Longrightarrow> t2 |:| T \<Longrightarrow> t3 |:| T \<Longrightarrow> NBIf t1 t2 t3 |:| T" |
@@ -102,19 +102,19 @@ subsubsection {* Theorem 8.3.2 *}
 text {* A well-typed term is not stuck (either it is a value or it can take a step according to the
 evaluation rules). *}
 
-theorem progress: "t |:| T \<Longrightarrow> is_value_NB t \<or> (\<exists>t'. eval_once_NB t t')"
+theorem progress: "t |:| T \<Longrightarrow> is_value_NB t \<or> (\<exists>t'. eval1_NB t t')"
 proof (induction t T rule: has_type.induct)
   case (has_type_NBPred t)
   thus ?case by (auto
-    intro: eval_once_NB.intros is_numeric_value_NB.cases
+    intro: eval1_NB.intros is_numeric_value_NB.cases
     dest: canonical_form)
 next
   case (has_type_NBIs_zero t)
   thus ?case by (auto
-    intro: eval_once_NB.intros is_numeric_value_NB.cases
+    intro: eval1_NB.intros is_numeric_value_NB.cases
     dest: canonical_form)
 qed (auto
-  intro: eval_once_NB.intros is_value_NB.intros is_numeric_value_NB.intros
+  intro: eval1_NB.intros is_value_NB.intros is_numeric_value_NB.intros
   dest: canonical_form)
 
 subsubsection {* Theorem 8.3.3 *}
@@ -122,15 +122,15 @@ subsubsection {* Theorem 8.3.3 *}
 text {* If a well-typed term takes a step of evaluation, then the resulting term is also
 well-typed. *}
 
-theorem preservation: "t |:| T \<Longrightarrow> eval_once_NB t t' \<Longrightarrow> t' |:| T"
+theorem preservation: "t |:| T \<Longrightarrow> eval1_NB t t' \<Longrightarrow> t' |:| T"
 proof (induction t T arbitrary: t' rule: has_type.induct)
   case (has_type_NBIf t1 t2 T t3)
   from has_type_NBIf.prems has_type_NBIf.IH has_type_NBIf.hyps show ?case
-    by (auto intro: has_type.intros elim: eval_once_NB.cases)
+    by (auto intro: has_type.intros elim: eval1_NB.cases)
 qed (auto
   intro: has_type.intros
   dest: inversion_of_the_typing_relation
-  elim: eval_once_NB.cases)
+  elim: eval1_NB.cases)
 
 (*>*)
 end
