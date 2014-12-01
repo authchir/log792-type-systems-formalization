@@ -5,6 +5,11 @@
 \usepackage{amsmath}
 \usepackage{array}
 \usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage[inline]{enumitem}
+\usepackage{varwidth}
+
+\usetikzlibrary{arrows}
 
 \begin{document}
 
@@ -381,12 +386,96 @@ exaustive manual \cite{???}.
 \section{Structure of the Formalization}
 \label{sec:structure-of-formalization}
 
-  * The formalization closely follows the chapter of the book.
-    * One theory per chapter.
-    * The only exception is the chapter 6, Nameless Representation of Terms.
-      * We chose this representation because, for ITP, we need a concreate representation and can
-        not just assume alpha-conversion when necessary as is done in the book.
-      * Which implies that we must cover it before the untyped lambda-calculus
+We formalized six chapters of the first two sections of TAPL. Figure \ref{fig:TAPL-toc} presents the
+table of content of those two sections --- the formalized chapters are in bold --- and figure
+\ref{fig:TAPL-dependencies} present the dependencies between the chapters; a normal arrow imply a
+direct dependency while a dashed arrow only imply that the knowledge learned in one chapter is
+usefull for an other.
+
+\begin{figure}[h]
+  \footnotesize
+  \centering
+  \begin{varwidth}{\textwidth}
+    \begin{enumerate}[label=\Roman*]
+      \itemsep 1pt
+      \item Untyped Systems \hfill
+        \begin{enumerate}[label=§ \arabic*]
+          \setcounter{enumii}{2}
+          \item \textbf{Untyped Arithmetic Expressions}
+          \item An ML Implementation of Arithmetic Expressions
+          \item \textbf{The Untyped Lambda-Calculus}
+          \item \textbf{Nameless Representation of Terms}
+          \item An ML Implementation of the Lambda-Calculus
+        \end{enumerate}
+      \item Simple Types \hfill
+        \begin{enumerate}[label=§ \arabic*]
+          \setcounter{enumii}{7}
+          \item \textbf{Typed Arithmetic Expressions}
+          \item \textbf{Simply Typed Lambda-Calculus}
+          \item An ML implementation of Simple Types
+          \item Simple Extensions
+          \item Normalization
+          \item References
+          \item Exceptions
+        \end{enumerate}
+    \end{enumerate}
+  \end{varwidth}
+  \caption{Section I and II of TAPL}
+  \label{fig:TAPL-toc}
+\end{figure}
+
+\begin{figure}[h]
+  \begin{center}
+    \begin{tikzpicture}[>=triangle 45]
+      \draw (0,3) rectangle (1,4) node[pos=0.5]{6};
+      \draw (1.5,1.5) rectangle (2.5,2.5) node[pos=0.5]{5};
+      \draw (3,0) rectangle (4,1) node[pos=0.5]{3};
+      \draw (3,3) rectangle (4,4) node[pos=0.5]{9};
+      \draw (4.5,1.5) rectangle (5.5,2.5) node[pos=0.5]{8};
+      \draw [->] (1,3) -- (1.5,2.5); % 6 -> 5
+      \draw [->, dashed] (2.5,1.5) -- (3,1); % 5 -> 3
+      \draw [->] (3,3) -- (2.5,2.5); % 9 -> 5
+      \draw [->, dashed] (4,3) -- (4.5,2.5); % 9 -> 8
+      \draw [->] (4.5,1.5) -- (4,1); % 8 -> 3
+    \end{tikzpicture}
+  \end{center}
+  \caption{Dependencies between the chapters of TAPL}
+  \label{fig:TAPL-dependencies}
+\end{figure}
+
+The formalization closely follows the structure of the book. We provide one Isabelle theory file per
+chapter and mainly introduce them in the same order. The only exception is the chapter on "Nameless
+Representation of Terms". In the book, it is treated as completely separate issue from the chapters
+on lambda-calculus. They present it as a concrete alternative to the implicit $\alpha$-conversion
+they assumes in there proofs. Since we chose this representation for our formalization, we had to
+diverge from the book and introduce this subject prior to the untyped lambda-calculus. Figure
+\ref{fig:thys-dependencies} presents the dependencies between our Isabelle theory files.
+
+\begin{figure}[h]
+  \begin{center}
+    \begin{tikzpicture}[>=triangle 45]
+      \draw (0,3) rectangle (1,4) node[pos=0.5]{6};
+      \draw (1.5,1.5) rectangle (2.5,2.5) node[pos=0.5]{5};
+      \draw (3,0) rectangle (4,1) node[pos=0.5]{3};
+      \draw (3,3) rectangle (4,4) node[pos=0.5]{9};
+      \draw (4.5,1.5) rectangle (5.5,2.5) node[pos=0.5]{8};
+      \draw [->, dotted] (1.5,2.5) -- (1,3); % 5 -> 6
+      \draw [->, dashed] (2.5,1.5) -- (3,1); % 5 -> 3
+      \draw [->] (3,3) -- (2.5,2.5); % 9 -> 5
+      \draw [->, dashed] (4,3) -- (4.5,2.5); % 9 -> 8
+      \draw [->, dotted] (4.5,1.5) -- (4,1); % 8 -> 3
+    \end{tikzpicture}
+  \end{center}
+  \caption{Dependencies between the theory files}
+  \label{fig:thys-dependencies}
+\end{figure}
+
+It was possible to directly base the typed arithmetic expressions on untyped arithmetic expression
+by importing the theory and reusing its definition. This is represented as a dotted arrow in figure
+\ref{fig:thys-dependencies}. This reuse was possible because, for this language, types are external
+to the representation of terms. For the typed lambda-calculus, on the contrary, we needed to alter
+the representation of terms to add the typing annotation on abstraction variables, thus preventing
+the reuse of the untyped lambda-calculus theory.
 
 \section{Untyped Arithmetic Expressions}
 \label{sec:untyped-arith-expr}
