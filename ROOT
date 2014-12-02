@@ -3,6 +3,7 @@ session "log792" = "HOL" +
   theories [document = false]
   theories
     Untyped_Arithmetic_Expressions
+    Nameless_Representation_Of_Terms
     Untyped_Lambda_Calculus
     Typed_Arithmetic_Expressions
     Typed_Lambda_Calculus

@@ -1,8 +1,6 @@
 \documentclass[11pt,a4paper]{report}
 \usepackage{isabelle,isabellesym}
 
-\hyphenation{Isa-belle}
-
 % further packages required for unusual symbols (see also
 % isabellesym.sty), use only when needed
 
@@ -24,6 +22,8 @@
   %for \<onequarter>, \<onehalf>, \<threequarters>, \<degree>, \<cent>,
   %\<currency>
 
+\usepackage{amsmath}
+
 % this should be the last package used
 \usepackage{pdfsetup}
 
@@ -33,6 +33,8 @@
 
 % for uniform font size
 %\renewcommand{\isastyle}{\isastyleminor}
+%
+\hyphenation{Isa-belle}
 
 
 \begin{document}
@@ -58,6 +60,7 @@
 
 \part{Untyped Systems}
 \input{Untyped_Arithmetic_Expressions.tex}
+\input{Nameless_Representation_Of_Terms.tex}
 \input{Untyped_Lambda_Calculus.tex}
 
 \part{Typed Systems}
