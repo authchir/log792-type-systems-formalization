@@ -1,6 +1,8 @@
+(*<*)
 theory Nameless_Representation_Of_Terms
 imports Main
 begin
+(*>*)
 
 chapter {* Nameless Representation of Terms *}
 

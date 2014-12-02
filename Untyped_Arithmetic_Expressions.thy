@@ -256,7 +256,7 @@ section {* Arithmetic Expressions *}
 
 text {*
 We now turn to the fully fledged arithmetic expression language. The syntax is defined in the same
-way as for booleans:
+way as for booleans:\footnote{the suffix \emph{nb} stands for \emph{numeric and booleans}.}
 *}
 
 datatype nbterm =
@@ -267,8 +267,8 @@ datatype nbterm =
   NBSucc nbterm |
   NBPred nbterm |
   NBIs_zero nbterm
-
 (*<*)
+
 (* subsubsection {* Definition 3.3.1 *} *)
 
 primrec const_NB :: "nbterm \<Rightarrow> nbterm set" where
@@ -328,7 +328,6 @@ theorems induct_size = measure_induct_rule[of size_NB]
 theorems structural_induction = nbterm.induct
 
 (*>*)
-
 text {*
 Values now consist either of booleans or numeric values, for which a separate inductive
 definition is given. Here is the definition as founded in the book:

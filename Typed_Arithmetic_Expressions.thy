@@ -7,30 +7,26 @@ begin
 
 chapter {* Typed Arithmetic Expressions *}
 
-text {* In this chapter, we revisit the arithmetic expression language and augment it with static
-types.
+text {* In this chapter, we revisit the previously formalized arithmetic expression language
+(section \ref{sec:untyped-arith-expr}) and augment it with static types. Since types are an
+caracterisation external to the definition of terms, we directly import the theory to reuse its
+definitions and theorems.
 
-Here is, as a reminder, the definition of the value predicate introduced in section
-\ref{untyped-arith-nbterm}.
-\newline \newline
-@{datatype nbterm} *}
+The language of arithmetic expressions contains two types, booleans and natural numbers, that we
+define using a datatype:
+*}
 
-section {* Types *}
+datatype nbtype = Bool | Nat
 
-text {* The language of arithmetic expressions contains two types: booleans and natural numbers.*}
+(* Definition 8.2.1 *)
 
-datatype Type = Bool | Nat
+text {*
+The typing relation serves to assign a type to an expression. We express it with an inductive
+definition for which we also provide the @{text "|:|"} operator as an alternative, more
+conventional notation:
+*}
 
-section {* The Typing Relation *}
-
-subsubsection {* Definition 8.2.1 *}
-
-text {* The typing relation is a binary predicate that range over a @{term nbterm} and
-a @{term Type}. It is defined inductively with @{term NBTrue}, @{term NBFalse} and  @{term NBZero}
-as base cases and @{term NBIf}, @{term NBSucc}, @{term NBPred} and @{term NBIs_zero} as inductive
-cases. *}
-
-inductive has_type :: "nbterm \<Rightarrow> Type \<Rightarrow> bool" (infix "|:|" 150) where
+inductive has_type :: "nbterm \<Rightarrow> nbtype \<Rightarrow> bool" (infix "|:|" 150) where
   has_type_NBTrue: "NBTrue |:| Bool" |
   has_type_NBFalse: "NBFalse |:| Bool" |
   has_type_NBIf: "t1 |:| Bool \<Longrightarrow> t2 |:| T \<Longrightarrow> t3 |:| T \<Longrightarrow> NBIf t1 t2 t3 |:| T" |
@@ -39,9 +35,12 @@ inductive has_type :: "nbterm \<Rightarrow> Type \<Rightarrow> bool" (infix "|:|
   has_type_NBPred: "t |:| Nat \<Longrightarrow> NBPred t |:| Nat" |
   has_type_NBIs_zero: "t |:| Nat \<Longrightarrow> NBIs_zero t |:| Bool"
 
-subsubsection {* Lemma 8.2.2 *}
+(* Lemma 8.2.2 *)
 
-lemma inversion_of_the_typing_relation:
+text {* A usefull lemma is the inversion of typing relation which gives us informations on types
+for specific terms: *}
+
+lemma inversion_of_typing_relation:
   "NBTrue |:| R \<Longrightarrow> R = Bool"
   "NBFalse |:| R \<Longrightarrow> R = Bool"
   "NBIf t1 t2 t3 |:| R \<Longrightarrow> t1 |:| Bool \<and> t2 |:| R \<and> t3 |:| R"
@@ -51,76 +50,66 @@ lemma inversion_of_the_typing_relation:
   "NBIs_zero t |:| R \<Longrightarrow> R = Bool \<and> t |:| Nat"
   by (auto elim: has_type.cases)
 
-subsubsection {* Theorem 8.2.4 *}
+(* Theorem 8.2.4 *)
 
-text {* Each term @{term t} has at most one type. That is, if @{term t} is typeable, then its type
-is unique. *}
+text {*
+In this language, every term @{term t} has at most one type. That is, if @{term t} is typeable, then
+its type is unique: *}
 
 theorem uniqueness_of_types:
   "t |:| T \<Longrightarrow> t |:| T' \<Longrightarrow> T = T'"
-by (induction t T rule: has_type.induct) (auto dest: inversion_of_the_typing_relation)
+by (induction t T rule: has_type.induct) (auto dest: inversion_of_typing_relation)
 
 section {* Safety = Progress + Preservation *}
 
-text {* The most basic property a type system must provide is \emph{safety}, also called
-\emph{soundness}: the evaluation of a well-typed term will not reach a state whose semantic is
-undefined. Since our \emph{operational semantic} is based the of the evaluation relation and the
-value predicate. Every term that does not fit in one or the other have no defnied semantic.
+text {*
+The most basic property a type system must provide is \emph{safety}, also called \emph{soundness}:
+the evaluation of a well-typed term will not reach a state whose semantic is undefined. Since our
+\emph{operational semantic} is based the of the evaluation relation and the value predicate. Every
+term that does not fit in one or the other have no defnied semantic.
 
-Here is, as a reminder, the definition of the value predicate introduced in section
-\ref{untyped-arith-is_value}.
-\newline \newline
-@{thm is_numeric_value_NB.intros[no_vars]}
-\newline \newline
-@{thm is_value_NB.intros[no_vars]}
+An example of an undefined state is @{term "NBSucc NBTrue"}: there is no further evaluation
+step possible but it is not a value neither. In our current language, there is nothing we can do
+with this term.
 *}
 
-subsubsection {* Lemma 8.3.1 *}
+(* Lemma 8.3.1 *)
 
-text {* We now have assigned types to various terms and defined some of them to be values. Based on
-this information, we can restrict the shape a value must have if we know it's type.*}
+text {*
+An other usefull lemma is the canonical form of values which, for well typed terms, give us
+informations on the nature of the terms:
+*}
 
 lemma canonical_form:
   "is_value_NB v \<Longrightarrow> v |:| Bool \<Longrightarrow> v = NBTrue \<or> v = NBFalse"
   "is_value_NB v \<Longrightarrow> v |:| Nat \<Longrightarrow> is_numeric_value_NB v"
   by (auto elim: has_type.cases is_value_NB.cases is_numeric_value_NB.cases)
 
-text {* Here is, as a reminder, the definition of the evaluation relation introduced in section
-\ref{untyped-arith-eval_once}.
-\newline \newline
-@{thm eval_NB.intros[no_vars]}
+(* Theorem 8.3.2 *)
+
+text {*
+The safety of a type system can be shown in two step: progress and preservation. Progress means that
+a well-typed term is not stuck, i.e. either it is a value or it can take a step according to the
+evaluation rules.
 *}
-
-text {* An example of an undefined state is @{term "NBSucc NBTrue"}: there is no further evaluation
-step possible but it is not a value neither. In our current language, there is nothing we can do
-with this term.
-
-The safety of a type system can be shown in two step: progress and preservation. *}
-
-subsubsection {* Theorem 8.3.2 *}
-
-text {* A well-typed term is not stuck (either it is a value or it can take a step according to the
-evaluation rules). *}
 
 theorem progress: "t |:| T \<Longrightarrow> is_value_NB t \<or> (\<exists>t'. eval1_NB t t')"
 proof (induction t T rule: has_type.induct)
   case (has_type_NBPred t)
-  thus ?case by (auto
-    intro: eval1_NB.intros is_numeric_value_NB.cases
-    dest: canonical_form)
+  thus ?case by (auto intro: eval1_NB.intros is_numeric_value_NB.cases dest: canonical_form)
 next
   case (has_type_NBIs_zero t)
-  thus ?case by (auto
-    intro: eval1_NB.intros is_numeric_value_NB.cases
-    dest: canonical_form)
+  thus ?case by (auto intro: eval1_NB.intros is_numeric_value_NB.cases dest: canonical_form)
 qed (auto
   intro: eval1_NB.intros is_value_NB.intros is_numeric_value_NB.intros
   dest: canonical_form)
 
-subsubsection {* Theorem 8.3.3 *}
+(* Theorem 8.3.3 *)
 
-text {* If a well-typed term takes a step of evaluation, then the resulting term is also
-well-typed. *}
+text {*
+If a well-typed term takes a step of evaluation, then the resulting term is also
+well-typed.
+*}
 
 theorem preservation: "t |:| T \<Longrightarrow> eval1_NB t t' \<Longrightarrow> t' |:| T"
 proof (induction t T arbitrary: t' rule: has_type.induct)
@@ -129,7 +118,7 @@ proof (induction t T arbitrary: t' rule: has_type.induct)
     by (auto intro: has_type.intros elim: eval1_NB.cases)
 qed (auto
   intro: has_type.intros
-  dest: inversion_of_the_typing_relation
+  dest: inversion_of_typing_relation
   elim: eval1_NB.cases)
 
 (*>*)
