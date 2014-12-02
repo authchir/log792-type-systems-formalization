@@ -470,7 +470,7 @@ qed
 (* subsubsection {* Theorem 3.5.7 for Arithmetic Expressions *} *)
 
 text {*
-Every values are in normal form:
+Every value is in normal form:
 *}
 
 theorem value_imp_normal_form_NB:
