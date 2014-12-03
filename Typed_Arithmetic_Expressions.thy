@@ -37,8 +37,10 @@ inductive has_type :: "nbterm \<Rightarrow> nbtype \<Rightarrow> bool" (infix "|
 
 (* Lemma 8.2.2 *)
 
-text {* A usefull lemma is the inversion of typing relation which gives us informations on types
-for specific terms: *}
+text {*
+A usefull lemma is the inversion of typing relation which gives us informations on types
+for specific terms:
+*}
 
 lemma inversion_of_typing_relation:
   "NBTrue |:| R \<Longrightarrow> R = Bool"
