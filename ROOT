@@ -2,14 +2,15 @@ session "log792" = "HOL" +
   options [document = pdf, document_output = "output"]
   theories [document = false]
   theories
-    Untyped_Arithmetic_Expressions
+    Examples
     Nameless_Representation_Of_Terms
-    Untyped_Lambda_Calculus
     Typed_Arithmetic_Expressions
     Typed_Lambda_Calculus
+    Untyped_Arithmetic_Expressions
+    Untyped_Lambda_Calculus
   document_files
-    "root.tex"
-    "introduction_to_type_systems.tex"
-    "introduction_to_formalization.tex"
-    "introduction_to_isabelle_hol.tex"
+    "background.tex"
     "conclusion.tex"
+    "introduction.tex"
+    "root.tex"
+    "structure_of_the_formalization.tex"

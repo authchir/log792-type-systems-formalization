@@ -1,0 +1,70 @@
+\chapter{Introduction}
+
+This bachelor thesis deals with the formalisation, in the Isabelle/HOL theorem prover, of part of
+the book \emph{Types and Programming Languages}, hereafter abbreviated \emph{TAPL}, by
+Benjamen~C.~Pierce. This work concentrate on four of the languages, ranging from simple arithmetic
+expressions to fully fledged lambda-calculus, presented in the first two sections, namely "Untyped
+Systems" and "Simple Types".
+
+The main motivation to have chosen this subject is the intersection of personal interested and of
+opportunities provided by our intership at the chair for logic and verification at TU München.
+Having gradually developped an interest for programming languages in the last years, we were eager
+to learn more about the foundations of type theory. Pierce's book stand out as a reference
+recommended for a deep introduction to the main elements of the field. Also, as part of our
+intership, we worked on the implementation of the (Co)datatype module in the Isabelle/HOL theorem
+proover. Having experienced the implementator role, we also wanted to learn about the user role and
+about the process of formalization. The choise of this subject for this thesis was thus a logic
+consequence.
+
+Before to dig into the realm of formalizations, we first introduce the required background (section
+\ref{sec:background}) in lambda-calculus, type systems and Isabelle/HOL. The lambda-calculus is a
+core calculus that captures the essentials features of programming languages. That is, there exists
+a way to encode high level features such as recursion, datatypes, references, etc. Such calculus can
+come, as prorgramming languages, in two variant: typed and untyped. A type system is a syntactic
+method to prove the absence of certain behaviors such as the misusage of objects of a certain nature
+(e.g. natural numbers, booleans, string of characters, etc.) To formalize those we used
+Isabelle/HOL, an interactive theorem prover based on higher order logic. It resembles a programming
+language in that one can define datatypes and functions. The difference is that it allows to
+postulate properties of the formelly defined elements and to provide machine checked poofs that
+those properties are theorems.
+
+The formalizations we performed all have a direct corespondance with chapters from \emph{TAPL}
+(section \ref{sec:structure-of-formalization}). We provide one Isabelle/HOL theory file per chapter
+and introducte them in the same order. The only exception is the nameless representation of terms
+that we introduce earlier because our formalization depent on it while, in the book, it is an
+independant subject.
+
+The untyped arithmetic expressions language (section \ref{sec:untyped-arith-expr}) served as a
+warm-up to experiment with the general structure of formalizations. It consists of boolean
+expressions and natural numbers. This simplicity allows to concentrate on the the important
+definitions and to accustoms ourself with the notation. Most of our definitions and theorems closely
+follows the ones from the book. The main exceptions being that we explicitly expause some hypothesis
+that are implicit in the book and our slightly different definition for the mutli-step evaluation
+relation.
+
+The formalization (section \ref{sec:nameless-rep-of-terms}) of the nameless representation of terms,
+also known as "de Bruijn indices", was not initially planned but arose from the need to use a
+concreate representation for variables in the lambda-calculus. Our formalization closely follows the
+book.
+
+While the previous formalizations were either a warm-up or a representation necessity, the untyped
+lambda-calculus (section \ref{sec:untyped-lambda-calculus}) is the first core calculus we
+formalized. This formalization is the first where we differ from the book in a non-negligible way.
+As presented, the evaluation relation assumes that names clashes in variables are automatically
+solved by renaming them and, thus, ignore this possibility from there on. Such an assumption is not
+accepted for a computer-verified proof. We choosed to use "de Bruijn indices" as representation for
+variable to encode this assumption. Also, since the chapter is more focused on explaining the lambda
+calculus, it does not contain theorems as the other chapters. Nevertheless, we decide to reprove, or
+disprove, the theorems introduce with the arithmetic expressions language.
+
+The typed arithmetic expressions language (section \ref{sec:typed-arith-expr}) is again a warm-up;
+this time, to experiment with the formalization of a type system. Our formalization closely follows
+the book.
+
+The simply typed lambda-calculus (section \ref{sec:simply-typed-lambda-calculus}) is the second core
+calculus that we formalize. Here, we differ significantly from the book. Mainly because of our use
+of "de Bruijn indices" but also because of our reprensentation of the typing context, we needed to
+adapted some lemmas and replace others. This was quite challenging since we then could not follow
+the described proofs anymore and had to find the right assumptions for our lemmas. We belive that
+our formalization still respect the spirit of the book since only the helper lemmas changed and the
+theorems remains the same.

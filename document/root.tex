@@ -1,4 +1,4 @@
-\documentclass[11pt,a4paper]{report}
+\documentclass[11pt,a4paper,twoside]{report}
 \usepackage{isabelle,isabellesym}
 
 % further packages required for unusual symbols (see also
@@ -22,7 +22,16 @@
   %for \<onequarter>, \<onehalf>, \<threequarters>, \<degree>, \<cent>,
   %\<currency>
 
+%\usepackage[utf8]{inputenc}
+%\usepackage[T1]{fontenc}
 \usepackage{amsmath}
+\usepackage{array}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage[inline]{enumitem}
+\usepackage{varwidth}
+
+\usetikzlibrary{arrows}
 
 % this should be the last package used
 \usepackage{pdfsetup}
@@ -39,21 +48,31 @@
 
 \begin{document}
 
-\title{log792}
+\title{Formalizing \emph{Types and Programming Languages} in Isabelle/HOL}
 \author{Martin Desharnais}
 
 \pagenumbering{roman}
 \maketitle
 
+\begin{abstract}
+We formalized, using Isabelle/HOL, some languages presented in the first two sections, namely
+"Untyped Systems" and "Simple Types", of the book \emph{Types and Programming Languages} by
+Benjamen~C.~Pierce. We first begin with a short tour of lambda-calculus, type theory and the
+Isabelle/HOL theorem prover before attacking the formalization per se. Starting with an arithmetic
+expression language offering booleans and natural numbers, we pursue, after a brief digression to
+the "de Bruijn indices", to the untyped lambda-calculus. We then return to a typed variant of the
+arithmetic expression language before to conclude with the simply typed lambda-calculus.
+\end{abstract}
+
 \tableofcontents
 
-\cleardoublepage\pagenumbering{arabic}
+\cleardoublepage
+\pagenumbering{arabic}
 \pagestyle{headings}
 
-\part{Introduction}
-\input{introduction_to_type_systems}
-\input{introduction_to_formalization}
-\input{introduction_to_isabelle_hol}
+\input{introduction}
+\input{background}
+\input{structure_of_the_formalization}
 
 % sane default for proof documents
 \parindent 0pt\parskip 0.5ex

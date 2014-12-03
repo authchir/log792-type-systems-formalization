@@ -1,0 +1,183 @@
+\chapter{Background}
+\label{sec:background}
+
+\section{Lambda-Calculus}
+\label{sec:background-lambda-calculus}
+
+The lambda-calculus is a minimalist language, where everything is a functions, that can be use as a
+core calculus capturing the essential features of complex programming languages. It was formulated
+by Alonzo Church \cite{???} in the 1930s as a model of computability. At the same time, Alan Turing
+was formulating what is now known as a Turing machine \cite{???} for the same purpose. It was later
+proved that both systems are equivalent in expressive power \cite{???}.
+
+As a programming language, it can be intriguing at first because everything reduces to function
+abstraction and application. The syntax comprises just three sorts of terms: variables, function
+abstractions over a variable and applications of a term to an other. Those three constructs are
+summarized in the following grammar using a BNF-like notation.
+
+\begin{align*}
+  \lambda\text{-term} ::= & \\
+    & x && \text{variable} \\
+    & \lambda x. t && \text{abstraction} \\
+    & t_1 \text{ } t_2 && \text{application}
+\end{align*}
+
+Following are a few standard $\lambda$-term show as examples of how the grammar is actually used.
+
+\begin{align*}
+  & \lambda x. x && \text{identity} \\
+  & \lambda x. \lambda y. x && \text{constant} \\
+  & \lambda x. \lambda y. x \text{ } y \text{ } y && \text{double application} \\
+  & \lambda x. \lambda y. \lambda z. x (y \text{ } z) && \text{function composition}
+\end{align*}
+
+Having no built-in constant or primitive operators (e.g. numbers, arithmetic operations,
+conditionals, loops, etc.), the only way to "compute" something is by function application (also
+known as $\beta$-reduction and noted $\to_\beta$). It consists of replacing every instance of the
+abstracted variable in the abstraction body by the effective argument. Following is an example of a
+$\lambda$-term that can be reduced twice.
+
+\begin{align*}
+  (\lambda x. (\lambda y. y) x) ((\lambda w. w) z)
+    & \to_\beta (\lambda x. (\lambda y. y) x) z \\
+    & \to_\beta (\lambda y. y) z \\
+    & \to_\beta z
+\end{align*}
+
+This apparently simple operation hide a complex corner case: name clashes. Nothing prevent two
+functions from using the same name for there abstracted variable. One can not simply replace every
+variable with the same name when performing a substitution but must also take variable scopes into
+account. Here is a simple example that demonstrate that a naïve approche can fail to preserve the
+semantic of the original $\lambda$-term.
+
+\begin{displaymath}
+  (\lambda x. \lambda y. x) y \not\to_\beta \lambda y. y \\
+\end{displaymath}
+
+One solution to this problem is to rename function arguments when necessary (also known as
+$\alpha$-equivalence and noted $=_\alpha$). Here is a correct $\beta$-reduction for the previous
+example.
+
+\begin{align*}
+  (\lambda x. \lambda y. x) y
+    & =_\alpha (\lambda x. \lambda w. x) y \\
+    & \to_\beta \lambda w. y \\
+\end{align*}
+
+The difference is important. Under the naïve approche, the $\lambda$-term was wrongly reduced to the
+identity function while the correct reduction lead to a function return the constant $y$.
+
+Many constructions from high level programming languages can be encoded using only those basic
+features.  Unary functions are already supported and n-ary functions can be straitforwardly emulate
+by having a function return an other function as was done in the previous examples.
+
+\begin{displaymath}
+  \text{n-ary function} \equiv \lambda x_1. \lambda x_2 \dots \lambda x_n. t
+\end{displaymath}
+
+An other common construction is a \emph{let binding} which serves to attach an identifier to a
+complex expression. It can be emulated in lambda-calculus with a single function abstraction.
+
+\begin{displaymath}
+  \text{let } x = y \text{ in } t \equiv (\lambda x. t) y
+\end{displaymath}
+
+Although significantly less obvious, it is also possible to express booleans only with functions.
+The encoding is based on the idea that any use of booleans can be express with only three
+primitives: a constant representing a true value, a constant representing false values and an
+operation to choose between two alternatives.
+
+\begin{align*}
+  \text{true}
+    & \equiv \lambda t. \lambda f. t \\
+  \text{false}
+    & \equiv \lambda t. \lambda f. f \\
+  \text{if } b \text{ then } t \text{ else } e
+    & \equiv \lambda b. \lambda t. \lambda f. b \text{ } t \text{ } f
+\end{align*}
+
+Using the rules already discussed, it is trivial to show that the following reduction is valid.
+
+\begin{displaymath}
+  \text{if true then } x \text{ else } y \to_\beta \dots \to_\beta x
+\end{displaymath}
+
+Other encodings exists for constructions such as numbers, list, datatypes, arbitrary recursion, etc.
+
+\section{Type Systems}
+
+Type systems are a syntactic method to prove the absence of certain behaviors. They differ from
+testing in that they are exhaustive and automatic. In this context, exhaustiveness means that each
+checked invarient is proved to hold for the complete program instead of focusing on a single unit of
+code. Automaticness means that the process is non-interactive, i.e. the algorithm does not need
+other informations than what it can find in the source code of the program.
+
+The kind of errors detected depend on the specific type system under consideration, but can range
+from fairly simple to very complex. Examples of simple errors include typographical mistakes, usage
+of values of the wrong kind (see figure \ref{fig:simple-type-mismatch} for an example) and usage of
+undefined operations. With Sufficiently powerfull type systems, specific requirements can be provide
+as type annotations. Example of such include that the output list of a sorting function be a
+permutation of the input list, that the argument of an indexing operation on a list be in a valid
+range or that two multiplied matrixes have compatible dimenssions. The more information one put in
+the types, the more invalid programs the type checker will catch, but the more work will be required
+by the programmer to convince the algorithm that the program fullfill it's specifications. An
+important design decision when defining a type system is to find a tradeoff between those two
+conflicting properties.
+
+\begin{figure}[h]
+  \begin{center}
+    \begin{tabular}{m{3.5cm} | m{5.5cm}}
+      $\text{add} : \mathbb{N} \to \mathbb{N} \to \mathbb{N}$ \newline
+      $\text{true} : \mathbb{B}$ \newline
+      add true true
+      & error in function application, "add" expects a $\mathbb{N}$ but a $\mathbb{B}$ was provided
+    \end{tabular}
+  \end{center}
+  \caption{Simple type mismatch in function application}
+  \label{fig:simple-type-mismatch}
+\end{figure}
+
+Since they are often bundle with the compiler of a programming language and, thus, part of the
+normal programming cycle, they allow early detection of programming errors. Moreover, the diagnoses
+of type checkers can often pointed accuratly the source of the error, at the difference of run-time
+tests where the effect of an error can sometime be visible only much farther in the code when
+something start to go wrong.
+
+An other important way in which type systems can be use is as an abstraction tool. It is widely
+accepted that, in the context of large scale software developpement, the program should be split
+into distinct modules that communicate through an interface. Types are an natural fit to serve as
+such an interface. Enven in smaller scale programming, it is usefull to caracterise a datatype not
+by the way it is implemented but by the different operations that can be perform on it, also known
+as abstract datatypes).
+
+Types can also be use an invaluable maintenance tool. More informally, they serve as a checked
+documentation of programs and, being simpler thant the computation they caracterise, they can help
+to reason about such computation on a higher level. But they can also serve a very practical
+purpose, by checking which part of a program is affected by a change. If one decides to change the
+arguments of a function or remove a field in a structure, a simple type checking pass will provide
+an exhaustive list of the places that need to be updated to cope with the modification.
+
+% Language safety is a very desirable property of programming language that can be achived by type
+% systems.
+%   * e.g. memory safe
+%   * A safe language is completly defined by its programmer manual.
+%     * C contains a lot of implementation defined and undefined behaviours.
+
+Due to their static nature, type systems are conservatives in that they will always reject bad
+programs at the expence of something rejecting good programs. A simple example of such limitation is
+the the following program will fail to typecheck, even if it happens that that the complex boolean
+expression will always evaluate to true at runtime.
+
+\begin{displaymath}
+  \texttt{if} <\text{complex-expression}> \texttt{then } 42 \texttt{ else } \text{true}
+\end{displaymath}
+
+Having only access to static information, a type checker only see that a boolean can take two
+different values and, thus, must insure that the program is valide in both cases. In this example,
+this implies that both branch of the \texttt{if} must be well-typed and that their type must be the
+same. It is the main goal of type theory scientists to develop type systems in which more more valid
+programs are accepted while more invalid programs are rejected.
+
+\section{Isabelle/HOL}
+
+\input{Examples}
