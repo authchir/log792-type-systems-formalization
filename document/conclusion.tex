@@ -1,23 +1,24 @@
 \section{Conclusion}
 
-We formalized a number of languages presented in the \emph{Types and Programming Languages} with the
-Isabelle/HOL interactive theorem prover. We started with the a simple arithmetic language of
-booleans and natural numbers. We continued with the nameless representation of terms for the
-lambda-calculus, which we used as a basis for the pure untyped lambda calculus. For those languages,
-we proved the determinacy of evaluation, the relation between values and normal form, the uniqueness
-of normal form and the termination or non-termination of evaluation.
+We formalized a number of languages present in \emph{Types and Programming Languages} with the
+Isabelle/HOL interactive theorem prover. We started with a simple arithmetic language of booleans
+and natural numbers. We continued with the nameless representation of terms for the lambda-calculus,
+which we used as a basis for the pure untyped lambda-calculus. For those languages, we proved the
+determinacy of evaluation, the relation between values and normal form, the uniqueness of normal
+form and the termination, or non-termination, of evaluation.
 
-We then revisited the both languages and augment them with type systems. We proved the uniqueness of
+We then revisited both languages and augment them with type systems. We proved the uniqueness of
 types and the safety of the languages through the progress and preservation theorems. We also
 demonstrated that the addition of types did not changed the semantic of the lambda-calculus by
 proving that types can be erase without affecting the evaluation of terms.
 
-The formalization process can be separate in three main activies: defining the primitives and the
+The formalization process can be separate in three main activies: defining the primitives,
 formulating the theorems and finally the proving per se. In retrospective, the first and second
-activities are the more important an difficult. Once the right abstractions and the correct
-formulation for a theorem have been found, the proofs were usually fairly simple. On the contrary, a
-wrong abstraction or hypothesis have lead use to difficult, or even impossible, to prove properties.
+activities were the more important and difficult. Once the right abstractions and the correct
+formulations for theorems were found, the proofs were usually fairly simple. On the contrary, a
+wrong abstraction or hypothesis have led use to theorems very difficult to prove, or even properties
+that ended not being theorems at all.
 
-In this report, we consentrated our attention on the definitions on how theorems were expressed,
+In this report, we focused our attention on the definitions on how theorems were expressed,
 highlighting the differences with the book. The complete Isabelle/HOL theories provided along this
 report contain more examples, exercices and less important theorems.

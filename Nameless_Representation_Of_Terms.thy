@@ -5,18 +5,19 @@ begin
 (*>*)
 
 section {* Nameless Representation of Terms *}
+text {* \label{sec:nameless-rep-of-terms} *}
 
 text {*
 In the background section on lambda-calculus (section \label{sec:background-lambda-calculus}), we
 presented the problem of name clashes that can arise when performing $\beta$-reduction. In its
-definitions and proofs, the book only work up to $\alpha$-equivalence: assuming that the variables
+definitions and proofs, the book only works up to $\alpha$-equivalence: assuming that the variables
 would be implicitly renamed if such a name clash occured. In a separate chapter, a different
-representation of terms that avoids such problem is presente. It is describe to as one possible
+representation of terms that avoids such problem is presented. It is described to as one possible
 encoding that can be used when implementing an compiler for the lambda-calculus.
 
 Even though we are not building a compiler, our computer verrified formalization requires us to
-explicitly handle this problem. We choose to use this representation and, thus must also
-formalize this chapter.
+explicitly handle this problem. We chose to use this representation and, thus must also formalize
+this chapter.
 
 The idea behind this representation, known as "de Bruijn indices", is to make variables reference
 directly their corresponding binder, rather than refering to them by name. This is accomplished by
@@ -29,9 +30,9 @@ using an index that refer to the $n$'th enclosing $\lambda$. Following is an exa
 \end{displaymath}
 
 This representatin frees us from considering the case of variable name clashes at the expense of
-being harder to read and having to maintain the correct indices when entering and leaving function
-abstractions. We defined the syntax of the untyped lambda calculus as follow:\footnote{The prefix
-\emph{ul} stands for \emph{untyped lambda-calculus}.}
+being harder to read and having to maintain the correct indices when adding and removing
+$\lambda$-abstractions. We define the syntax of the untyped lambda calculus as follow:\footnote{The
+prefix \emph{ul} stands for \emph{untyped lambda-calculus}.}
 *}
 
 datatype ulterm =
@@ -60,7 +61,7 @@ inductive n_term :: "nat \<Rightarrow> ulterm \<Rightarrow> bool" where
 (* Definition 6.2.1 *)
 
 text {*
-We defined a shift function serving to increase, or decrease, all variables bigger than @{term c} in
+We define a shift function serving to increase, or decrease, all variables bigger than @{term c} in
 a term by a fix amount @{term d}:
 *}
 
@@ -72,10 +73,10 @@ primrec shift_UL :: "int \<Rightarrow> nat \<Rightarrow> ulterm \<Rightarrow> ul
 text {*
 An attentive reader will notice that there is a possible information loss in this definition. The
 variables use a natural number as index but the function allows to shift both up and down, thus the
-use of an integer as an argument. When a variable is encounter, we first convert the index from
+use of an integer the shift increment. When a variable is encounter, we first convert the index from
 natural number to integer, which is always safe, perform the integer addition, which correspond to a
 subtraction if @{term d} is negative, and convert the result back to natural numbers to serve as the
-new index. This last conversion is will convert every negative number to zero. We know this loss of
+new index. This last operation converts every negative number to zero. We know this loss of
 information is safe, since it makes no sence to speak of negative indices. Our @{const shift_UL}
 function thus have an implicit assumption that it should not be called with a negative number bigger
 than the smallest variable in the term. Following is an example of shifting up every variable by 2:
@@ -87,6 +88,13 @@ lemma "shift_UL 2 0
   (ULAbs (ULAbs (ULApp (ULVar 1) (ULApp (ULVar 0) (ULVar 2))))) =
    ULAbs (ULAbs (ULApp (ULVar 1) (ULApp (ULVar 0) (ULVar 4))))"
   by simp
+
+text {*
+On first reading, the previous example may seems broken: the variable @{term "ULVar 1"} is not
+incremented. This is because the shift function operates on free variables, i.e. variables whose
+index refers to a non-existing $\lambda$-abstraction. Since the binding refered by @{term "ULVar 1"}
+is in the term, it is not a free variable: it is bounded.
+*}
 (*<*)
 
 lemma "shift_UL 2 0

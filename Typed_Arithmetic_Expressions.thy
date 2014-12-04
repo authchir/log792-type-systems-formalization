@@ -6,17 +6,19 @@ begin
 (*>*)
 
 section {* Typed Arithmetic Expressions *}
+text {* \label{sec:typed-arith-expr} *}
 
 text {* In this chapter, we revisit the previously formalized arithmetic expression language
-(section \ref{sec:untyped-arith-expr}) and augment it with static types. Since types are an
+(section \ref{sec:untyped-arith-expr}) and augment it with static types. Since types are a
 caracterisation external to the definition of terms, we directly import the theory to reuse its
-definitions and theorems.
+definitions and theorems. We complete the definitions with the typing relation and prove type safety
+through the progress and preservation theorems.
 *}
 
 subsection {* Definitions *}
 
 text {*
-The language of arithmetic expressions contains two types, booleans and natural numbers, that we
+The language of arithmetic expressions contains two types, booleans and natural numbers, which we
 define using a datatype:
 *}
 
@@ -59,8 +61,9 @@ lemma inversion_of_typing_relation:
 (* Theorem 8.2.4 *)
 
 text {*
-In this language, every term @{term t} has at most one type. That is, if @{term t} is typeable, then
-its type is unique: *}
+In the typed arithmetic language, every term @{term t} has at most one type. That is, if @{term t}
+is typeable, then its type is unique:
+*}
 
 theorem uniqueness_of_types:
   "t |:| T \<Longrightarrow> t |:| T' \<Longrightarrow> T = T'"
@@ -71,7 +74,7 @@ subsection {* Safety = Progress + Preservation *}
 text {*
 The most basic property a type system must provide is \emph{safety}, also called \emph{soundness}:
 the evaluation of a well-typed term will not reach a state whose semantic is undefined. Since our
-\emph{operational semantic} is based the of the evaluation relation and the value predicate. Every
+\emph{operational semantic} is based the of the evaluation relation and the value predicate, every
 term that does not fit in one or the other have no defnied semantic.
 
 An example of an undefined state is @{term "NBSucc NBTrue"}: there is no further evaluation
@@ -113,8 +116,8 @@ qed (auto
 (* Theorem 8.3.3 *)
 
 text {*
-If a well-typed term takes a step of evaluation, then the resulting term is also
-well-typed.
+Preservation means that if a well-typed term takes a step of evaluation, then the resulting term is
+also well-typed.
 *}
 
 theorem preservation: "t |:| T \<Longrightarrow> eval1_NB t t' \<Longrightarrow> t' |:| T"

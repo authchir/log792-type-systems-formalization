@@ -5,6 +5,7 @@ begin
 (*>*)
 
 section {* Untyped Arithmetic Expressions *}
+text {* \label{sec:untyped-arith-expr} *}
 
 text {*
 The untyped arithmetic expressions language is the first one we formalize. It consists of boolean
@@ -98,12 +99,12 @@ qed
 (* subsubsection {* Theorem 3.5.4 *} *)
 
 text {*
-With those basic definitions, we can turn to the first interesting theorem: the determinacy of
-one-step evaluation. As in the book, it goes by induction over the evaluation of @{term t} to
-@{term t'}, followed by a case analysis:
+With those basic definitions, we can turn to the first theorem: the determinacy of one-step
+evaluation. As in the book, it goes by induction over the evaluation relation, followed by a case
+analysis:
 *}
 
-theorem eval_single_determinacy:
+theorem eval1_B_determinacy:
   "eval1_B t t' \<Longrightarrow> eval1_B t t'' \<Longrightarrow> t' = t''"
 proof (induction t t' arbitrary: t'' rule: eval1_B.induct)
   case (eval1_BIf_BTrue t1 t2)
@@ -135,7 +136,7 @@ definition is_normal_form_B :: "bterm \<Rightarrow> bool" where
   "is_normal_form_B t \<longleftrightarrow> (\<forall>t'. \<not> eval1_B t t')"
 
 text {*
-We follows by proving, using a simple case analysis, that every value is in normal form:
+We continue by proving, using a simple case analysis, that every value is in normal form:
 *}
 
 theorem value_imp_normal_form:
@@ -169,7 +170,7 @@ defines a multi-step evaluation relation based on the single-step one:
   $t \to^* t''$.
 \end{quotation}
 
-A direct translation of this definition would lead to the following definition:
+A direct translation in Isabelle/HOL would lead to the following definition:
 *}
 
 inductive eval_direct :: "bterm \<Rightarrow> bterm \<Rightarrow> bool" where
@@ -178,10 +179,11 @@ inductive eval_direct :: "bterm \<Rightarrow> bterm \<Rightarrow> bool" where
   e_transitive: "eval_direct t t' \<Longrightarrow> eval_direct t' t'' \<Longrightarrow> eval_direct t t''"
 
 text {*
-But this definition is inconvenient for theorem proving because it requires to consider three cases
-for each induction on a evaluation relation. We chose to define the multi-step evaluation relation
-using a shape similar to a list of one-step evaluations. The inductive definition consists of a base
-case, the reflexive application, and of an inductive case where one step of evaluation is perfomed:
+However, this definition is inconvenient for theorem proving because it requires us to consider
+three cases for each induction on a evaluation relation. Instead, we choose to define the multi-step
+evaluation relation using a shape similar to a list of one-step evaluations. The inductive
+definition consists of a base case, the reflexive application, and of an inductive case where one
+step of evaluation is perfomed:
 *}
 
 inductive eval_B :: "bterm \<Rightarrow> bterm \<Rightarrow> bool" where
@@ -190,7 +192,7 @@ inductive eval_B :: "bterm \<Rightarrow> bterm \<Rightarrow> bool" where
 
 text {*
 We then prove that this reprentation is equivalent to the direct translation of the definition found
-in the book before to continue:
+in the book:
 *}
 
 lemma eval_B_once:
@@ -206,11 +208,13 @@ lemma eval_direct_eq_eval_B:
 proof ((rule ext)+, rule iffI)
   fix t t'
   assume "eval_direct t t'"
-  thus "eval_B t t'" by (auto intro: e_base elim: eval_direct.induct eval_B_once eval_B_transitive)
+  thus "eval_B t t'"
+    by (auto intro: e_base elim: eval_direct.induct eval_B_once eval_B_transitive)
 next
   fix t t'
   assume "eval_B t t'"
-  thus "eval_direct t t'" by (auto intro: e_self dest!: e_once elim: eval_B.induct e_transitive)
+  thus "eval_direct t t'"
+    by (auto intro: e_self dest!: e_once elim: eval_B.induct e_transitive)
 qed
 
 (* subsubsection {* Corollary 3.5.11 *} *)
@@ -227,12 +231,12 @@ proof (induction t u rule: eval_B.induct)
   thus ?case by (auto elim: eval_B.cases simp: is_normal_form_B_def)
 next
   case (e_step t t' t'')
-  thus ?case by (metis eval_B.cases is_normal_form_B_def eval_single_determinacy)
+  thus ?case by (metis eval_B.cases is_normal_form_B_def eval1_B_determinacy)
 qed
 
 text {*
 The last theorem we consider is the termination of evaluation. To prove it, we must first add a
-helper lemma about the size of terms after evaluation, which was implicitly assumed in the book:
+helper lemma, which was implicitly assumed in the book, about the size of terms after evaluation:
 *}
 
 (*<*)
@@ -370,15 +374,17 @@ inductive eval1_NB :: "nbterm \<Rightarrow> nbterm \<Rightarrow> bool" where
   eval1_NBIf: "eval1_NB t1 t1' \<Longrightarrow> eval1_NB (NBIf t1 t2 t3) (NBIf t1' t2 t3)" |
   eval1_NBSucc: "eval1_NB t t' \<Longrightarrow> eval1_NB (NBSucc t) (NBSucc t')" |
   eval1_NBPred_NBZero: "eval1_NB (NBPred NBZero) NBZero" |
-  eval1_NBPred_NBSucc: "is_numeric_value_NB nv \<Longrightarrow> eval1_NB (NBPred (NBSucc nv)) nv" |
+  eval1_NBPred_NBSucc: "is_numeric_value_NB nv \<Longrightarrow>
+    eval1_NB (NBPred (NBSucc nv)) nv" |
   eval1_NBPred: "eval1_NB t t' \<Longrightarrow> eval1_NB (NBPred t) (NBPred t')" |
   eval1_NBIs_zero_NBZero: "eval1_NB (NBIs_zero NBZero) NBTrue" |
-  eval1_NBIs_zero_NBSucc: "is_numeric_value_NB nv \<Longrightarrow> eval1_NB (NBIs_zero (NBSucc nv)) NBFalse" |
+  eval1_NBIs_zero_NBSucc: "is_numeric_value_NB nv \<Longrightarrow>
+    eval1_NB (NBIs_zero (NBSucc nv)) NBFalse" |
   eval1_NBIs_zero: "eval1_NB t t' \<Longrightarrow> eval1_NB (NBIs_zero t) (NBIs_zero t')"
 
 text {*
-The multi-step evaluation relation and the definition normal form are exactly the
-same as for booleans:
+The multi-step evaluation relation and the definition of normal form are exactly the same as for
+booleans:
 *}
 
 inductive eval_NB :: "nbterm \<Rightarrow> nbterm \<Rightarrow> bool" where
@@ -389,13 +395,13 @@ definition is_normal_form_NB :: "nbterm \<Rightarrow> bool" where
   "is_normal_form_NB t \<longleftrightarrow> (\<forall>t'. \<not> eval1_NB t t')"
 
 text {*
-The reason is that all the actual work is perfomed by the singl-step evaluation relation and these
+The reason is that all the actual work is perfomed by the single-step evaluation relation and these
 two definition are just a convenient notation.
 
-In the book, the second covering this fully fledge arithmetic expression language is mainly an
+In the book, the section covering this fully fledge arithmetic expression language is mainly an
 explanation of the constructions not present in the boolean expression language and does not
-contains any theorems. Nevertheless, we decided to reprove, or disprove, the theorems introduced in
-the section on booleans.
+contains any proper theorems. Nevertheless, we decided to reprove, or disprove, the theorems
+introduced in the section on booleans.
 *}
 
 (*<*)
@@ -469,8 +475,8 @@ by (auto
 (* subsubsection {* Theorem 3.5.8 does not hold for Arithmetic Expressions *} *)
 
 text {*
-But contrary to boolean expressions, some expressions that are in normal form are not values. An
-example of such term is @{term "NBSucc NBTrue"}.
+But contrary to boolean expressions, some terms that are in normal form are not values. An example
+of such term is @{term "NBSucc NBTrue"}.
 *}
 
 theorem not_normal_form_imp_value_NB:

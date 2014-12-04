@@ -22,14 +22,15 @@
   %for \<onequarter>, \<onehalf>, \<threequarters>, \<degree>, \<cent>,
   %\<currency>
 
-%\usepackage[utf8]{inputenc}
-%\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
 \usepackage{amsmath}
 \usepackage{array}
 \usepackage{amsfonts}
 \usepackage{tikz}
 \usepackage[inline]{enumitem}
 \usepackage{varwidth}
+\usepackage{lipsum} % just to automatically generate text
 
 \usetikzlibrary{arrows}
 
@@ -45,24 +46,89 @@
 %
 \hyphenation{Isa-belle}
 
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+
+\makeatletter
+\newcommand\ackname{Acknowledgements}
+\if@titlepage
+  \newenvironment{acknowledgements}{%
+      \titlepage
+      \null\vfil
+      \@beginparpenalty\@lowpenalty
+      \begin{center}%
+        \bfseries \ackname
+        \@endparpenalty\@M
+      \end{center}}%
+     {\par\vfil\null\endtitlepage}
+\else
+  \newenvironment{acknowledgements}{%
+      \if@twocolumn
+        \section*{\abstractname}%
+      \else
+        \small
+        \begin{center}%
+          {\bfseries \ackname\vspace{-.5em}\vspace{\z@}}%
+        \end{center}%
+        \quotation
+      \fi}
+      {\if@twocolumn\else\endquotation\fi}
+\fi
+\makeatother
 
 \begin{document}
 
-\title{Formalizing \emph{Types and Programming Languages} in Isabelle/HOL}
-\author{Martin Desharnais}
+% \title{Formalizing \emph{Types and Programming Languages} in Isabelle/HOL}
+% \author{Martin Desharnais}
+
+\begin{titlepage}
+  \begin{center}
+    % Upper part of the page. The '~' is needed because \\
+    % only works if a paragraph has started.
+    \includegraphics[width=6cm]{./logo-ETS.png}~\\[1cm]
+
+    \textsc{\LARGE École de technologie supérieure}\\[1.5cm]
+    \textsc{\Large Bachelor Thesis}\\[0.5cm]
+
+    % Title
+    \HRule \\[0.4cm]
+    { \huge \bfseries Formalizing \emph{Types and Programming Languages} in Isabelle/HOL \\[0.4cm] }
+
+    \HRule \\[1.5cm]
+
+    % Author and supervisor
+    \begin{center}
+      \begin{tabular}{lr}
+        Author:    & Martin Desharnais \\
+        Professor: & Prof. Dr.~David Labbé \\
+        Advisor:   & Dr.~Jasmin C. Blanchette \\
+        Advisor:   & Dmitriy Traytel
+      \end{tabular}
+    \end{center}
+
+    \vfill
+
+    % Bottom of the page
+    {\large \today}
+
+  \end{center}
+\end{titlepage}
 
 \pagenumbering{roman}
-\maketitle
+%\maketitle
 
 \begin{abstract}
-We formalized, using Isabelle/HOL, some languages presented in the first two sections, namely
-"Untyped Systems" and "Simple Types", of the book \emph{Types and Programming Languages} by
+We formalize, using Isabelle/HOL, some languages present in the first two sections, namely "Untyped
+Systems" and "Simple Types", of the book \emph{Types and Programming Languages} by
 Benjamen~C.~Pierce. We first begin with a short tour of lambda-calculus, type theory and the
 Isabelle/HOL theorem prover before attacking the formalization per se. Starting with an arithmetic
 expression language offering booleans and natural numbers, we pursue, after a brief digression to
 the "de Bruijn indices", to the untyped lambda-calculus. We then return to a typed variant of the
 arithmetic expression language before to conclude with the simply typed lambda-calculus.
 \end{abstract}
+
+\begin{acknowledgements}
+  \lipsum[1]
+\end{acknowledgements}
 
 \cleardoublepage
 \tableofcontents

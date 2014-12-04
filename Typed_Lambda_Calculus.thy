@@ -7,14 +7,15 @@ begin
 (*>*)
 
 section {* Typed Lambda Calculus *}
+text {* \label{sec:simply-typed-lambda-calculus} *}
 
 text {*
 We now revisit the previously formalized lambda-calculus (section \ref{sec:untyped-lambda-calculus})
 and augment it with static types. Contrary to the typed arithmetic expressions, types are an
 integral part of the language and affect its syntax. For this reason, we can not import the theory
-of the untyped variant and build on top of it, but need to provide new definitions. We will prove
-type safty through the progress and preservation theorems before to proof that types can be safely
-erase while preserving the semantic of the language.
+of the untyped variant and build on top of it, but need to provide new, although similar,
+definitions. We will prove type safty through the progress and preservation theorems before to proof
+that types can be safely erase while preserving the semantic of the language.
 *}
 
 subsection {* Definitions *}
@@ -23,10 +24,11 @@ subsection {* Definitions *}
 
 text {*
 In the pure lambda calculus, everything is a function. Thus, we need to provide the type of
-functions, usually written @{text "a \<rightarrow> b"} which, given an argument of type @{term a}, will reduce
-to a value of type @{term b}. Since both @{term a} and @{term b} must be valid types, we need to
-provide a base case to stop the recursion at some point. To keep the language minimal, we only add
-boolean expressions as base case:\footnote{The prefix \emph{l} stands for \emph{lambda-calculus}.}
+functions, usually written @{text "a \<rightarrow> b"} which, given an argument of type @{term a}, will
+evaluate to a value of type @{term b}. Since both @{term a} and @{term b} must be valid types, we
+need to provide a base case to stop the recursion at some point. To keep the language minimal, we
+only add boolean expressions as base case:\footnote{The prefix \emph{l} stands for
+\emph{lambda-calculus}.}
 *}
 
 datatype_new ltype =
@@ -43,10 +45,10 @@ the @{text "\<rightarrow>"} operator is right associative.
 In programming languages, more types are usually add as base case to the core calculus for
 performance reason. Examples include integers, floating point numbers, characters, arrays, etc.
 
-Since variables can now have two distinct types, we need a way to know which type a function require
-as domain. There are two possible strategies: annotate the $\lambda$-abstractions with the intended
-type of their arguments or analyse the body of the abstraction to infer the required type. TAPL
-chose the former strategy.
+Since variables can now range over an infinity of types, we need a way to know which type a function
+require as domain. There are two possible strategies: annotate the $\lambda$-abstractions with the
+intended type of their arguments or analyse the body of the abstraction to infer the required type.
+TAPL chose the former strategy.
 
 The syntax of our language differs from the pure lambda-calculus by having constructions for
 boolean expressions and a type annotation on function abstractions:
@@ -152,7 +154,7 @@ lemma "\<emptyset> \<turnstile> (LApp (LAbs Bool (LVar 0)) LTrue) |:| Bool"
 (* Exercice 9.2.2 *)
 
 text {*
-A more interesting example is, assuming there is one variable type @{term "Bool \<rightarrow> Bool"} in the
+A more interesting example is, assuming there is one variable of type @{term "Bool \<rightarrow> Bool"} in the
 typing context, the type of applying a boolean expression to this variable:
 *}
 
@@ -187,7 +189,7 @@ subsection {* Properties of Typing *}
 
 text {*
 The inversion of typing relation, which gives us informations on types for specific terms, will be
-a usefull lemma in the commin theorems:
+a usefull lemma in the comming theorems:
 *}
 
 lemma inversion:
@@ -215,7 +217,7 @@ qed
 (* Theorem 9.3.3 *)
 
 text {*
-We now prove that, every terms have at most one type:
+We now prove that every terms have at most one type:
 *}
 
 theorem uniqueness_of_types:
@@ -273,8 +275,8 @@ lemma "is_closed (LAbs Bool (LAbs Bool (LAbs Bool (LIf (LVar 2) (LVar 0) (LVar 1
 
 (*>*)
 text {*
-We now prove the progress, i.e. a well-typed term is either a value or can take a step according to
-the evaluation rules:
+We now prove the progress theorem, i.e. a well-typed term is either a value or can take a step
+according to the evaluation rules:
 *}
 
 theorem progress:
@@ -303,7 +305,7 @@ our usage of the "de Bruijn indicies" force use to diverge substancially from th
 The first lemma the book consider is the permutation of the typing context:
 
 \begin{quotation}
-  \noindent if $\Gamma \vdash t : T$ and $\Delta$ is a permutation of $\Gamma$, then
+  \noindent If $\Gamma \vdash t : T$ and $\Delta$ is a permutation of $\Gamma$, then
   $\Delta \vdash t : T$. Moreover, the latter derivation has the same depth as the former.
 \end{quotation}
 
@@ -316,9 +318,9 @@ The book then consider the weakening the typing context:
 Moreover, the latter derivation has the same depth as the former.
 \end{quotation}
 
-This lemma does hold wit representation of the typing context, but we need to express it in terms of
-list by inserting @{term s} a position @{term n}. Moreover, we need to shift up every variable
-after refering to a $\lambda$-abstraction farther in the context than this position @{term n}.
+This lemma does hold with our representation of the typing context, but we need to express it in
+terms of list by inserting @{term s} at a fixed position @{term n}. Moreover, we need to shift up
+every variable refering to a $\lambda$-abstraction farther in the context than @{term n}.
 *}
 
 lemma weakening:
@@ -330,7 +332,7 @@ proof (induction \<Gamma> t T arbitrary: n rule: has_type_L.induct)
 qed (auto simp: nth_append min_def intro: has_type_L.intros)
 
 text {*
-This specific formulation was difficult to come with but the proof is, after simplifications, much
+This specific formulation was difficult to come with but the proof is, after simplifications,
 significantly shorter than it used to.
 *}
 
@@ -405,7 +407,7 @@ proof (induction u arbitrary: n t rule: lterm.induct)
 qed (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1])
 
 text {*
-Again, those lemmas were not present in the book. The need for these arise from the use of the
+Again, those lemmas are not present in the book. The need for these arise from the use of the
 @{const FV} function in the @{thm [source] shift_down} lemma.
 
 Building on top of these lemmas, we can now prove the preservation theorem:
