@@ -1,4 +1,4 @@
-\documentclass[11pt,a4paper,twoside]{report}
+\documentclass[12pt,a4paper,titlepage,oneside]{article}
 \usepackage{isabelle,isabellesym}
 
 % further packages required for unusual symbols (see also
@@ -64,6 +64,7 @@ the "de Bruijn indices", to the untyped lambda-calculus. We then return to a typ
 arithmetic expression language before to conclude with the simply typed lambda-calculus.
 \end{abstract}
 
+\cleardoublepage
 \tableofcontents
 
 \cleardoublepage
@@ -77,16 +78,16 @@ arithmetic expression language before to conclude with the simply typed lambda-c
 % sane default for proof documents
 \parindent 0pt\parskip 0.5ex
 
-\part{Untyped Systems}
-\input{Untyped_Arithmetic_Expressions.tex}
-\input{Nameless_Representation_Of_Terms.tex}
-\input{Untyped_Lambda_Calculus.tex}
+%\part{Untyped Systems}
+\input{Untyped_Arithmetic_Expressions}
+\input{Nameless_Representation_Of_Terms}
+\input{Untyped_Lambda_Calculus}
 
-\part{Typed Systems}
-\input{Typed_Arithmetic_Expressions.tex}
-\input{Typed_Lambda_Calculus.tex}
+%\part{Typed Systems}
+\input{Typed_Arithmetic_Expressions}
+\input{Typed_Lambda_Calculus}
 
-\part{Conclusion}
+%\part{Conclusion}
 \input{conclusion}
 
 % optional bibliography

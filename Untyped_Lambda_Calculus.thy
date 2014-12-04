@@ -4,7 +4,7 @@ imports Nameless_Representation_Of_Terms
 begin
 (*>*)
 
-chapter {* Untyped Lambda Calculus *}
+section {* Untyped Lambda Calculus *}
 
 text {*
 The untyped lambda calculus is the first core calculus we formalize. It directly imports the theory
@@ -116,7 +116,7 @@ text {*
 Every value is in normal form:
 *}
 
-text {* Theorem 3.5.7 for Untyped Lambda Calculus *}
+(* Theorem 3.5.7 for Untyped Lambda Calculus *)
 
 theorem value_imp_normal_form:
   "is_value_UL t \<Longrightarrow> is_normal_form_UL t"
@@ -131,11 +131,11 @@ are not values:
 theorem normal_form_does_not_imp_value:
   "\<exists>t. is_normal_form_UL t \<and> \<not> is_value_UL t" (is "\<exists>t. ?P t")
 proof
-  have a: "is_normal_form_UL (ULVar 0)"
+  have a: "\<And>n. is_normal_form_UL (ULVar n)"
     by (auto simp: is_normal_form_UL_def elim: eval1_UL.cases)
-  have b: "\<not> is_value_UL (ULVar 0)"
+  have b: "\<And>n. \<not> is_value_UL (ULVar n)"
     by (auto simp: is_normal_form_UL_def elim: is_value_UL.cases)
-  from a b show "?P (ULVar 0)" by simp
+  from a b show "\<And>n. ?P (ULVar n)" by simp
 qed
 
 (* Corollary 3.5.11 for Untyped Lambda Calculus *)

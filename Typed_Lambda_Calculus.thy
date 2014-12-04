@@ -6,7 +6,7 @@ imports
 begin
 (*>*)
 
-chapter {* Typed Lambda Calculus *}
+section {* Typed Lambda Calculus *}
 
 text {*
 We now revisit the previously formalized lambda-calculus (section \ref{sec:untyped-lambda-calculus})
@@ -17,7 +17,7 @@ type safty through the progress and preservation theorems before to proof that t
 erase while preserving the semantic of the language.
 *}
 
-section {* Definitions *}
+subsection {* Definitions *}
 
 (* Definition 9.1.1 *)
 
@@ -58,7 +58,7 @@ datatype_new lterm =
   LIf (bool_expr: lterm) (then_expr: lterm) (else_expr: lterm) |
   LVar nat |
   LAbs (arg_type: ltype) (body: lterm) |
-  LApp lterm lterm (infixl "$" 200)
+  LApp lterm lterm
 
 text {*
 We now need to redefine the shift and substitution functions for this extended language: 
@@ -175,13 +175,13 @@ lemma
   by (auto intro!: has_type_L.intros simp: assms)
 
 lemma ex9_2_3_general:
-  "\<emptyset> |,| T \<rightarrow> T \<rightarrow> Bool |,| T |,| T \<turnstile> LVar 2 $ LVar 1 $ LVar 0 |:| Bool"
+  "\<emptyset> |,| T \<rightarrow> T \<rightarrow> Bool |,| T |,| T \<turnstile> LApp (LApp (LVar 2) (LVar 1)) (LVar 0) |:| Bool"
   by (auto intro!: has_type_L.intros simp: assms)
 
 lemmas ex9_2_3_bool = ex9_2_3_general[of Bool]
 
 (*>*)
-section {* Properties of Typing *}
+subsection {* Properties of Typing *}
 
 (* Lemma 9.3.1 *)
 
@@ -369,8 +369,8 @@ variable from the context if it is not referenced in the considered term:
 *}
 
 lemma shift_down:
-  "insert_nth n U \<Gamma> \<turnstile> t |:| T \<Longrightarrow> n \<le> length \<Gamma> \<Longrightarrow> (\<And>x. x \<in> FV t \<Longrightarrow> x \<noteq> n) \<Longrightarrow>
-   \<Gamma> \<turnstile> shift_L (- 1) n t |:| T"
+  "insert_nth n U \<Gamma> \<turnstile> t |:| T \<Longrightarrow> n \<le> length \<Gamma> \<Longrightarrow>
+   (\<And>x. x \<in> FV t \<Longrightarrow> x \<noteq> n) \<Longrightarrow> \<Gamma> \<turnstile> shift_L (- 1) n t |:| T"
 proof (induction "insert_nth n U \<Gamma>" t T arbitrary: \<Gamma> n rule: has_type_L.induct)
   case (has_type_LAbs V t T)
   from this(1,3,4) show ?case
@@ -406,7 +406,7 @@ qed (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1])
 
 text {*
 Again, those lemmas were not present in the book. The need for these arise from the use of the
-@{const FV} function in the @{thm [source] shift_down} lemma. T
+@{const FV} function in the @{thm [source] shift_down} lemma.
 
 Building on top of these lemmas, we can now prove the preservation theorem:
 *}
@@ -433,7 +433,7 @@ By proving the progress and the preservation theorems, we have shown that the ty
 is type safe, i.e. every well-typed programs have a well-defined semantics.
 *}
 
-section {* Erasure and Typability *}
+subsection {* Erasure and Typability *}
 
 text {*
 The type system we defined is completly static, i.e. there is no run-time checked involving the

@@ -5,13 +5,17 @@ imports Main
 begin
 (*>*)
 
-chapter {* Typed Arithmetic Expressions *}
+section {* Typed Arithmetic Expressions *}
 
 text {* In this chapter, we revisit the previously formalized arithmetic expression language
 (section \ref{sec:untyped-arith-expr}) and augment it with static types. Since types are an
 caracterisation external to the definition of terms, we directly import the theory to reuse its
 definitions and theorems.
+*}
 
+subsection {* Definitions *}
+
+text {*
 The language of arithmetic expressions contains two types, booleans and natural numbers, that we
 define using a datatype:
 *}
@@ -62,7 +66,7 @@ theorem uniqueness_of_types:
   "t |:| T \<Longrightarrow> t |:| T' \<Longrightarrow> T = T'"
 by (induction t T rule: has_type.induct) (auto dest: inversion_of_typing_relation)
 
-section {* Safety = Progress + Preservation *}
+subsection {* Safety = Progress + Preservation *}
 
 text {*
 The most basic property a type system must provide is \emph{safety}, also called \emph{soundness}:
@@ -123,6 +127,6 @@ qed (auto
   dest: inversion_of_typing_relation
   elim: eval1_NB.cases)
 
-(*>*)
-end
 (*<*)
+end
+(*>*)

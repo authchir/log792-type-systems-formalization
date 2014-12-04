@@ -4,7 +4,7 @@ imports Main
 begin
 (*>*)
 
-chapter {* Untyped Arithmetic Expressions *}
+section {* Untyped Arithmetic Expressions *}
 
 text {*
 The untyped arithmetic expressions language is the first one we formalize. It consists of boolean
@@ -15,7 +15,7 @@ we start with a subset containing only the boolean expression and carry on with 
 arithmetic expressions.
 *}
 
-section {* Booleans *}
+subsection {* Booleans *}
 
 text {*
 The syntax of this language is defined, in the book, in the following way:
@@ -252,7 +252,7 @@ theorem termination_of_evaluation:
 by (induction rule: measure_induct_rule[of size_B])
   (metis e_base e_step eval_once_size_B is_normal_form_B_def)
 
-section {* Arithmetic Expressions *}
+subsection {* Arithmetic Expressions *}
 
 text {*
 We now turn to the fully fledged arithmetic expression language. The syntax is defined in the same
@@ -421,12 +421,6 @@ The determinacy of the single-step evaluation still holds:
 theorem eval1_NB_right_unique:
   "eval1_NB t t' \<Longrightarrow> eval1_NB t t'' \<Longrightarrow> t' = t''"
 proof (induction t t' arbitrary: t'' rule: eval1_NB.induct)
-  case (eval1_NBIf_NBTrue t1 t2)
-  thus ?case by (auto elim: eval1_NB.cases)
-next
-  case (eval1_NBIf_NBFalse t1 t2)
-  thus ?case by (auto elim: eval1_NB.cases)
-next
   case (eval1_NBIf t1 t1' t2 t3)
   from eval1_NBIf.prems eval1_NBIf.hyps show ?case
     by (auto intro: eval1_NB.cases dest: eval1_NBIf.IH)
@@ -434,9 +428,6 @@ next
   case (eval1_NBSucc t1 t2)
   from eval1_NBSucc.prems eval1_NBSucc.IH show ?case
     by (auto elim: eval1_NB.cases)
-next
-  case eval1_NBPred_NBZero
-  thus ?case by (auto intro: eval1_NB.cases)
 next
   case (eval1_NBPred_NBSucc nv1)
   from eval1_NBPred_NBSucc.prems eval1_NBPred_NBSucc.hyps show ?case
@@ -450,21 +441,17 @@ next
       elim: eval1_NB.cases
       dest: not_eval_once_numeric_value)
 next
-  case eval1_NBIs_zero_NBZero
-  thus ?case by (auto intro: eval1_NB.cases)
-next
   case (eval1_NBIs_zero_NBSucc nv)
   thus ?case
     by (auto intro: eval1_NB.cases not_eval_once_numeric_value is_numeric_value_NB.intros)
 next
   case (eval1_NBIs_zero t1 t2)
   from eval1_NBIs_zero.prems eval1_NBIs_zero.hyps show ?case
-    by (cases rule: eval1_NB.cases)
-      (auto
-        elim: eval1_NB.cases
-        intro: eval1_NBIs_zero.IH is_numeric_value_NB.intros
-        elim: not_eval_once_numeric_value[rotated])
-qed
+    by (cases rule: eval1_NB.cases) (auto
+      elim: eval1_NB.cases
+      intro: eval1_NBIs_zero.IH is_numeric_value_NB.intros
+      elim: not_eval_once_numeric_value[rotated])
+qed (auto elim: eval1_NB.cases)
 
 (* subsubsection {* Theorem 3.5.7 for Arithmetic Expressions *} *)
 
@@ -474,10 +461,10 @@ Every value is in normal form:
 
 theorem value_imp_normal_form_NB:
   "is_value_NB t \<Longrightarrow> is_normal_form_NB t"
-  by (auto
-    intro: not_eval_once_numeric_value
-    elim: eval1_NB.cases is_value_NB.cases
-    simp: is_normal_form_NB_def)
+by (auto
+  intro: not_eval_once_numeric_value
+  elim: eval1_NB.cases is_value_NB.cases
+  simp: is_normal_form_NB_def)
 
 (* subsubsection {* Theorem 3.5.8 does not hold for Arithmetic Expressions *} *)
 

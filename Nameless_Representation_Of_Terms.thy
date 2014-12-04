@@ -4,7 +4,7 @@ imports Main
 begin
 (*>*)
 
-chapter {* Nameless Representation of Terms *}
+section {* Nameless Representation of Terms *}
 
 text {*
 In the background section on lambda-calculus (section \label{sec:background-lambda-calculus}), we
