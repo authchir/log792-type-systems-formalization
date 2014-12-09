@@ -247,7 +247,7 @@ be a usefull lemma:
 lemma canonical_forms:
   "is_value_L v \<Longrightarrow> \<Gamma> \<turnstile> v |:| Bool \<Longrightarrow> v = LTrue \<or> v = LFalse"
   "is_value_L v \<Longrightarrow> \<Gamma> \<turnstile> v |:| T1 \<rightarrow> T2 \<Longrightarrow> \<exists>t. v = LAbs T1 t"
-  by (auto elim: has_type_L.cases is_value_L.cases)
+by (auto elim: has_type_L.cases is_value_L.cases)
 
 (* Theorem 9.3.5 *)
 

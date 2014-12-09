@@ -11,11 +11,11 @@ text {*
 In the background section on $\lambda$-calculus (section \label{sec:background-lambda-calculus}), we
 presented the problem of name clashes that can arise when performing $\beta$-reduction. In its
 definitions and proofs, the book only works up to $\alpha$-equivalence: assuming that the variables
-would be implicitly renamed if such a name clash occured. In a separate chapter, a different
+would be implicitly renamed if such a name clash occurred. In a separate chapter, a different
 representation of terms that avoids such problem is presented. It is described to as one possible
 encoding that can be used when implementing an compiler for the $\lambda$-calculus.
 
-Even though we are not building a compiler, our computer verrified formalization requires us to
+Even though we are not building a compiler, our computer verified formalization requires us to
 explicitly handle this problem. We chose to use this representation and, thus must also formalize
 this chapter.
 
@@ -23,7 +23,6 @@ The idea behind this representation, known as "de Bruijn indices", is to make va
 directly their corresponding binder, rather than refering to them by name. This is accomplished by
 using an index that refer to the $n$'th enclosing $\lambda$. Following is an example of
 "de Bruijn indices" representation for the function composition combinator:
-
 \begin{displaymath}
   \lambda x. \lambda y. \lambda z. x (y \text{ } z)
     \equiv \lambda. \lambda. \lambda. 2 (1 \text{ } 0)
