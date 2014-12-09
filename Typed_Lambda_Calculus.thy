@@ -10,12 +10,13 @@ section {* Typed Lambda Calculus *}
 text {* \label{sec:simply-typed-lambda-calculus} *}
 
 text {*
-We now revisit the previously formalized lambda-calculus (section \ref{sec:untyped-lambda-calculus})
-and augment it with static types. Contrary to the typed arithmetic expressions, types are an
-integral part of the language and affect its syntax. For this reason, we can not import the theory
-of the untyped variant and build on top of it, but need to provide new, although similar,
-definitions. We will prove type safty through the progress and preservation theorems before to proof
-that types can be safely erase while preserving the semantic of the language.
+We now revisit the previously formalized $\lambda$-calculus (section
+\ref{sec:untyped-lambda-calculus}) and augment it with static types. Contrary to the typed
+arithmetic expressions, types are an integral part of the language and affect its syntax. For this
+reason, we can not import the theory of the untyped variant and build on top of it, but need to
+provide new, although similar, definitions. We will prove type safety through the progress and
+preservation theorems before to prove that types can be safely erase while preserving the semantic
+of the language.
 *}
 
 subsection {* Definitions *}
@@ -50,7 +51,7 @@ require as domain. There are two possible strategies: annotate the $\lambda$-abs
 intended type of their arguments or analyse the body of the abstraction to infer the required type.
 TAPL chose the former strategy.
 
-The syntax of our language differs from the pure lambda-calculus by having constructions for
+The syntax of our language differs from the pure $\lambda$-calculus by having constructions for
 boolean expressions and a type annotation on function abstractions:
 *}
 
@@ -63,7 +64,7 @@ datatype_new lterm =
   LApp lterm lterm
 
 text {*
-We now need to redefine the shift and substitution functions for this extended language: 
+We now need to redefine the shift and substitution functions for this extended language:
 *}
 
 primrec shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lterm" where
@@ -83,7 +84,7 @@ primrec subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> lt
   "subst_L j s (LApp t1 t2) = LApp (subst_L j s t1) (subst_L j s t2)"
 
 text {*
-The semantic is very similar to the pure lambda-calculus. A first difference is that the set of
+The semantic is very similar to the pure $\lambda$-calculus. A first difference is that the set of
 values also contain the boolean constants:
 *}
 
@@ -98,13 +99,18 @@ evaluation of the conditional statement:
 *}
 
 inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
-  eval1_LIf_LTrue: "eval1_L (LIf LTrue t2 t3) t2" |
-  eval1_LIf_LFalse: "eval1_L (LIf LFalse t2 t3) t3" |
-  eval1_LIf: "eval1_L t1 t1' \<Longrightarrow> eval1_L (LIf t1 t2 t3) (LIf t1' t2 t3)" |
-  eval1_LApp1: "eval1_L t1 t1' \<Longrightarrow> eval1_L (LApp t1 t2) (LApp t1' t2)" |
-  eval1_LApp2: "is_value_L v1 \<Longrightarrow> eval1_L t2 t2' \<Longrightarrow>
-    eval1_L (LApp v1 t2) (LApp v1 t2')" |
-  eval1_LApp_LAbs: "is_value_L v2 \<Longrightarrow> eval1_L (LApp (LAbs T t12) v2)
+  eval1_LIf_LTrue:
+    "eval1_L (LIf LTrue t2 t3) t2" |
+  eval1_LIf_LFalse:
+    "eval1_L (LIf LFalse t2 t3) t3" |
+  eval1_LIf:
+    "eval1_L t1 t1' \<Longrightarrow> eval1_L (LIf t1 t2 t3) (LIf t1' t2 t3)" |
+  eval1_LApp1:
+    "eval1_L t1 t1' \<Longrightarrow> eval1_L (LApp t1 t2) (LApp t1' t2)" |
+  eval1_LApp2:
+    "is_value_L v1 \<Longrightarrow> eval1_L t2 t2' \<Longrightarrow> eval1_L (LApp v1 t2) (LApp v1 t2')" |
+  eval1_LApp_LAbs:
+    "is_value_L v2 \<Longrightarrow> eval1_L (LApp (LAbs T t12) v2)
       (shift_L (-1) 0 (subst_L 0 (shift_L 1 0 v2) t12))"
 
 text {*
@@ -136,12 +142,18 @@ inductive definition:
 *}
 
 inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> ltype \<Rightarrow> bool" ("((_)/ \<turnstile> (_)/ |:| (_))" [150, 150, 150] 150) where
-  has_type_LTrue: "\<Gamma> \<turnstile> LTrue |:| Bool" |
-  has_type_LFalse: "\<Gamma> \<turnstile> LFalse |:| Bool" |
-  has_type_LIf: "\<Gamma> \<turnstile> t1 |:| Bool \<Longrightarrow> \<Gamma> \<turnstile> t2 |:| T \<Longrightarrow> \<Gamma> \<turnstile> t3 |:| T \<Longrightarrow> \<Gamma> \<turnstile> (LIf t1 t2 t3) |:| T" |
-  has_type_LVar: "(x, T) |\<in>| \<Gamma> \<Longrightarrow> \<Gamma> \<turnstile> (LVar x) |:| T" |
-  has_type_LAbs: "(\<Gamma> |,| T1) \<turnstile> t2 |:| T2 \<Longrightarrow> \<Gamma> \<turnstile> (LAbs T1 t2) |:| (T1 \<rightarrow> T2)" |
-  has_type_LApp: "\<Gamma> \<turnstile> t1 |:| (T11 \<rightarrow> T12) \<Longrightarrow> \<Gamma> \<turnstile> t2 |:| T11 \<Longrightarrow> \<Gamma> \<turnstile> (LApp t1 t2) |:| T12"
+  has_type_LTrue:
+    "\<Gamma> \<turnstile> LTrue |:| Bool" |
+  has_type_LFalse:
+    "\<Gamma> \<turnstile> LFalse |:| Bool" |
+  has_type_LIf:
+    "\<Gamma> \<turnstile> t1 |:| Bool \<Longrightarrow> \<Gamma> \<turnstile> t2 |:| T \<Longrightarrow> \<Gamma> \<turnstile> t3 |:| T \<Longrightarrow> \<Gamma> \<turnstile> (LIf t1 t2 t3) |:| T" |
+  has_type_LVar:
+    "(x, T) |\<in>| \<Gamma> \<Longrightarrow> \<Gamma> \<turnstile> (LVar x) |:| T" |
+  has_type_LAbs:
+    "(\<Gamma> |,| T1) \<turnstile> t2 |:| T2 \<Longrightarrow> \<Gamma> \<turnstile> (LAbs T1 t2) |:| (T1 \<rightarrow> T2)" |
+  has_type_LApp:
+    "\<Gamma> \<turnstile> t1 |:| (T11 \<rightarrow> T12) \<Longrightarrow> \<Gamma> \<turnstile> t2 |:| T11 \<Longrightarrow> \<Gamma> \<turnstile> (LApp t1 t2) |:| T12"
 
 text {*
 As an example of a trivial usage of the typing relation, consider the type of the application of
@@ -431,17 +443,122 @@ next
 qed (auto elim: eval1_L.cases)
 
 text {*
-By proving the progress and the preservation theorems, we have shown that the typed lambda-calculus
-is type safe, i.e. every well-typed programs have a well-defined semantics.
+By proving the progress and the preservation theorems, we have shown that the typed
+$\lambda$-calculus is type safe, i.e. every well-typed programs have a well-defined semantics.
 *}
+(*<*)
 
+inductive eval_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
+  "eval_L t t" |
+  "eval1_L t t' \<Longrightarrow> eval_L t' t'' \<Longrightarrow> eval_L t t''"
+
+definition is_normal_form_L :: "lterm \<Rightarrow> bool" where
+  "is_normal_form_L t \<longleftrightarrow> (\<forall>t'. \<not> eval1_L t t')"
+
+corollary eval_preserves_type:
+  "eval_L t t' \<Longrightarrow> \<Gamma> \<turnstile> t |:| T \<Longrightarrow> \<Gamma> \<turnstile> t' |:| T"
+by (induction t t' arbitrary: rule: eval_L.induct) (auto dest: preservation)
+
+lemma foo:
+  "eval_L t1 t1' \<Longrightarrow> eval_L (LIf t1' t2 t3) u \<Longrightarrow> eval_L (LIf t1 t2 t3) u"
+by (induction t1 t1' arbitrary: t2 t3 rule: eval_L.induct) (auto intro: eval1_LIf eval_L.intros)
+
+lemma bar:
+  "eval_L t1 t1' \<Longrightarrow> eval_L (LApp t1' t2) u \<Longrightarrow> eval_L (LApp t1 t2) u"
+  "eval_L t2 t2' \<Longrightarrow> eval_L (LApp v1 t2') u \<Longrightarrow> eval_L (LApp v1 t2) u"
+sorry
+
+theorem "\<Gamma> \<turnstile> t |:| T \<Longrightarrow> \<exists>t'. eval_L t t' \<and> is_normal_form_L t'"
+proof (induction \<Gamma> t T rule: has_type_L.induct)
+  print_cases
+  case has_type_LTrue
+  thus ?case by (auto intro: eval_L.intros simp: is_normal_form_L_def elim: eval1_L.cases)
+next
+  case has_type_LFalse
+  thus ?case by (auto intro: eval_L.intros simp: is_normal_form_L_def elim: eval1_L.cases)
+next
+  case (has_type_LIf \<Gamma> t1 t2 T t3)
+  thus ?case
+    apply (cases "is_value_L t1")
+    apply (auto intro!: eval1_L.intros eval_L.intros dest: canonical_forms) [1]
+    apply (erule exE) +
+    apply (erule conjE) +
+    apply (frule eval_preserves_type[of t1], assumption)
+    apply (frule eval_preserves_type[of t2], assumption)
+    apply (frule eval_preserves_type[of t3], assumption)
+    apply (case_tac "is_value_L t'")
+    apply (drule canonical_forms)
+    apply assumption
+    apply (erule disjE)
+    apply hypsubst
+    apply (rule exI)
+    apply (rule conjI)
+    apply (erule foo)
+    apply (rule eval_L.intros(2))
+    apply (rule eval1_L.intros)
+    apply assumption
+    apply assumption
+    apply hypsubst
+    apply (rule exI)
+    apply (rule conjI)
+    apply (erule foo)
+    apply (rule eval_L.intros(2))
+    apply (rule eval1_L.intros)
+    apply assumption
+    apply assumption
+    apply (rule exI)
+    apply (rule conjI)
+    apply (erule foo)
+    apply (rule eval_L.intros)
+    unfolding is_normal_form_L_def
+    apply (rule allI)
+    apply (rule notI)
+    apply (erule eval1_L.cases)
+    by (auto intro: is_value_L.intros)
+next
+  case (has_type_LVar x T \<Gamma>)
+  thus ?case by (auto intro: eval_L.intros elim: eval1_L.cases simp: is_normal_form_L_def)
+next
+  case has_type_LAbs
+  thus ?case by (auto intro: eval_L.intros elim: eval1_L.cases simp: is_normal_form_L_def)
+next
+  case (has_type_LApp \<Gamma> t1 T11 T12 t2)
+  thus ?case
+    apply -
+    apply (erule exE)+
+    apply (erule conjE)+
+    apply (rename_tac t1' t2')
+    apply (frule eval_preserves_type[of t1], assumption)
+    apply (frule eval_preserves_type[of t2], assumption)
+    apply (case_tac "is_value_L t1'")
+    apply (drule canonical_forms(2))
+    apply assumption
+    apply (erule exE)
+    apply hypsubst
+    apply (rule exI)
+    apply (case_tac "is_value_L t2'")
+
+    apply (erule is_value_L.cases)
+    apply hypsubst
+    apply (drule inversion)
+    apply hypsubst
+    apply (rule conjI)
+    apply (erule bar)+
+    apply (rule eval_L.intros(2))
+    apply (rule eval1_L.intros(6))
+    apply (rule is_value_L.intros)
+    unfolding shift_L.simps
+    sorry
+qed
+
+(*>*)
 subsection {* Erasure and Typability *}
 
 text {*
 The type system we defined is completly static, i.e. there is no run-time checked involving the
 types of terms. Since the type annotations are not used during evaluation, it is worth exploring
 the possibility to erase them prior to execution. To this end, we define an untyped version of
-our lambda-calculus with booleans:
+our $\lambda$-calculus with booleans:
 *}
 
 datatype uterm =
@@ -501,14 +618,17 @@ We also define how the @{const erase} function react with respect to values and 
 and @{const subst_L} functions.
 *}
 
-lemma is_value_erasure: "is_value_L t \<Longrightarrow> is_value_U (erase t)"
-  by (auto  intro: is_value_U.intros elim!: is_value_L.cases)
+lemma is_value_erasure:
+  "is_value_L t = is_value_U (erase t)"
+by (induction t rule: lterm.induct) (auto simp: is_value_L.simps is_value_U.simps)
 
-lemma shift_erasure: "erase (shift_L d c t) = shift_U d c (erase t)"
-  by (induction t arbitrary: d c rule: lterm.induct) auto
+lemma shift_erasure:
+  "erase (shift_L d c t) = shift_U d c (erase t)"
+by (induction t arbitrary: d c rule: lterm.induct) auto
 
-lemma subst_erasure: "erase (subst_L j s t) = subst_U j (erase s) (erase t)"
-  by (induction t arbitrary: j s rule: lterm.induct) (auto simp: shift_erasure)
+lemma subst_erasure:
+  "erase (subst_L j s t) = subst_U j (erase s) (erase t)"
+by (induction t arbitrary: j s rule: lterm.induct) (auto simp: shift_erasure)
 
 (* Theorem 9.5.1 *)
 
@@ -517,9 +637,10 @@ We can now prove that every step of evaluation on a typed term can be perform in
 coresponding untyped term.
 *}
 
-theorem "eval1_L t t' \<Longrightarrow> eval1_U (erase t) (erase t')"
-  by (induction t t' rule: eval1_L.induct)
-    (auto intro: eval1_U.intros simp: shift_erasure subst_erasure is_value_erasure)
+theorem
+"eval1_L t t' \<Longrightarrow> eval1_U (erase t) (erase t')"
+by (induction t t' rule: eval1_L.induct)
+  (auto intro: eval1_U.intros simp: shift_erasure subst_erasure is_value_erasure)
 
 (*<*)
 end

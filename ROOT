@@ -15,3 +15,4 @@ session "log792" = "HOL" +
     "root.tex"
     "structure_of_the_formalization.tex"
     "logo-ETS.png"
+    "root.bib"

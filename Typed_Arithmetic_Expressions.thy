@@ -33,13 +33,20 @@ conventional notation:
 *}
 
 inductive has_type :: "nbterm \<Rightarrow> nbtype \<Rightarrow> bool" (infix "|:|" 150) where
-  has_type_NBTrue: "NBTrue |:| Bool" |
-  has_type_NBFalse: "NBFalse |:| Bool" |
-  has_type_NBIf: "t1 |:| Bool \<Longrightarrow> t2 |:| T \<Longrightarrow> t3 |:| T \<Longrightarrow> NBIf t1 t2 t3 |:| T" |
-  has_type_NBZero: "NBZero |:| Nat" |
-  has_type_NBSucc: "t |:| Nat \<Longrightarrow> NBSucc t |:| Nat" |
-  has_type_NBPred: "t |:| Nat \<Longrightarrow> NBPred t |:| Nat" |
-  has_type_NBIs_zero: "t |:| Nat \<Longrightarrow> NBIs_zero t |:| Bool"
+  has_type_NBTrue:
+    "NBTrue |:| Bool" |
+  has_type_NBFalse:
+    "NBFalse |:| Bool" |
+  has_type_NBIf:
+    "t1 |:| Bool \<Longrightarrow> t2 |:| T \<Longrightarrow> t3 |:| T \<Longrightarrow> NBIf t1 t2 t3 |:| T" |
+  has_type_NBZero:
+    "NBZero |:| Nat" |
+  has_type_NBSucc:
+    "t |:| Nat \<Longrightarrow> NBSucc t |:| Nat" |
+  has_type_NBPred:
+    "t |:| Nat \<Longrightarrow> NBPred t |:| Nat" |
+  has_type_NBIs_zero:
+    "t |:| Nat \<Longrightarrow> NBIs_zero t |:| Bool"
 
 (* Lemma 8.2.2 *)
 

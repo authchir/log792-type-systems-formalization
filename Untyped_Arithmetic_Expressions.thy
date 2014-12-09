@@ -62,23 +62,29 @@ text {*
 The evaluation relation is concerned with the way a conditional expression will be reduced. The book
 uses the standard mathematical notation for inference rules:
 
-\begin{verbatim}
-if true then t2 else t3 --> t2
-
-if false then t2 else t3 --> t3
-
-                  t1 --> t1'
-------------------------------------------------
-if t1 then t2 else t3 --> if t1' then t2 else t3
-\end{verbatim}
+\begin{displaymath}
+\inferrule {}{\text{if true then } t_2 \text{ else } t_3 \implies t_2}
+\end{displaymath}
+\begin{displaymath}
+\inferrule {}{\text{if false then } t_2 \text{ else } t_3 \implies t_3}
+\end{displaymath}
+\begin{displaymath}
+  \inferrule
+    {t_1 \implies t_1'}
+    {\text{if } t_1 \text{ then } t_2 \text{ else } t_3
+      \implies \text{if } t_1' \text{ then } t_2 \text{ else } t_3}
+\end{displaymath}
 
 These rules translate easily into an other inductive definition:
 *}
 
 inductive eval1_B :: "bterm \<Rightarrow> bterm \<Rightarrow> bool" where
-  eval1_BIf_BTrue: "eval1_B (BIf BTrue t2 t3) t2" |
-  eval1_BIf_BFalse: "eval1_B (BIf BFalse t2 t3) t3" |
-  eval1_BIf: "eval1_B t1 t1' \<Longrightarrow> eval1_B (BIf t1 t2 t3) (BIf t1' t2 t3)"
+  eval1_BIf_BTrue:
+    "eval1_B (BIf BTrue t2 t3) t2" |
+  eval1_BIf_BFalse:
+    "eval1_B (BIf BFalse t2 t3) t3" |
+  eval1_BIf:
+    "eval1_B t1 t1' \<Longrightarrow> eval1_B (BIf t1 t2 t3) (BIf t1' t2 t3)"
 
 (*<*)
 (* Example of definition 3.5.3 *)
@@ -174,9 +180,12 @@ A direct translation in Isabelle/HOL would lead to the following definition:
 *}
 
 inductive eval_direct :: "bterm \<Rightarrow> bterm \<Rightarrow> bool" where
-  e_once: "eval1_B t t' \<Longrightarrow> eval_direct t t'" |
-  e_self: "eval_direct t t" |
-  e_transitive: "eval_direct t t' \<Longrightarrow> eval_direct t' t'' \<Longrightarrow> eval_direct t t''"
+  e_once:
+    "eval1_B t t' \<Longrightarrow> eval_direct t t'" |
+  e_self:
+    "eval_direct t t" |
+  e_transitive:
+    "eval_direct t t' \<Longrightarrow> eval_direct t' t'' \<Longrightarrow> eval_direct t t''"
 
 text {*
 However, this definition is inconvenient for theorem proving because it requires us to consider
@@ -187,8 +196,8 @@ step of evaluation is perfomed:
 *}
 
 inductive eval_B :: "bterm \<Rightarrow> bterm \<Rightarrow> bool" where
-  e_base: "eval_B t t" |
-  e_step: "eval1_B t t' \<Longrightarrow> eval_B t' t'' \<Longrightarrow> eval_B t t''"
+  "eval_B t t" |
+  "eval1_B t t' \<Longrightarrow> eval_B t' t'' \<Longrightarrow> eval_B t t''"
 
 text {*
 We then prove that this reprentation is equivalent to the direct translation of the definition found
@@ -209,7 +218,7 @@ proof ((rule ext)+, rule iffI)
   fix t t'
   assume "eval_direct t t'"
   thus "eval_B t t'"
-    by (auto intro: e_base elim: eval_direct.induct eval_B_once eval_B_transitive)
+    by (auto intro: eval_B.intros elim: eval_direct.induct eval_B_once eval_B_transitive)
 next
   fix t t'
   assume "eval_B t t'"
@@ -226,13 +235,8 @@ determinacy of the single-step evaluation:
 
 corollary uniqueness_of_normal_form:
   "eval_B t u \<Longrightarrow> eval_B t u' \<Longrightarrow> is_normal_form_B u \<Longrightarrow> is_normal_form_B u' \<Longrightarrow> u = u'"
-proof (induction t u rule: eval_B.induct)
-  case (e_base t)
-  thus ?case by (auto elim: eval_B.cases simp: is_normal_form_B_def)
-next
-  case (e_step t t' t'')
-  thus ?case by (metis eval_B.cases is_normal_form_B_def eval1_B_determinacy)
-qed
+by (induction t u rule: eval_B.induct)
+  (metis eval_B.cases is_normal_form_B_def eval1_B_determinacy)+
 
 text {*
 The last theorem we consider is the termination of evaluation. To prove it, we must first add a
@@ -254,7 +258,7 @@ by (induction t t' rule: eval1_B.induct) simp_all
 theorem termination_of_evaluation:
   "\<exists>t'. eval_B t t' \<and> is_normal_form_B t'"
 by (induction rule: measure_induct_rule[of size_B])
-  (metis e_base e_step eval_once_size_B is_normal_form_B_def)
+  (metis eval_B.intros eval_once_size_B is_normal_form_B_def)
 
 subsection {* Arithmetic Expressions *}
 
@@ -369,18 +373,26 @@ The single-step evaluation relation is a superset of the one defined for boolean
 *}
 
 inductive eval1_NB :: "nbterm \<Rightarrow> nbterm \<Rightarrow> bool" where
-  eval1_NBIf_NBTrue: "eval1_NB (NBIf NBTrue t2 t3) t2" |
-  eval1_NBIf_NBFalse: "eval1_NB (NBIf NBFalse t2 t3) t3" |
-  eval1_NBIf: "eval1_NB t1 t1' \<Longrightarrow> eval1_NB (NBIf t1 t2 t3) (NBIf t1' t2 t3)" |
-  eval1_NBSucc: "eval1_NB t t' \<Longrightarrow> eval1_NB (NBSucc t) (NBSucc t')" |
-  eval1_NBPred_NBZero: "eval1_NB (NBPred NBZero) NBZero" |
-  eval1_NBPred_NBSucc: "is_numeric_value_NB nv \<Longrightarrow>
-    eval1_NB (NBPred (NBSucc nv)) nv" |
-  eval1_NBPred: "eval1_NB t t' \<Longrightarrow> eval1_NB (NBPred t) (NBPred t')" |
-  eval1_NBIs_zero_NBZero: "eval1_NB (NBIs_zero NBZero) NBTrue" |
-  eval1_NBIs_zero_NBSucc: "is_numeric_value_NB nv \<Longrightarrow>
-    eval1_NB (NBIs_zero (NBSucc nv)) NBFalse" |
-  eval1_NBIs_zero: "eval1_NB t t' \<Longrightarrow> eval1_NB (NBIs_zero t) (NBIs_zero t')"
+  eval1_NBIf_NBTrue:
+    "eval1_NB (NBIf NBTrue t2 t3) t2" |
+  eval1_NBIf_NBFalse:
+    "eval1_NB (NBIf NBFalse t2 t3) t3" |
+  eval1_NBIf:
+    "eval1_NB t1 t1' \<Longrightarrow> eval1_NB (NBIf t1 t2 t3) (NBIf t1' t2 t3)" |
+  eval1_NBSucc:
+    "eval1_NB t t' \<Longrightarrow> eval1_NB (NBSucc t) (NBSucc t')" |
+  eval1_NBPred_NBZero:
+    "eval1_NB (NBPred NBZero) NBZero" |
+  eval1_NBPred_NBSucc:
+    "is_numeric_value_NB nv \<Longrightarrow> eval1_NB (NBPred (NBSucc nv)) nv" |
+  eval1_NBPred:
+    "eval1_NB t t' \<Longrightarrow> eval1_NB (NBPred t) (NBPred t')" |
+  eval1_NBIs_zero_NBZero:
+    "eval1_NB (NBIs_zero NBZero) NBTrue" |
+  eval1_NBIs_zero_NBSucc:
+    "is_numeric_value_NB nv \<Longrightarrow> eval1_NB (NBIs_zero (NBSucc nv)) NBFalse" |
+  eval1_NBIs_zero:
+    "eval1_NB t t' \<Longrightarrow> eval1_NB (NBIs_zero t) (NBIs_zero t')"
 
 text {*
 The multi-step evaluation relation and the definition of normal form are exactly the same as for
@@ -388,8 +400,10 @@ booleans:
 *}
 
 inductive eval_NB :: "nbterm \<Rightarrow> nbterm \<Rightarrow> bool" where
-  eval_NB_base: "eval_NB t t" |
-  eval_NB_step: "eval1_NB t t' \<Longrightarrow> eval_NB t' t'' \<Longrightarrow> eval_NB t t''"
+  eval_NB_base:
+    "eval_NB t t" |
+  eval_NB_step:
+    "eval1_NB t t' \<Longrightarrow> eval_NB t' t'' \<Longrightarrow> eval_NB t t''"
 
 definition is_normal_form_NB :: "nbterm \<Rightarrow> bool" where
   "is_normal_form_NB t \<longleftrightarrow> (\<forall>t'. \<not> eval1_NB t t')"
@@ -407,13 +421,16 @@ introduced in the section on booleans.
 (*<*)
 (* Usefull lemmas *)
 
-lemma eval1_NB_impl_eval_NB: "eval1_NB t t' \<Longrightarrow> eval_NB t t'"
-  by (simp add: eval_NB_step eval_NB_base)
+lemma eval1_NB_impl_eval_NB:
+  "eval1_NB t t' \<Longrightarrow> eval_NB t t'"
+by (simp add: eval_NB.intros)
 
-lemma eval_NB_transitive: "eval_NB t t' \<Longrightarrow> eval_NB t' t'' \<Longrightarrow> eval_NB t t''"
+lemma eval_NB_transitive:
+  "eval_NB t t' \<Longrightarrow> eval_NB t' t'' \<Longrightarrow> eval_NB t t''"
 by (induction t t' rule: eval_NB.induct) (auto intro: eval_NB.intros)
 
-lemma not_eval_once_numeric_value: "is_numeric_value_NB nv \<Longrightarrow> eval1_NB nv t \<Longrightarrow> P"
+lemma not_eval_once_numeric_value:
+  "is_numeric_value_NB nv \<Longrightarrow> eval1_NB nv t \<Longrightarrow> P"
 by (induction nv arbitrary: t rule: is_numeric_value_NB.induct)
   (auto elim: eval1_NB.cases)
 

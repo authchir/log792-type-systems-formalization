@@ -5,6 +5,11 @@ begin
 (*>*)
 
 text {*
+This section only presents briefly the most used constructions in the formalizations described in
+this thesis. It is not expected from the reader without previous exposure to Isabelle/HOL to be able
+to fully understand the proofs presented in this report. It is sufficient to recognise core concepts
+such as induction or cases analysis.
+
 The theorem proving community can be subdivise in two groups: automatic theorem proving (ATP) and
 interactive theorem proving (ITP). Each have their own set of motivation, goals, methodologies and
 tools. In ATP, one must formulate it's context and equations in some logical formalisms and ask the
@@ -25,7 +30,7 @@ libraries. Is analogous to modules in programming languages. Every definition an
 developped must belong to a theory and can be made accessible to other theories by importing them.
 
 Types and function definitions serve to describe entities and how to operate on them. They work in
-very similar way to their counterpart in functional programming languages. A new type is introduce
+very similar way to their counterpart in functional programming languages. A new type is introduced
 with the \texttt{datatype} command, followed by the name of the type and the different constructors
 separated by a \texttt{|}. Following is the standard definition of the type of parametric
 lists:\footnote{Prefixing an element with a descriptive name, as done for the arguments of the
@@ -53,14 +58,19 @@ text {*
 An alternative way in which this function could be defined is with an inductive definition.
 Introduced with the \texttt{inductive} command, it allows to express boolean functions by providing
 an inductive definition of when the function should evaluate to true, leaving all the other cases to
-false. The definition consists of a base case and possibly many inductive cases. Following is the
-same function defined by induction:
+false. The definition consists of base cases and possibly many inductive cases. Following is the
+same function defined by induction:\footnote{Here, a descriptive name have been given to each rule.
+The base cases are @{text empty_list} and @{text singleton_list} while the inductive case is
+@{text arbitrary_list}.}
 *}
 
 inductive ordered' :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> bool" where
-  "ordered' f Nil" |
-  "ordered' f (Cons x Nil)" |
-  "f x1 x2 \<Longrightarrow> ordered' f (Cons x2 xs) \<Longrightarrow> ordered' f (Cons x1 (Cons x2 xs))"
+  empty_list:
+    "ordered' f Nil" |
+  singleton_list:
+    "ordered' f (Cons x Nil)" |
+  arbitrary_list:
+    "f x1 x2 \<Longrightarrow> ordered' f (Cons x2 xs) \<Longrightarrow> ordered' f (Cons x1 (Cons x2 xs))"
 
 text {*
 Theorems, also named lemmas, are true facts involving the defined elements. They could be compare to
@@ -83,13 +93,11 @@ done
 text {*
 This proof is easilly verified by a computer but very hard to read for a human. For this reason,
 the Isabelle/Isar structured proof language was designed to allow the writing of more human-friendly
-proofs. Following is a theorem showing that, whenever the \texttt{ordered} function returns true for
-a given predicate and list, the \texttt{ordered'} function will also return true:\footnote{In
+proofs. Following is a theorem showing that, whenever the @{const ordered} function returns true for
+a given predicate and list, the @{const ordered'} function will also return true:\footnote{In
 Isabelle, every unbounded term is implicitly universally quantified:
 @{prop [source] "n + 1 > n"}~$\equiv$~@{prop [source] "(\<And>n. n + 1 > n)"}.}
 *}
-
-term "\<And>n. n + 1 > n"
 
 lemma primrec_imp_inductive:
   "ordered f xs \<Longrightarrow> ordered' f xs"
@@ -107,14 +115,9 @@ to see that the proof work by induction on the list @{term xs}, that the base ca
 first proved and that in the inductive case @{const Cons}, a cases analysis of the values the
 argument @{term ys} can take is performed.
 
-This section only presented briefly the most used constructions in the formalizations described in
-this thesis. It is not expected from the reader without previous exposure to Isabelle/HOL to be able
-to fully understand the proofs presented in this report. It is sufficient to recognise core concepts
-such as induction or cases analysis.
-
 For a more comprehensive introduction to Isabelle/HOL, the reader is encourage to start with the
-tutorial \cite{???} distributed with the system and continue, for a deeper understanding, with the
-more exaustive manual \cite{???}.
+tutorial \cite{nipkow-2014-prog-prove} distributed with the system and continue, for a deeper
+understanding, with the more exaustive manual \cite{nipkow-et-al-2014-tutorial}.
 *}
 
 (*<*)

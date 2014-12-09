@@ -8,12 +8,12 @@ section {* Nameless Representation of Terms *}
 text {* \label{sec:nameless-rep-of-terms} *}
 
 text {*
-In the background section on lambda-calculus (section \label{sec:background-lambda-calculus}), we
+In the background section on $\lambda$-calculus (section \label{sec:background-lambda-calculus}), we
 presented the problem of name clashes that can arise when performing $\beta$-reduction. In its
 definitions and proofs, the book only works up to $\alpha$-equivalence: assuming that the variables
 would be implicitly renamed if such a name clash occured. In a separate chapter, a different
 representation of terms that avoids such problem is presented. It is described to as one possible
-encoding that can be used when implementing an compiler for the lambda-calculus.
+encoding that can be used when implementing an compiler for the $\lambda$-calculus.
 
 Even though we are not building a compiler, our computer verrified formalization requires us to
 explicitly handle this problem. We chose to use this representation and, thus must also formalize
@@ -45,7 +45,7 @@ Which means that the same example of the function composition combinator would l
 
 \begin{center}
   \small
-  @{term "ULAbs (ULAbs (ULAbs (ULApp (ULVar 2) (ULApp (ULVar 1) (ULVar 0)))))"}  
+  @{term "ULAbs (ULAbs (ULAbs (ULApp (ULVar 2) (ULApp (ULVar 1) (ULVar 0)))))"}
 \end{center}
 *}
 

@@ -31,6 +31,8 @@
 \usepackage[inline]{enumitem}
 \usepackage{varwidth}
 \usepackage{lipsum} % just to automatically generate text
+\usepackage[nottoc,numbib]{tocbibind}
+\usepackage{mathpartir}
 
 \usetikzlibrary{arrows}
 
@@ -99,8 +101,8 @@
     \begin{center}
       \begin{tabular}{lr}
         Author:    & Martin Desharnais \\
-        Professor: & Prof. Dr.~David Labbé \\
-        Advisor:   & Dr.~Jasmin C. Blanchette \\
+        Professor: & David Labbé \\
+        Advisor:   & Jasmin C. Blanchette \\
         Advisor:   & Dmitriy Traytel
       \end{tabular}
     \end{center}
@@ -113,21 +115,34 @@
   \end{center}
 \end{titlepage}
 
+\newpage
 \pagenumbering{roman}
 %\maketitle
 
 \begin{abstract}
 We formalize, using Isabelle/HOL, some languages present in the first two sections, namely "Untyped
 Systems" and "Simple Types", of the book \emph{Types and Programming Languages} by
-Benjamen~C.~Pierce. We first begin with a short tour of lambda-calculus, type theory and the
-Isabelle/HOL theorem prover before attacking the formalization per se. Starting with an arithmetic
-expression language offering booleans and natural numbers, we pursue, after a brief digression to
-the "de Bruijn indices", to the untyped lambda-calculus. We then return to a typed variant of the
-arithmetic expression language before to conclude with the simply typed lambda-calculus.
+Benjamen~C.~Pierce. We first begin with a short tour of $\lambda$-calculus, type systems and the
+Isabelle/HOL theorem prover before attacking the formalization \emph{per se}. Starting with an
+arithmetic expressions language offering booleans and natural numbers, we pursue, after a brief
+digression to the "de Bruijn indices", to the untyped $\lambda$-calculus. We then return to a typed
+variant of the arithmetic expression language before to conclude with the simply typed
+$\lambda$-calculus.
 \end{abstract}
 
 \begin{acknowledgements}
-  \lipsum[1]
+  I first would like to thank Jasmin Blanchette, one of my advisors, who gave me the opportunity to
+  move in Munich for an eight months intership as a research assistant. This experience gave me a
+  taste of academic research and introduced me to the world of formal verifications and theorem
+  provers. I greatly benefited from the numerous discussions we had and the advices he gave me.
+
+  I am equally grathefull to Dmitriy Traytel, my second advisor, for all the help he gave me for
+  both my intership and my thesis. He taught me a lot and his help was precious when I encountered
+  some harder parts.
+
+  I want to thank all member of the research chair for the warm welcoming the gave me. A special
+  thought goes to Lars Noschinski, my officemate, for all the conversations we had and all the
+  insights he gave me of the german culture.
 \end{acknowledgements}
 
 \cleardoublepage
@@ -155,6 +170,10 @@ arithmetic expression language before to conclude with the simply typed lambda-c
 
 %\part{Conclusion}
 \input{conclusion}
+
+\nocite{*}
+\bibliographystyle{alpha}
+\bibliography{root}
 
 % optional bibliography
 %\bibliographystyle{abbrv}

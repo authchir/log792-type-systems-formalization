@@ -3,7 +3,7 @@
 
 In this thesis, we formalize six chapters of the first two sections of TAPL. Figure
 \ref{fig:TAPL-toc} presents the table of content of those two sections --- the formalized chapters
-are in bold --- and figure \ref{fig:TAPL-dependencies} present the dependencies between the
+are in bold --- and figure \ref{fig:TAPL-dependencies} presents the dependencies between the
 chapters; a normal arrow imply a direct dependency while a dashed arrow only imply that the
 knowledge learned in one chapter is usefull for an other.
 
@@ -61,9 +61,9 @@ knowledge learned in one chapter is usefull for an other.
 The formalization closely follows the structure of the book. We provide one Isabelle theory file per
 chapter and mainly introduce them in the same order. The only exception is the chapter on "Nameless
 Representation of Terms". In the book, it is treated as completely separate issue from the chapters
-on lambda-calculus. They present it as a concrete alternative to the implicit $\alpha$-conversion
+on $\lambda$-calculus. They present it as a concrete alternative to the implicit $\alpha$-conversion
 they assume in their proofs. Since we chose this representation for our formalization, we must
-diverge from the book and introduce this subject prior to the untyped lambda-calculus. Figure
+diverge from the book and introduce this subject prior to the untyped $\lambda$-calculus. Figure
 \ref{fig:thys-dependencies} presents the dependencies between our Isabelle theory files.
 
 \begin{figure}[h]
@@ -85,9 +85,9 @@ diverge from the book and introduce this subject prior to the untyped lambda-cal
   \label{fig:thys-dependencies}
 \end{figure}
 
-It is possible to directly base the typed arithmetic expressions on untyped arithmetic expression
-by importing the theory and reusing its definition. This is represented as a dotted arrow in figure
+It is possible to directly base the typed arithmetic expressions on untyped arithmetic expression by
+importing the theory and reusing its definition. This is represented as a dotted arrow in figure
 \ref{fig:thys-dependencies}. This reuse is possible because, for this language, types are external
-to the representation of terms. For the typed lambda-calculus, on the contrary, we need to alter the
-representation of terms to add the typing annotation on abstraction variables, thus preventing the
-reuse of the untyped lambda-calculus theory.
+to the representation of terms. For the typed $\lambda$-calculus, on the contrary, we need to alter
+the representation of terms to add the typing annotation on abstraction variables, thus preventing
+the reuse of the untyped $\lambda$-calculus theory.

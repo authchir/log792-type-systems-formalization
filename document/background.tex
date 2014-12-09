@@ -4,8 +4,8 @@
 \subsection{Lambda-Calculus}
 \label{sec:background-lambda-calculus}
 
-The lambda-calculus is a minimalist language, where everything is a functions, that can be use as a
-core calculus capturing the essential features of complex programming languages. It was formulated
+The $\lambda$-calculus is a minimalist language, where everything is a functions, that can be use as
+a core calculus capturing the essential features of complex programming languages. It was formulated
 by Alonzo Church \cite{???} in the 1930s as a model of computability. At the same time, Alan Turing
 was formulating what is now known as a Turing machine \cite{???} for the same purpose. It was later
 proved that both systems are equivalent in expressive power \cite{???}.
@@ -13,9 +13,9 @@ proved that both systems are equivalent in expressive power \cite{???}.
 As a programming language, it can be intriguing at first because everything reduces to function
 abstraction and application. The syntax comprises three sorts of terms: variables, function
 abstractions over a variable and applications of a term to an other. Those three constructs are
-summarized in the following grammar using a BNF-like notation:
+summarized in the following grammar of $\lambda$-terms using a BNF-like notation:
 \begin{align*}
-  \lambda\text{-term} ::= & \\
+  t ::= & \\
     & x && \text{variable} \\
     & \lambda x. t && \text{abstraction} \\
     & t_1 \text{ } t_2 && \text{application}
@@ -77,7 +77,7 @@ by having a function return an other function, as was done in the previous examp
 \end{displaymath}
 
 An other common construction is a \emph{let binding} which serves to attach an identifier to a
-complex expression. It can be emulated in lambda-calculus with a single function abstraction:
+complex expression. It can be emulated in $\lambda$-calculus with a single function abstraction:
 
 \begin{displaymath}
   \text{let } x = y \text{ in } t \equiv (\lambda x. t) y
@@ -103,8 +103,9 @@ Using the rules already discussed, it is trivial to show that the following redu
 \end{displaymath}
 
 Other encodings exist for constructions such as numbers, list, datatypes, arbitrary recursion, etc.
-For a more comprehensive introduction to the subject, \emph{An introduction to Lambda Calculi for
-Computer Scientists} \ref{???} can serve as a good starting point.
+For a more comprehensive introduction to the subject, \emph{An Introduction to Lambda Calculi for
+Computer Scientists} \cite{hankin-2004-ILCCS} can serve as a good starting point.
+
 
 \subsection{Type Systems}
 
@@ -146,11 +147,11 @@ when something start to go wrong.
 An other important way in which type systems can be use is as an abstraction tool. It is widely
 accepted that, in the context of large scale software developpement, programs should be split into
 distinct modules that communicate through interfaces. Types are an natural fit to serve as such an
-interface. Enven in smaller scale programming, it is usefull to caracterise a datatype not by the
+interface. Even in smaller scale programming, it is usefull to caracterise a datatype not by the
 way it is implemented but by the different operations that can be perform on it. This focus on
 operations led to the concept of abstract datatypes.
 
-Types can also be use an invaluable maintenance tool. More informally, they serve as a checked
+Types can also be used an invaluable maintenance tool. More informally, they serve as a checked
 documentation of programs and, being simpler than the computation they caracterise, they can help
 to reason about such computation on a higher level. But they can also serve a very practical
 purpose, by checking which part of a program is affected by a change. If one decides to change the
