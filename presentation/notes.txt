@@ -1,0 +1,109 @@
+20 min. presentation + 10 min. questions
+========================================
+
+Motivations (short)
+  - My personal interest on functional programming, programming languages and type systems
+  - My internship at TU München working on (Co)Datatypes
+  - Already intend to read TAPL
+  - Learn formalizations, Isabelle/HOL and type systems by formalizing it
+
+What is a formalization?
+  - We first define some components we want to formalize
+    - We must choose a logic: propositional logic, first order logic, higher order logic, etc.
+  - We state properties of those components and/or their interactions
+  - We prove those property
+    - It could be a paper proof or a computer verified one
+
+Our tool: Isabelle/HOL
+  - generic interactive theorem prover
+    - many logics can be encode: we are using higher order logic
+  - syntax will be explained on the fly when used later
+
+What is the lambda-calculus?
+  - minimalist language where everything is a function
+  - can be use as a core calculus for complex programming languages
+  - show the sintax of pure lambda calculus
+  - show examples of terms
+
+How does it work?
+  - alpha-equivalence
+    - short definition
+    - example
+  - beta-reduction
+    - short definition
+    - example
+
+How can we use that as a core calculus?
+  - show how to encode booleans and "if expression"
+
+Digression on "de Bruijn indices"
+  - Problem of name clashes
+  - This encoding solve the problem
+  - Show an example of translating a term from variables to indices
+
+The untyped lambda-calculus: definitions 1
+  - show the definitions of TAPL and compare with the Isabelle/HOL translations
+    - term
+    - is_values
+    - eval1
+      - highlight the difference with indices
+    - is_normal_form_def
+
+The untyped lambda-calculus: theorems 1
+  - show how we translate the theorems in Isabelle/HOL
+    - determinacy of one step evaluation
+    - value imply normal form
+    - normal form does not imply value
+
+The untyped lambda-calculus: definitions 2
+  - show the definitions of TAPL and compare with the Isabelle/HOL translations
+    - eval
+      - explain why we diverge from the trivial translation (list-like shape)
+
+The untyped lambda-calculus: theorems 2
+  - show how we translate the theorems in Isabelle/HOL
+    - uniqueness of normal form
+    - eval does not terminate
+      - give a short example of evaluating \Omega
+
+What is a type system?
+  - A syntactic method to prove the absence of certain behaviors
+    - Can range from very simple to horribly complicate
+      - tradeoff
+  - Abstraction tool
+    - Modules
+    - Abstract datatypes
+  - Maintenance tool
+      - Reason about programs
+      - Check exaustively which section is concern with a modification
+  - They are conservative
+    - "if true then 42 else true" is a type error even if obviously consistent
+
+The simply-typed lambda-calculus: definitions
+  - show the definitions of TAPL and compare with the Isabelle/HOL translations
+    - always highlight the differences with a color so the reader can ignore what is already known
+    - type
+    - term
+      - rapid explanation of why we need to introduce booleans
+    - is_value
+    - eval1
+    - is_normal_form and eval stay the same
+    - has_type
+
+The simply-typed lambda-calculus: theorems
+  - show how we translate the theorems in Isabelle/HOL
+    - uniqueness of types
+  - Type safety = progress + preservation
+    - progress
+    - preservation
+
+
+Would be interesting to speak of but...:
+========================================
+
+Semantics (small-step operational semantics): abstract machine with terms as state, values as
+terminal states and evaluation relation as transitions.
+
+Type erasure: since type checking is a purely static operation, we can erase type annotations prior
+to evaluation or compilation.
+  - eval1 t t' = eval1 (erase t) (erase t')
