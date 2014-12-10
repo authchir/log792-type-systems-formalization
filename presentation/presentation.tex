@@ -1,6 +1,6 @@
 % $Header: /Users/joseph/Documents/LaTeX/beamer/solutions/generic-talks/generic-ornate-15min-45min.en.tex,v 90e850259b8b 2007/01/28 20:48:30 tantau $
 
-\documentclass[xcolor=dvipsnames,notes]{beamer}
+\documentclass[xcolor=dvipsnames]{beamer}
 
 \mode<presentation>
 {
@@ -17,7 +17,8 @@
 \usepackage[T1]{fontenc}
 \usepackage{graphicx}
 \usepackage{mathpartir}
-%\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage{varwidth}
+\usepackage[inline]{enumitem}
 
 \beamertemplatenavigationsymbolsempty
 
@@ -58,12 +59,43 @@
   \titlepage
 \end{frame}
 
+\begin{frame}
+  \footnotesize
+  \begin{center}
+    \begin{varwidth}{\textwidth}
+      \begin{enumerate}[label=\Roman*]
+        \itemsep 1pt
+        \item Untyped Systems \hfill
+          \begin{enumerate}[label=§ \arabic*]
+            \setcounter{enumii}{2}
+            \item \textcolor{OliveGreen}{Untyped Arithmetic Expressions}
+            \item An ML Implementation of Arithmetic Expressions
+            \item \textcolor{OliveGreen}{The Untyped Lambda-Calculus}
+            \item \textcolor{OliveGreen}{Nameless Representation of Terms}
+            \item An ML Implementation of the Lambda-Calculus
+          \end{enumerate}
+        \item Simple Types \hfill
+          \begin{enumerate}[label=§ \arabic*]
+            \setcounter{enumii}{7}
+            \item \textcolor{OliveGreen}{Typed Arithmetic Expressions}
+            \item \textcolor{OliveGreen}{Simply Typed Lambda-Calculus}
+            \item An ML implementation of Simple Types
+            \item Simple Extensions
+            \item Normalization
+            \item References
+            \item Exceptions
+          \end{enumerate}
+      \end{enumerate}
+    \end{varwidth}
+  \end{center}
+\end{frame}
+
 \begin{frame}{Outline}
   \tableofcontents
   % You might wish to add the option [pausesections]
 \end{frame}
 
-\section{Motivations}
+\section{Motivation}
 
 \begin{frame}{Why this book?}
   \begin{center}
@@ -84,7 +116,18 @@
   \begin{center}
     \includegraphics[scale=0.2]{whiteboard_math.jpg} \\
     \vspace{20pt}
-    Formalization = Definitions + Properties + Proofs \\
+    \begin{columns}[c]
+      \column{0.48\textwidth}
+      \flushright{Formalization}
+      \column{0.04\textwidth}
+      \flushright{=}
+      \column{0.48\textwidth}
+      \begin{center}
+        Definitions \\ + \\
+        Properties \\ + \\
+        Computer-Checked \\ Proofs
+      \end{center}
+    \end{columns}
   \end{center}
 \end{frame}
 
@@ -130,7 +173,7 @@
   \end{columns}
   \vspace{20pt}
   \begin{center}
-    Variable names are irrelevent: \\
+    Bounded variable names are irrelevent: \\
     $\lambda x. \; x \: = \: \lambda y. \; y$ \\
     \vspace{20pt}
     Function application: \\
@@ -152,6 +195,17 @@
   \end{center}
 \end{frame}
 
+\begin{frame}{\emph{De Bruijn} indices}
+  \begin{center}
+    \Large
+    \begin{displaymath}
+      \lambda x. \; (\lambda y. \; y \; (\lambda z. \; z)) (\lambda w. \; x \; w)
+    \end{displaymath} \\
+    \vspace{20pt}
+    \includegraphics[scale=1]{de_bruijn.png}
+  \end{center}
+\end{frame}
+
 \begin{frame}{Formalization of single-step evaluation}
   \begin{center}
     \small
@@ -164,26 +218,27 @@
     \begin{displaymath}
       \inferrule {}{(\lambda x. \ t_{12}) \ v_2 \implies [x \mapsto v_2] \ t_{12}}
     \end{displaymath}
+    \pause
     \vspace{20pt}
     \includegraphics[scale=0.4]{eval1.png}
   \end{center}
 \end{frame}
 
-\begin{frame}{Formalization of multi-step evaluation}
-  \begin{center}
-    \small
-    \begin{quotation}
-      \noindent The \emph{multi-step evaluation} relation $\to^*$ is the reflexive, transitive closure
-      of one-step evaluation. That is, it is the smallest relation such that (1) if t $t \to t'$ then
-      $t \to^* t'$, (2) $t \to^* t$ for all $t$, and (3) if $t \to^* t'$ and $t' \to^* t''$, then
-      $t \to^* t''$.
-    \end{quotation}
-    \vspace{20pt}
-    \includegraphics[scale=0.4]{eval.png}
-  \end{center}
-\end{frame}
+% \begin{frame}{Formalization of multi-step evaluation}
+%   \begin{center}
+%     \small
+%     \begin{quotation}
+%       \noindent The \emph{multi-step evaluation} relation $\to^*$ is the reflexive, transitive closure
+%       of one-step evaluation. That is, it is the smallest relation such that (1) if t $t \to t'$ then
+%       $t \to^* t'$, (2) $t \to^* t$ for all $t$, and (3) if $t \to^* t'$ and $t' \to^* t''$, then
+%       $t \to^* t''$.
+%     \end{quotation}
+%     \vspace{20pt}
+%     \includegraphics[scale=0.4]{eval.png}
+%   \end{center}
+% \end{frame}
 
-\section{Augmenting $\lambda$-Calculus with a Type System}
+\section{Augmenting the $\lambda$-Calculus with a Type System}
 
 \begin{frame}{What are type systems?}
   \begin{center}
@@ -197,7 +252,10 @@
 
 \begin{frame}{Formalization of typing relation}
   \begin{center}
+    \Large
+    \only<1-1>{$\Gamma \vdash t : T$}
     \small
+    \only<2->{
     \begin{displaymath}
       \inferrule {x : T \in \Gamma}{\Gamma \vdash x : T}
     \end{displaymath}
@@ -212,8 +270,9 @@
       }
       {\Gamma \vdash t_1 \ t_2 : T_{12}}
     \end{displaymath}
-    \vspace{20pt}
-    \includegraphics[scale=0.4]{has_type.png}
+  }
+  \vspace{20pt}
+  \uncover<3->{\includegraphics[scale=0.4]{has_type.png}}
   \end{center}
 \end{frame}
 
@@ -240,17 +299,14 @@
     also well typed.
 }
 
-\begin{frame}{The progress theorem}
-  \begin{center}
-    \small
-    \begin{quotation}
-      \noindent Suppose $t$ is a closed, well-typed term (that is, $\vdash t : T$ for some
-      $T$). Then either $t$ is a value or else there is some $t'$ with $t \to t'$.
-    \end{quotation}
-    \vspace{20pt}
-    \includegraphics[scale=0.4]{progress.png}
-  \end{center}
-\end{frame}
+% \begin{frame}{The progress theorem}
+%   \begin{center}
+%     \alt<3>{\includegraphics[scale=0.3]{progress_thm_highlighted.png}}
+%       {\includegraphics[scale=0.3]{progress_thm.png}} \\
+%       \uncover<2->{\alt<3>{\includegraphics[scale=0.3]{progress_highlighted.png}}
+%       {\includegraphics[scale=0.3]{progress.png}}}
+%   \end{center}
+% \end{frame}
 
 \begin{frame}{Other theorems proved}
   \begin{itemize}
@@ -269,10 +325,16 @@
   \begin{itemize}
     \item $\lambda$-calculus as core-calculus
     \item Type systems as security net
-    \item Isabelle/HOL as developpement platform
+    \item Isabelle/HOL as development platform
     \item Formalization is as concrete as programming
     \item How my intership was relevent
   \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \begin{center}
+    Thank you for your attention
+  \end{center}
 \end{frame}
 
 \end{document}
