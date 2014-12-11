@@ -4,15 +4,15 @@ imports Nameless_Representation_Of_Terms
 begin
 (*>*)
 
-section {* Untyped Lambda Calculus *}
+section {* Untyped Lambda-Calculus *}
 text {* \label{sec:untyped-lambda-calculus} *}
 
 text {*
-The untyped lambda calculus is the first core calculus we formalize. It directly imports the theory
-on the nameless representation of terms (section \ref{sec:nameless-rep-of-terms}), which formalizes
-the representation used for the syntax of the language. We complete the definitions by providing the
+The untyped lambda calculus is the first core calculus we formalize. It imports the theory on the
+nameless representation of terms (Section \ref{sec:nameless-rep-of-terms}), which formalizes the
+representation used for the syntax of the language. We complete the definitions by providing the
 semantics and prove the determinacy of evaluation, the relation between values and normal form, the
-uniqueness of normal form and show that the evaluation is potentially non-terminating.
+uniqueness of normal form and the potentially non-terminating nature of evaluation.
 *}
 
 subsection {* Definitions *}
@@ -25,14 +25,14 @@ inductive is_value_UL :: "ulterm \<Rightarrow> bool" where
   "is_value_UL (ULAbs t)"
 
 text {*
-One may wonder why variables are not part of this definition. In the lambda calculus, variables are
-a way to refer to a specific of a function abstraction. Since function abstractions are values, we
-do not need to consider their variable. The only ones we could consider as values are the free
-variables, i.e. variables refering to non-existing function abstractions. In the following examples,
-every occurence of @{term w} is free:
+Variables are not part of this definition because they are a way to refer to a specific of a
+function abstraction. Since function abstractions are values, we do not need to consider their
+variable. The only ones we could consider as values are the free variables, i.e. variables referring
+to non-existing function abstractions. In the following examples, every occurrence of @{term w} is
+free:
 
 \begin{displaymath}
-  w \qquad (\lambda x. x) w \qquad (\lambda x. \lambda y. \lambda z. w \ x \ y \ z)
+  w \qquad (\lambda x. \ x) \ w \qquad (\lambda x. \lambda y. \lambda z. \ w \ x \ y \ z)
 \end{displaymath}
 
 There is no concensus on how the semantic should handle such situations. By excluding them from the
@@ -41,46 +41,51 @@ decision is consistent with many programming languages where the use of an undef
 leads to an error, either at compile-time or at run-time.
 
 The single-step evaluation relation is defined, in the book, with the following inference rules
-where $[x \mapsto s] t$ is the substitution of variable $x$ by $s$ in $t$:
+where $[x \mapsto s] \ t$ is the replacement of variable $x$ by $s$ in $t$:
 
-\begin{displaymath}
-  \inferrule {t_1 \implies t_1'}{t_1 \ t_2 \implies t_1' \ t_2}
-\end{displaymath}
-\begin{displaymath}
-  \inferrule {t_2 \implies t_2'}{v_1 \ t_2 \implies v_1 \ t_2'}
-\end{displaymath}
-\begin{displaymath}
-  \inferrule {}{(\lambda x. \ t_{12}) v_2 \implies [x \mapsto v_2] \ t_{12}}
-\end{displaymath}
+\setcounter{equation}{0}
+\begin{gather}
+  \inferrule {t_1 \implies t_1'}{t_1 \ t_2 \implies t_1' \ t_2} \\
+  \inferrule {t_2 \implies t_2'}{v_1 \ t_2 \implies v_1 \ t_2'} \\
+  \inferrule {}{(\lambda x. \ t_{12}) \ v_2 \implies [x \mapsto v_2] \ t_{12}}
+\end{gather}
 
-We translate these rules with the following inductive definition:
+The first rule states that the left side of an application must be reduced first, the second rule
+states that the right side of an application must be reduced second and the third rule states that
+an application consists of replacing both the $\lambda$-abstraction and the argument by the
+$\lambda$-abstraction's body where the substitution have been performed. We translate these rules
+with the following inductive definition:
 *}
 
 inductive eval1_UL :: "ulterm \<Rightarrow> ulterm \<Rightarrow> bool" where
   eval1_ULApp1:
     "eval1_UL t1 t1' \<Longrightarrow> eval1_UL (ULApp t1 t2) (ULApp t1' t2)" |
   eval1_ULApp2:
-    "is_value_UL v1 \<Longrightarrow> eval1_UL t2 t2' \<Longrightarrow> eval1_UL (ULApp v1 t2) (ULApp v1 t2')" |
+    "is_value_UL v1 \<Longrightarrow> eval1_UL t2 t2' \<Longrightarrow> eval1_UL (ULApp v1 t2)
+      (ULApp v1 t2')" |
   eval1_ULApp_ULAbs:
     "is_value_UL v2 \<Longrightarrow> eval1_UL (ULApp (ULAbs t12) v2)
       (shift_UL (-1) 0 (subst_UL 0 (shift_UL 1 0 v2) t12))"
 
 text {*
-Appart from the explicit assumption on the nature of @{term v1}, the only difference is the
-substitution in the third rule. This is the reason that pushed use to formalize the nameless
-representation of terms in the first place. The book uses a high level definition of substitution
+Apart from the explicit assumption on the nature of @{term v1}, the only difference is the
+substitution in the third rule. This is the reason that motivated us to formalize the nameless
+representation of terms in the first place. The book use a high level definition of substitution
 where name clashes are not considered. We replace this higher level operation by our concrete
-substitution operation on "de Bruijn indices". We begin by shifting up by on the concrete argument
+substitution operation on ``de Bruijn indices''. We begin by shifting up by on the concrete argument
 because, conceptually, it \emph{enters} the function abstraction. We then perform the proper
-substitution of the function's variable , i.e. of indice zero. Finally, we shift down every variable
-of the resulting body to, conceptually, \emph{remove} the function abstraction we just applied.
+substitution of the function's variable, i.e. of index zero. Finally, we shift down every variable
+of the resulting body to account for the removed $\lambda$-abstraction.
 
-The multi-step evaluation relation and the normal form definitions have the well-known shape:
+The multi-step evaluation relation and the normal form definitions follow the usual pattern:
+\newpage
 *}
 
 inductive eval_UL :: "ulterm \<Rightarrow> ulterm \<Rightarrow> bool" where
-  "eval_UL t t" |
-  "eval1_UL t t' \<Longrightarrow> eval_UL t' t'' \<Longrightarrow> eval_UL t t''"
+  eval_UL_base:
+    "eval_UL t t" |
+  eval_UL_step:
+    "eval1_UL t t' \<Longrightarrow> eval_UL t' t'' \<Longrightarrow> eval_UL t t''"
 
 definition is_normal_form_UL :: "ulterm \<Rightarrow> bool" where
   "is_normal_form_UL t \<longleftrightarrow> (\<forall>t'. \<not> eval1_UL t t')"
@@ -89,10 +94,10 @@ subsection {* Theorems *}
 
 text {*
 In the book, this chapter consists mainly of the presentation of the $\lambda$-calculus, of which we
-gave a short introduction in the background section (section \ref{sec:background-lambda-calculus}),
-and does not contains meaningfull theorems. Nevertheless, we decided to reprove, or disprove, the
-theorems introduced in the section on the arithmetic expression language
-(Section \ref{sec:untyped-arith-expr}).
+gave a short introduction in the background section (Section \ref{sec:background-lambda-calculus}),
+and does not contains meaningful theorems. Nevertheless, we revisit the properties
+introduced with the arithmetic expressions language (Section \ref{sec:untyped-arith-expr}) and
+either prove that they are still theorems or disprove them.
 *}
 
 (* Theorem 3.5.4 for Untyped Lambda Calculus *)
@@ -101,7 +106,7 @@ text {*
 The determinacy of the single-step evaluation still holds:
 *}
 
-theorem determinacy_of_one_step_evaluation:
+theorem eval1_UL_determinacy:
   "eval1_UL t t' \<Longrightarrow> eval1_UL t t'' \<Longrightarrow> t' = t''"
 proof (induction t t' arbitrary: t'' rule: eval1_UL.induct)
   case (eval1_ULApp1 t1 t1' t2)
@@ -153,15 +158,15 @@ The uniqueness of normal form still holds:
 corollary uniqueness_of_normal_form:
   "eval_UL t u \<Longrightarrow> eval_UL t u' \<Longrightarrow> is_normal_form_UL u \<Longrightarrow> is_normal_form_UL u' \<Longrightarrow> u = u'"
 by (induction t u rule: eval_UL.induct)
-  (metis eval_UL.cases is_normal_form_UL_def determinacy_of_one_step_evaluation)+
+  (metis eval_UL.cases is_normal_form_UL_def eval1_UL_determinacy)+
 
 
 (* Theorem 3.5.12 does not hold for Untyped Lambda calculus *)
 
 text {*
 This time, the evaluation relation could be non-terminating. A typical example of term whose
-evaluation does not terminate is the self-application combinator (also known as $\omega$) applied to
-itself (also known as $\Omega$):
+evaluation does not terminate is the self-application combinator (called $\omega$) applied to
+itself, resulting in a term called $\Omega$:
 *}
 
 (*<*)
@@ -189,7 +194,7 @@ by (induction \<Omega> t rule: eval1_UL.induct)
 
 text {*
 Since the single-step evaluation is equivalent to the identity, the multi-step evaluation relation
-will loop infinitly:
+will loop infinitely (e.g. $\Omega \to \Omega \to \dots$):
 *}
 
 lemma eval_UL_\<Omega>:
@@ -197,7 +202,7 @@ lemma eval_UL_\<Omega>:
 by (induction \<Omega> t rule: eval_UL.induct) (blast dest: eval1_UL_\<Omega>)+
 
 text {*
-Based on this simple example, we can show that there exists some terms which can not be reduce to a
+Based on this simple example, we can show that there exists some terms which cannot be reduce to a
 normal form:
 *}
 
@@ -206,7 +211,9 @@ theorem eval_does_not_always_terminate:
 proof
   show "\<forall>t'. ?P \<Omega> t'"
     by (auto dest!: eval_UL_\<Omega>)
-      (auto intro: eval1_UL.intros is_value_UL.intros simp: \<omega>_def \<Omega>_def is_normal_form_UL_def)
+      (auto
+        intro: eval1_UL.intros is_value_UL.intros
+        simp: \<omega>_def \<Omega>_def is_normal_form_UL_def)
 qed
 
 (*<*)

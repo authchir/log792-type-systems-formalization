@@ -8,18 +8,18 @@ begin
 section {* Typed Arithmetic Expressions *}
 text {* \label{sec:typed-arith-expr} *}
 
-text {* In this chapter, we revisit the previously formalized arithmetic expression language
-(section \ref{sec:untyped-arith-expr}) and augment it with static types. Since types are a
-caracterisation external to the definition of terms, we directly import the theory to reuse its
-definitions and theorems. We complete the definitions with the typing relation and prove type safety
-through the progress and preservation theorems.
+text {* In this section, we revisit the previously formalized arithmetic expression language
+(Section \ref{sec:untyped-arith-expr}) and augment it with static types. Since types are a
+characterization external to the definition of terms, we import the theory to reuse its definitions
+and theorems. We complete the definitions with the typing relation and prove type safety through the
+progress and preservation theorems.
 *}
 
 subsection {* Definitions *}
 
 text {*
-The language of arithmetic expressions contains two types, booleans and natural numbers, which we
-define using a datatype:
+The language of arithmetic expressions contains two types for booleans and natural numbers, which we
+model using a datatype:
 *}
 
 datatype nbtype = Bool | Nat
@@ -28,8 +28,7 @@ datatype nbtype = Bool | Nat
 
 text {*
 The typing relation serves to assign a type to an expression. We express it with an inductive
-definition for which we also provide the @{text "|:|"} operator as an alternative, more
-conventional notation:
+definition for which we also provide the @{text "|:|"} operator as a more conventional notation:
 *}
 
 inductive has_type :: "nbterm \<Rightarrow> nbtype \<Rightarrow> bool" (infix "|:|" 150) where
@@ -51,7 +50,7 @@ inductive has_type :: "nbterm \<Rightarrow> nbtype \<Rightarrow> bool" (infix "|
 (* Lemma 8.2.2 *)
 
 text {*
-A usefull lemma is the inversion of typing relation which gives us informations on types
+A useful lemma is the inversion of typing relation which gives us informations on types
 for specific terms:
 *}
 
@@ -63,7 +62,7 @@ lemma inversion_of_typing_relation:
   "NBSucc t |:| R \<Longrightarrow> R = Nat \<and> t |:| Nat"
   "NBPred t |:| R \<Longrightarrow> R = Nat \<and> t |:| Nat"
   "NBIs_zero t |:| R \<Longrightarrow> R = Bool \<and> t |:| Nat"
-  by (auto elim: has_type.cases)
+by (auto elim: has_type.cases)
 
 (* Theorem 8.2.4 *)
 
@@ -82,7 +81,7 @@ text {*
 The most basic property a type system must provide is \emph{safety}, also called \emph{soundness}:
 the evaluation of a well-typed term will not reach a state whose semantic is undefined. Since our
 \emph{operational semantic} is based the of the evaluation relation and the value predicate, every
-term that does not fit in one or the other have no defnied semantic.
+term that does not fit in one or the other have no defined semantic.
 
 An example of an undefined state is @{term "NBSucc NBTrue"}: there is no further evaluation
 step possible but it is not a value neither. In our current language, there is nothing we can do
@@ -99,7 +98,7 @@ informations on the nature of the terms:
 lemma canonical_form:
   "is_value_NB v \<Longrightarrow> v |:| Bool \<Longrightarrow> v = NBTrue \<or> v = NBFalse"
   "is_value_NB v \<Longrightarrow> v |:| Nat \<Longrightarrow> is_numeric_value_NB v"
-  by (auto elim: has_type.cases is_value_NB.cases is_numeric_value_NB.cases)
+by (auto elim: has_type.cases is_value_NB.cases is_numeric_value_NB.cases)
 
 (* Theorem 8.3.2 *)
 
@@ -112,10 +111,12 @@ evaluation rules.
 theorem progress: "t |:| T \<Longrightarrow> is_value_NB t \<or> (\<exists>t'. eval1_NB t t')"
 proof (induction t T rule: has_type.induct)
   case (has_type_NBPred t)
-  thus ?case by (auto intro: eval1_NB.intros is_numeric_value_NB.cases dest: canonical_form)
+  thus ?case
+    by (auto intro: eval1_NB.intros is_numeric_value_NB.cases dest: canonical_form)
 next
   case (has_type_NBIs_zero t)
-  thus ?case by (auto intro: eval1_NB.intros is_numeric_value_NB.cases dest: canonical_form)
+  thus ?case
+    by (auto intro: eval1_NB.intros is_numeric_value_NB.cases dest: canonical_form)
 qed (auto
   intro: eval1_NB.intros is_value_NB.intros is_numeric_value_NB.intros
   dest: canonical_form)

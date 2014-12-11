@@ -8,75 +8,72 @@ section {* Untyped Arithmetic Expressions *}
 text {* \label{sec:untyped-arith-expr} *}
 
 text {*
-The untyped arithmetic expressions language is the first one we formalize. It consists of boolean
-expressions, containing the constants \texttt{true} and \texttt{false} and conditionals as
-primitives, and natural numbers, containing the constant \texttt{zero}, the successor and
-predecessor functions and an operation to test equality with zero as primitives. Following the book,
-we start with a subset containing only the boolean expression and carry on with fully fledged
-arithmetic expressions.
+The language of untyped arithmetic expressions consists of boolean expressions, containing the
+constants \texttt{true} and \texttt{false} and conditionals as primitives, and natural numbers,
+containing the constant \texttt{zero}, the successor and predecessor functions and an operation to
+test equality with zero as primitives. Following the book, we start with a subset containing only
+the boolean expression and carry on with fully fledged arithmetic expressions.
 *}
 
 subsection {* Booleans *}
 
-text {*
+text \<open>
 The syntax of this language is defined, in the book, in the following way:
+\begin{align*}
+  t ::= & \\
+    & \text{true} && \text{constant true} \\
+    & \text{false} && \text{constant false} \\
+    & \text{if } t \text{ then } t \text{ else } t && \text{conditional}
+\end{align*}
 
-\begin{verbatim}
-  t ::=
-    true                        constant true
-    false                       constant false
-    if t then t else t          conditional
-\end{verbatim}
-
-Its counterpart, using Isabelle/HOL's syntax, is the \texttt{bterm} datatype: \footnote{To prevent
+Its counterpart, using Isabelle/HOL's syntax, is a recursive datatype: \footnote{To prevent
 name clashes with Isabelle's predefined types and constants of the same name, our types and type
 constructors are prefixed with \texttt{b}, which stand for "booleans". Functions use a suffix for
 the same purpose.}
-*}
+\<close>
 
 datatype bterm =
   BTrue |
   BFalse |
   BIf bterm bterm bterm
 
-text {*
+text \<open>
 The semantics of the language is defined using the small-step operational semantics which consists
 of an evaluation relation that performs the smallest possible step toward the final value. For the
 booleans, the only values are the constants @{term BTrue} and @{term BFalse}. To describe those,
 the book uses the following notation:
+\begin{align*}
+  t ::= & \\
+    & \text{true} && \text{true value} \\
+    & \text{false} && \text{false value}
+\end{align*}
 
-\begin{verbatim}
-  v ::=
-    true           true value
-    false          false value
-\end{verbatim}
-
-We translate this in Isabelle/HOL using an inductive definition:
-*}
+We translate this in Isabelle/HOL using an inductive predicate that returns true if its argument is
+a value:
+\<close>
 
 inductive is_value_B :: "bterm \<Rightarrow> bool" where
   "is_value_B BTrue" |
   "is_value_B BFalse"
 
-text {*
+text \<open>
 The evaluation relation is concerned with the way a conditional expression will be reduced. The book
 uses the standard mathematical notation for inference rules:
-
-\begin{displaymath}
-\inferrule {}{\text{if true then } t_2 \text{ else } t_3 \implies t_2}
-\end{displaymath}
-\begin{displaymath}
-\inferrule {}{\text{if false then } t_2 \text{ else } t_3 \implies t_3}
-\end{displaymath}
-\begin{displaymath}
-  \inferrule
-    {t_1 \implies t_1'}
+\begin{gather}
+  \inferrule {}{\text{if true then } t_2 \text{ else } t_3 \implies t_2} \\
+  \inferrule {}{\text{if false then } t_2 \text{ else } t_3 \implies t_3} \\
+  \inferrule {t_1 \implies t_1'}
     {\text{if } t_1 \text{ then } t_2 \text{ else } t_3
       \implies \text{if } t_1' \text{ then } t_2 \text{ else } t_3}
-\end{displaymath}
+\end{gather}
 
-These rules translate easily into an other inductive definition:
-*}
+The first rule states that the evaluation of a conditional with a true condition leads to the
+\texttt{then} branch, the second rule states that the evaluation of a conditional with a false
+condition leads to the \texttt{else} branch and the third rule states that, if the condition is not
+a boolean constant, it must be itself evaluated. These rules translate easily into another
+inductive predicate that returns true when the first argument can be reduced in one step to the
+second argument:
+\<close>
 
 inductive eval1_B :: "bterm \<Rightarrow> bterm \<Rightarrow> bool" where
   eval1_BIf_BTrue:
@@ -85,7 +82,6 @@ inductive eval1_B :: "bterm \<Rightarrow> bterm \<Rightarrow> bool" where
     "eval1_B (BIf BFalse t2 t3) t3" |
   eval1_BIf:
     "eval1_B t1 t1' \<Longrightarrow> eval1_B (BIf t1 t2 t3) (BIf t1' t2 t3)"
-
 (*<*)
 (* Example of definition 3.5.3 *)
 
@@ -101,13 +97,13 @@ proof -
   thus ?thesis by (rule eval1_BIf)
 qed
 (*>*)
-
 (* subsubsection {* Theorem 3.5.4 *} *)
 
 text {*
-With those basic definitions, we can turn to the first theorem: the determinacy of one-step
-evaluation. As in the book, it goes by induction over the evaluation relation, followed by a case
-analysis:
+With these basic definitions, we can turn to the first theorem: the determinacy of one-step
+evaluation. The focus of this paper being on the definitions and theorems, we can skim over the
+proof, just highlighting that it goes by induction over the evaluation relation and that it involves
+some case analyses:
 *}
 
 theorem eval1_B_determinacy:
@@ -127,14 +123,12 @@ qed
 (* subsubsection {* Theorem 3.5.7 *} *)
 
 text {*
-We now formalize the concept of normal form, for which the book gives the following definition:
-
+A key concept is that of normal form, for which the book gives the following definition:
 \begin{quotation}
-  \noindent A term \texttt{t} is in \emph{normal form} if no evaluation rule applies to it --- i.e.,
-  if there is no \texttt{t'} such that \texttt{t $\to$ t'}.
+  \noindent A term $t$ is in \emph{normal form} if no evaluation rule applies to it --- i.e.,
+  if there is no $t'$ such that $t \to t'$.
 \end{quotation}
-
-Since this definition mainly introduce some standard terminologie for some property of terms with
+Since this definition mainly introduces some standard terminologie for some property of terms with
 respect to the single-step evaluation relation, we translate it using a simple synonym definition:
 *}
 
@@ -142,7 +136,7 @@ definition is_normal_form_B :: "bterm \<Rightarrow> bool" where
   "is_normal_form_B t \<longleftrightarrow> (\<forall>t'. \<not> eval1_B t t')"
 
 text {*
-We continue by proving, using a simple case analysis, that every value is in normal form:
+We continue by proving that every value is in normal form:
 *}
 
 theorem value_imp_normal_form:
@@ -160,23 +154,26 @@ the possible values.
 theorem normal_form_imp_value:
   "is_normal_form_B t \<Longrightarrow> is_value_B t"
 by (rule ccontr, induction t rule: bterm.induct)
-  (auto intro: eval1_B.intros is_value_B.intros elim: is_value_B.cases simp: is_normal_form_B_def)
+  (auto
+    intro: eval1_B.intros is_value_B.intros
+    elim: is_value_B.cases
+    simp: is_normal_form_B_def)
 
 (* subsubsection {* Definition 3.5.9 *} *)
 
 text {*
-The one-step evaluation is a very useful representation of the semantic of a language, but it does
-not represent what really interests us: the final value of an evaluation. To this end, the book
-defines a multi-step evaluation relation based on the single-step one:
+The one-step evaluation is a useful representation of the semantic of a language, but it does not
+represent what really interests us: the final value of an evaluation. To this end, the book defines
+a multi-step evaluation relation based on the single-step one:
 
 \begin{quotation}
   \noindent The \emph{multi-step evaluation} relation $\to^*$ is the reflexive, transitive closure
-  of one-step evaluation. That is, it is the smallest relation such that (1) if t $t \to t'$ then
-  $t \to^* t'$, (2) $t \to^* t$ for all $t$, and (3) if $t \to^* t'$ and $t' \to^* t''$, then
+  of one-step evaluation. That is, it is the smallest relation such that (1)~if t $t \to t'$ then
+  $t \to^* t'$, (2)~$t \to^* t$ for all $t$, and (3)~if $t \to^* t'$ and $t' \to^* t''$, then
   $t \to^* t''$.
 \end{quotation}
 
-A direct translation in Isabelle/HOL would lead to the following definition:
+A direct translation to Isabelle/HOL would lead to the following definition:
 *}
 
 inductive eval_direct :: "bterm \<Rightarrow> bterm \<Rightarrow> bool" where
@@ -192,15 +189,17 @@ However, this definition is inconvenient for theorem proving because it requires
 three cases for each induction on a evaluation relation. Instead, we choose to define the multi-step
 evaluation relation using a shape similar to a list of one-step evaluations. The inductive
 definition consists of a base case, the reflexive application, and of an inductive case where one
-step of evaluation is perfomed:
+step of evaluation is performed:
 *}
 
 inductive eval_B :: "bterm \<Rightarrow> bterm \<Rightarrow> bool" where
-  "eval_B t t" |
-  "eval1_B t t' \<Longrightarrow> eval_B t' t'' \<Longrightarrow> eval_B t t''"
+  eval_B_base:
+    "eval_B t t" |
+  eval_B_step:
+    "eval1_B t t' \<Longrightarrow> eval_B t' t'' \<Longrightarrow> eval_B t t''"
 
 text {*
-We then prove that this reprentation is equivalent to the direct translation of the definition found
+We then prove that this definition is equivalent to the direct translation of the definition found
 in the book:
 *}
 
@@ -234,7 +233,9 @@ determinacy of the single-step evaluation:
 *}
 
 corollary uniqueness_of_normal_form:
-  "eval_B t u \<Longrightarrow> eval_B t u' \<Longrightarrow> is_normal_form_B u \<Longrightarrow> is_normal_form_B u' \<Longrightarrow> u = u'"
+  "eval_B t u \<Longrightarrow> is_normal_form_B u \<Longrightarrow>
+  eval_B t u' \<Longrightarrow> is_normal_form_B u' \<Longrightarrow>
+  u = u'"
 by (induction t u rule: eval_B.induct)
   (metis eval_B.cases is_normal_form_B_def eval1_B_determinacy)+
 
@@ -242,15 +243,14 @@ text {*
 The last theorem we consider is the termination of evaluation. To prove it, we must first add a
 helper lemma, which was implicitly assumed in the book, about the size of terms after evaluation:
 *}
-
 (*<*)
 (* subsubsection {* Theorem 3.5.12 *} *)
+
 primrec size_B :: "bterm \<Rightarrow> nat" where
   "size_B BTrue = 1" |
   "size_B BFalse = 1" |
   "size_B (BIf t1 t2 t3) = 1 + size_B t1 + size_B t2 + size_B t3"
 (*>*)
-
 lemma eval_once_size_B:
   "eval1_B t t' \<Longrightarrow> size_B t > size_B t'"
 by (induction t t' rule: eval1_B.induct) simp_all
@@ -264,7 +264,7 @@ subsection {* Arithmetic Expressions *}
 
 text {*
 We now turn to the fully fledged arithmetic expression language. The syntax is defined in the same
-way as for booleans:\footnote{the suffix \emph{nb} stands for \emph{numeric and booleans}.}
+way as for booleans:\footnote{The prefix \emph{nb} stands for \emph{numeric and booleans}.}
 *}
 
 datatype nbterm =
@@ -336,28 +336,27 @@ theorems induct_size = measure_induct_rule[of size_NB]
 theorems structural_induction = nbterm.induct
 
 (*>*)
-text {*
+text \<open>
 Values now consist either of booleans or numeric values, for which a separate inductive
-definition is given. Here is the definition as founded in the book:
-
-\begin{verbatim}
-  v ::=
-    true             true value
-    false            false value
-    nv               numeric value
-  nv ::=
-    0                zero value
-    succ nv          successor value
-\end{verbatim}
+definition is given. Here is the definition as found in the book:
+\begin{align*}
+  v ::= & \\
+    & \text{true} && \text{true value} \\
+    & \text{false} && \text{false value} \\
+    & \text{nv} && \text{numeric value} \\
+  nv ::= & \\
+    & \text{0} && \text{zero value} \\
+    & \text{succ nv} && \text{successor value}
+\end{align*}
 
 Our inductive definition is very similar, but contains explicit assumptions on the nature of
 \texttt{nv}. The book uses naming conventions which define letters such as \texttt{t} as
 always representing terms, letters such as \texttt{v} as always representing values and variants of
 \texttt{nv} as always representing numeric values. In our formalization, such implicit assumption is
 possible for \texttt{t} because Isabelle/HOL infers that @{term nberm} is the only type that could
-be place at this position. Since values and numerical values do not have a proper type but are a
+be place at this position. Since values and numeric values do not have a proper type but are a
 subset of terms, we must add assumptions to declare the nature of these variables:
-*}
+\<close>
 
 inductive is_numeric_value_NB :: "nbterm \<Rightarrow> bool" where
   "is_numeric_value_NB NBZero" |
@@ -373,12 +372,15 @@ The single-step evaluation relation is a superset of the one defined for boolean
 *}
 
 inductive eval1_NB :: "nbterm \<Rightarrow> nbterm \<Rightarrow> bool" where
+  -- "Rules relating to the evaluation of booleans"
   eval1_NBIf_NBTrue:
     "eval1_NB (NBIf NBTrue t2 t3) t2" |
   eval1_NBIf_NBFalse:
     "eval1_NB (NBIf NBFalse t2 t3) t3" |
   eval1_NBIf:
     "eval1_NB t1 t1' \<Longrightarrow> eval1_NB (NBIf t1 t2 t3) (NBIf t1' t2 t3)" |
+
+  -- "Rules relating to the evaluation of natural numbers"
   eval1_NBSucc:
     "eval1_NB t t' \<Longrightarrow> eval1_NB (NBSucc t) (NBSucc t')" |
   eval1_NBPred_NBZero:
@@ -387,6 +389,8 @@ inductive eval1_NB :: "nbterm \<Rightarrow> nbterm \<Rightarrow> bool" where
     "is_numeric_value_NB nv \<Longrightarrow> eval1_NB (NBPred (NBSucc nv)) nv" |
   eval1_NBPred:
     "eval1_NB t t' \<Longrightarrow> eval1_NB (NBPred t) (NBPred t')" |
+
+-- "Rules relating to the evaluation of the test for equality with zero"
   eval1_NBIs_zero_NBZero:
     "eval1_NB (NBIs_zero NBZero) NBTrue" |
   eval1_NBIs_zero_NBSucc:
@@ -395,8 +399,8 @@ inductive eval1_NB :: "nbterm \<Rightarrow> nbterm \<Rightarrow> bool" where
     "eval1_NB t t' \<Longrightarrow> eval1_NB (NBIs_zero t) (NBIs_zero t')"
 
 text {*
-The multi-step evaluation relation and the definition of normal form are exactly the same as for
-booleans:
+The multi-step evaluation relation and the definition of normal form are perectly analogous to these
+for booleans:
 *}
 
 inductive eval_NB :: "nbterm \<Rightarrow> nbterm \<Rightarrow> bool" where
@@ -409,13 +413,12 @@ definition is_normal_form_NB :: "nbterm \<Rightarrow> bool" where
   "is_normal_form_NB t \<longleftrightarrow> (\<forall>t'. \<not> eval1_NB t t')"
 
 text {*
-The reason is that all the actual work is perfomed by the single-step evaluation relation and these
-two definition are just a convenient notation.
+The reason is that all the actual work is perfomed by the single-step evaluation relation.
 
-In the book, the section covering this fully fledge arithmetic expression language is mainly an
+In the book, the section covering this fully fledged arithmetic expression language is mainly an
 explanation of the constructions not present in the boolean expression language and does not
-contains any proper theorems. Nevertheless, we decided to reprove, or disprove, the theorems
-introduced in the section on booleans.
+contains any proper theorems. Nevertheless, we revisit the properties introduced for the language of
+booleans and either prove that they are still theorems or disprove them.
 *}
 
 (*<*)
@@ -441,7 +444,7 @@ text {*
 The determinacy of the single-step evaluation still holds:
 *}
 
-theorem eval1_NB_right_unique:
+theorem eval1_NB_determinacy:
   "eval1_NB t t' \<Longrightarrow> eval1_NB t t'' \<Longrightarrow> t' = t''"
 proof (induction t t' arbitrary: t'' rule: eval1_NB.induct)
   case (eval1_NBIf t1 t1' t2 t3)
@@ -455,7 +458,9 @@ next
   case (eval1_NBPred_NBSucc nv1)
   from eval1_NBPred_NBSucc.prems eval1_NBPred_NBSucc.hyps show ?case
     by (cases rule: eval1_NB.cases)
-      (auto intro: is_numeric_value_NB.intros elim: not_eval_once_numeric_value[rotated])
+      (auto
+        intro: is_numeric_value_NB.intros
+        elim: not_eval_once_numeric_value[rotated])
 next
   case (eval1_NBPred t1 t2)
   from eval1_NBPred.hyps eval1_NBPred.prems show ?case
@@ -465,8 +470,8 @@ next
       dest: not_eval_once_numeric_value)
 next
   case (eval1_NBIs_zero_NBSucc nv)
-  thus ?case
-    by (auto intro: eval1_NB.cases not_eval_once_numeric_value is_numeric_value_NB.intros)
+  thus ?case by (auto
+    intro: eval1_NB.cases not_eval_once_numeric_value is_numeric_value_NB.intros)
 next
   case (eval1_NBIs_zero t1 t2)
   from eval1_NBIs_zero.prems eval1_NBIs_zero.hyps show ?case
@@ -492,7 +497,7 @@ by (auto
 (* subsubsection {* Theorem 3.5.8 does not hold for Arithmetic Expressions *} *)
 
 text {*
-But contrary to boolean expressions, some terms that are in normal form are not values. An example
+But, unlike for boolean expressions, some terms that are in normal form are not values. An example
 of such term is @{term "NBSucc NBTrue"}.
 *}
 
@@ -519,7 +524,7 @@ proof (induction t u arbitrary: u' rule: eval_NB.induct)
   thus ?case by (auto elim: eval_NB.cases simp: is_normal_form_NB_def)
 next
   case (eval_NB_step t1 t2 t3)
-  thus ?case by (metis eval_NB.cases is_normal_form_NB_def eval1_NB_right_unique)
+  thus ?case by (metis eval_NB.cases is_normal_form_NB_def eval1_NB_determinacy)
 qed
 
 (* subsubsection {* Theorem 3.5.12 for Arithmetic Expressions *} *)
@@ -527,13 +532,13 @@ qed
 text {*
 So does the termination of the evaluation function:
 *}
-
 (*<*)
+
 lemma eval_once_size_NB:
   "eval1_NB t t' \<Longrightarrow> size_NB t > size_NB t'"
 by (induction t t' rule: eval1_NB.induct) auto
-(*>*)
 
+(*>*)
 theorem eval_NB_always_terminate:
   "\<exists>t'. eval_NB t t' \<and> is_normal_form_NB t'"
 proof (induction rule: measure_induct_rule[of size_NB])

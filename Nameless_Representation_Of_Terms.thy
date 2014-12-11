@@ -8,7 +8,7 @@ section {* Nameless Representation of Terms *}
 text {* \label{sec:nameless-rep-of-terms} *}
 
 text {*
-In the background section on $\lambda$-calculus (section \label{sec:background-lambda-calculus}), we
+In the background section on $\lambda$-calculus (Section \ref{sec:background-lambda-calculus}), we
 presented the problem of name clashes that can arise when performing $\beta$-reduction. In its
 definitions and proofs, the book only works up to $\alpha$-equivalence: assuming that the variables
 would be implicitly renamed if such a name clash occurred. In a separate chapter, a different
@@ -19,19 +19,20 @@ Even though we are not building a compiler, our computer verified formalization 
 explicitly handle this problem. We chose to use this representation and, thus must also formalize
 this chapter.
 
-The idea behind this representation, known as "de Bruijn indices", is to make variables reference
+The idea behind this representation, known as ``de Bruijn indices'', is to make variables reference
 directly their corresponding binder, rather than refering to them by name. This is accomplished by
-using an index that refer to the $n$'th enclosing $\lambda$. Following is an example of
-"de Bruijn indices" representation for the function composition combinator:
+using an index that count the number of enclosing $\lambda$-abstractions between a variable and its
+binder. Following is an example of ``de Bruijn indices'' representation for the function composition
+combinator:
 \begin{displaymath}
-  \lambda x. \lambda y. \lambda z. x (y \text{ } z)
-    \equiv \lambda. \lambda. \lambda. 2 (1 \text{ } 0)
+  \lambda f. \lambda g. \lambda x. \ f \ (g \ x)
+    \equiv \lambda. \lambda. \lambda. 2 \ (1 \ 0)
 \end{displaymath}
 
-This representatin frees us from considering the case of variable name clashes at the expense of
-being harder to read and having to maintain the correct indices when adding and removing
-$\lambda$-abstractions. We define the syntax of the untyped lambda calculus as follow:\footnote{The
-prefix \emph{ul} stands for \emph{untyped lambda-calculus}.}
+This representation releases us from having to consider the case of variable name clashes at the
+expense of being harder to read and having to maintain the correct indices when adding and removing
+$\lambda$-abstractions. Using this representation, we define the syntax of the untyped lambda
+calculus as follow:\footnote{The prefix \emph{ul} stands for \emph{untyped lambda-calculus}.}
 *}
 
 datatype ulterm =
@@ -40,14 +41,13 @@ datatype ulterm =
   ULApp ulterm ulterm
 
 text {*
-Which means that the same example of the function composition combinator would looks like this:
+Using this syntax, the same example of the function composition combinator looks like this:
 
 \begin{center}
   \small
   @{term "ULAbs (ULAbs (ULAbs (ULApp (ULVar 2) (ULApp (ULVar 1) (ULVar 0)))))"}
 \end{center}
 *}
-
 (*<*)
 (* Definition 6.1.2 *)
 
@@ -55,13 +55,12 @@ inductive n_term :: "nat \<Rightarrow> ulterm \<Rightarrow> bool" where
   n_term_ULVar: "0 \<le> k \<Longrightarrow> k < n \<Longrightarrow> n_term n (ULVar k)" |
   n_term_ULAbs: "n_term n t \<Longrightarrow> n > 0 \<Longrightarrow> n_term (n - 1) (ULAbs t)" |
   n_term_ULApp: "n_term n t1 \<Longrightarrow> n_term n t2 \<Longrightarrow> n_term n (ULApp t1 t2)"
-(*>*)
 
 (* Definition 6.2.1 *)
-
+(*>*)
 text {*
-We define a shift function serving to increase, or decrease, all variables bigger than @{term c} in
-a term by a fix amount @{term d}:
+We define a shift function serving to increase or decrease, by a fix amount @{term d}, all indices
+larger than @{term c} in a term:
 *}
 
 primrec shift_UL :: "int \<Rightarrow> nat \<Rightarrow> ulterm \<Rightarrow> ulterm" where
@@ -70,15 +69,15 @@ primrec shift_UL :: "int \<Rightarrow> nat \<Rightarrow> ulterm \<Rightarrow> ul
   "shift_UL d c (ULApp t1 t2) = ULApp (shift_UL d c t1) (shift_UL d c t2)"
 
 text {*
-An attentive reader will notice that there is a possible information loss in this definition. The
-variables use a natural number as index but the function allows to shift both up and down, thus the
-use of an integer the shift increment. When a variable is encounter, we first convert the index from
-natural number to integer, which is always safe, perform the integer addition, which correspond to a
+In this definition, there is a possible information loss in this definition. The variables use a
+natural number as index but the function allows to shift both up and down, thus the use of an
+integer the shift increment. When a variable is encounter, we first convert the index from natural
+number to integer, which is always safe, perform the integer addition, which correspond to a
 subtraction if @{term d} is negative, and convert the result back to natural numbers to serve as the
-new index. This last operation converts every negative number to zero. We know this loss of
-information is safe, since it makes no sence to speak of negative indices. Our @{const shift_UL}
-function thus have an implicit assumption that it should not be called with a negative number bigger
-than the smallest variable in the term. Following is an example of shifting up every variable by 2:
+new index. This last operation converts negative numbers to zero. We know this loss of information
+is safe, since it makes no sense to speak of negative indices. Our @{const shift_UL} function thus
+have an implicit assumption that it should not be called with a negative number larger than the
+smallest variable in the term. Following is an example of shifting up every free variable by 2:
 *}
 
 (* Exercice 6.2.2 *)
@@ -89,10 +88,10 @@ lemma "shift_UL 2 0
   by simp
 
 text {*
-On first reading, the previous example may seems broken: the variable @{term "ULVar 1"} is not
-incremented. This is because the shift function operates on free variables, i.e. variables whose
-index refers to a non-existing $\lambda$-abstraction. Since the binding refered by @{term "ULVar 1"}
-is in the term, it is not a free variable: it is bounded.
+On first reading, the previous example may seems broken: the variables @{term "ULVar 0"} and
+@{term "ULVar 1"} are not incremented. This is because the shift function operates on free
+variables, i.e. variables whose index refers to a non-existing $\lambda$-abstraction. Since the
+binding refered by @{term "ULVar 1"} is in the term, it is not a free variable: it is bounded.
 *}
 (*<*)
 
@@ -118,8 +117,8 @@ qed
 
 (*>*)
 text {*
-We now define a substitution function that replaces every variable refering to the @{term j}'th
-$\lambda$ by @{term s} in some term:
+We now define a substitution function that replaces every free variable refering to the
+@{term [source] "(j + 1)"}'st $\lambda$ by @{term s} in some term:
 *}
 (* Definition 6.2.4 *)
 
@@ -131,7 +130,7 @@ primrec subst_UL :: "nat \<Rightarrow> ulterm \<Rightarrow> ulterm \<Rightarrow>
 (* Exercice 6.2.5 *)
 
 text {*
-Following is an example of substituing variable 0 by variable 1:
+Here is an example of substituing variable 0 by variable 1:
 *}
 
 lemma "subst_UL 0 (ULVar 1)
@@ -140,11 +139,10 @@ lemma "subst_UL 0 (ULVar 1)
   by simp
 
 text {*
-Note that the indices are not absolute values, they are relative to their position in the term. This
-is why @{term "ULVar 2"} is also substitute in the previous example: counting the number of
-enclosing $\lambda$ shows us that this variable is, indeed, the same as @{term "ULVar 0"}. Of
-course, we must maintain this invarient by incrementing variables in our substituting term
-accordignly.
+Note that the indices are relative to their position in the term. This is why @{term "ULVar 2"} is
+also substituted in the previous example: counting the number of enclosing $\lambda$-abstractions
+shows us that this variable is, indeed, the same as @{term "ULVar 0"}. Of course, we must maintain
+this invarient by incrementing variables in our substituting term accordingly.
 *}
 
 (*<*)

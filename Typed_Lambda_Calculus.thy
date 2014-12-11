@@ -10,13 +10,12 @@ section {* Typed Lambda Calculus *}
 text {* \label{sec:simply-typed-lambda-calculus} *}
 
 text {*
-We now revisit the previously formalized $\lambda$-calculus (section
-\ref{sec:untyped-lambda-calculus}) and augment it with static types. Contrary to the typed
-arithmetic expressions, types are an integral part of the language and affect its syntax. For this
-reason, we can not import the theory of the untyped variant and build on top of it, but need to
-provide new, although similar, definitions. We will prove type safety through the progress and
-preservation theorems before to prove that types can be safely erase while preserving the semantic
-of the language.
+We now revisit the $\lambda$-calculus (Section \ref{sec:untyped-lambda-calculus}) and augment it
+with static types. Unlike the typed arithmetic expressions language, types are an integral part of
+the language and its syntax. For this reason, we cannot import the theory of the untyped variant
+and build on top of it, but need to provide new, although similar, definitions. We will prove type
+safety through the progress and preservation theorems before to show that types can be safely erase
+while preserving the semantic of the language.
 *}
 
 subsection {* Definitions *}
@@ -24,7 +23,7 @@ subsection {* Definitions *}
 (* Definition 9.1.1 *)
 
 text {*
-In the pure lambda calculus, everything is a function. Thus, we need to provide the type of
+In the untyped lambda-calculus, everything is a function. Thus, we need to provide the type of
 functions, usually written @{text "a \<rightarrow> b"} which, given an argument of type @{term a}, will
 evaluate to a value of type @{term b}. Since both @{term a} and @{term b} must be valid types, we
 need to provide a base case to stop the recursion at some point. To keep the language minimal, we
@@ -41,17 +40,17 @@ In the previous definition, @{const Fun} is a type constructor which can be use 
 types for some concreate domain and codomain. Examples of such types include @{term "Bool \<rightarrow> Bool"},
 @{term "(Bool \<rightarrow> Bool) \<rightarrow> Bool"}, @{term [source] "(Bool \<rightarrow> Bool) \<rightarrow> (Bool \<rightarrow> Bool)"},
 @{term "(Bool \<rightarrow> Bool) \<rightarrow> Bool \<rightarrow> Bool"}, etc. Note that the last two examples are equivalent, since
-the @{text "\<rightarrow>"} operator is right associative.
+the @{text "\<rightarrow>"} operator is right-associative.
 
-In programming languages, more types are usually add as base case to the core calculus for
+In programming languages, more types are usually added as base case to the core calculus for
 performance reason. Examples include integers, floating point numbers, characters, arrays, etc.
 
-Since variables can now range over an infinity of types, we need a way to know which type a function
-require as domain. There are two possible strategies: annotate the $\lambda$-abstractions with the
-intended type of their arguments or analyse the body of the abstraction to infer the required type.
-TAPL chose the former strategy.
+Since variables can now range over infinitely many types, we need a way to know which type a
+function require as domain. There are two possible strategies: annotate the $\lambda$-abstractions
+with the intended type of their arguments or analyse the body of the abstraction to infer the
+required type. \emph{TAPL} chose the former strategy.
 
-The syntax of our language differs from the pure $\lambda$-calculus by having constructions for
+The syntax of this language differs from the pure $\lambda$-calculus by having constructions for
 boolean expressions and a type annotation on function abstractions:
 *}
 
@@ -64,7 +63,7 @@ datatype_new lterm =
   LApp lterm lterm
 
 text {*
-We now need to redefine the shift and substitution functions for this extended language:
+We define the shift and substitution functions for this extended language:
 *}
 
 primrec shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lterm" where
@@ -84,8 +83,8 @@ primrec subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> lt
   "subst_L j s (LApp t1 t2) = LApp (subst_L j s t1) (subst_L j s t2)"
 
 text {*
-The semantic is very similar to the pure $\lambda$-calculus. A first difference is that the set of
-values also contain the boolean constants:
+The semantic is similar to the pure $\lambda$-calculus. A first difference is that the set of values
+also contain the boolean constants:
 *}
 
 inductive is_value_L :: "lterm \<Rightarrow> bool" where
@@ -114,12 +113,12 @@ inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
       (shift_L (-1) 0 (subst_L 0 (shift_L 1 0 v2) t12))"
 
 text {*
-When type-checking the body of a function abstraction, we assumes that the given function argument
+When type-checking the body of a function abstraction, we assume that the given function argument
 does have the type annotated. Since the body could itself be a function abstraction, we need to keep
-track of this set of assumptions, also known as a typing context. Since the book consider variables
-to be a named reference to a $\lambda$-absraction, its typing context is a set of identifier-type
-pairs. Our use of "de Bruijn indices" requires use to consider an alternative representation. We
-define a context to be a list of types whose $n$'th position contains the type of the $n$'th
+track of this set of assumptions, also known as typing context. Since the book consider variables
+to be a named reference to a $\lambda$-absraction, its typing context is a set of identifier--type
+pairs. Our use of ``de Bruijn indices'' requires us to consider an alternative representation. We
+define a context to be a list of types whose $n$th position contains the type of the $n$th
 enclosing $\lambda$-abstraction:
 *}
 
@@ -156,7 +155,7 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> ltype \<Righ
     "\<Gamma> \<turnstile> t1 |:| (T11 \<rightarrow> T12) \<Longrightarrow> \<Gamma> \<turnstile> t2 |:| T11 \<Longrightarrow> \<Gamma> \<turnstile> (LApp t1 t2) |:| T12"
 
 text {*
-As an example of a trivial usage of the typing relation, consider the type of the application of
+As an example of a usage of the typing relation, consider the type of the application of
 @{term LTrue} to the boolean identity function:
 *}
 
@@ -166,14 +165,14 @@ lemma "\<emptyset> \<turnstile> (LApp (LAbs Bool (LVar 0)) LTrue) |:| Bool"
 (* Exercice 9.2.2 *)
 
 text {*
-A more interesting example is, assuming there is one variable of type @{term "Bool \<rightarrow> Bool"} in the
-typing context, the type of applying a boolean expression to this variable:
+A more interesting example, assuming there is one variable of type @{term "Bool \<rightarrow> Bool"} in the
+typing context, is the type of applying a boolean expression to this variable:
 *}
 
 lemma
   assumes "\<Gamma> = \<emptyset> |,| (Bool \<rightarrow> Bool)"
   shows "\<Gamma> \<turnstile> LApp (LVar 0) (LIf LFalse LTrue LFalse) |:| Bool"
-  by (auto intro!: has_type_L.intros simp: assms)
+by (auto intro!: has_type_L.intros simp: assms)
 (*<*)
 
 lemma
@@ -201,7 +200,7 @@ subsection {* Properties of Typing *}
 
 text {*
 The inversion of typing relation, which gives us informations on types for specific terms, will be
-a usefull lemma in the comming theorems:
+a useful lemma in the comming theorems:
 *}
 
 lemma inversion:
@@ -229,7 +228,7 @@ qed
 (* Theorem 9.3.3 *)
 
 text {*
-We now prove that every terms have at most one type:
+Every terms have at most one type:
 *}
 
 theorem uniqueness_of_types:
@@ -240,8 +239,8 @@ by (induction \<Gamma> t T1 arbitrary: T2 rule: has_type_L.induct)
 (* Lemma 9.3.4 *)
 
 text {*
-The canonical form of values, which gives us informations on terms for well-typed values, will also
-be a usefull lemma:
+The canonical form of values, which gives us information on terms for well-typed values, will also
+be useful later:
 *}
 
 lemma canonical_forms:
@@ -252,9 +251,8 @@ by (auto elim: has_type_L.cases is_value_L.cases)
 (* Theorem 9.3.5 *)
 
 text {*
-We now formalize the concept of free variables, i.e. variables refering to a non existing
-$\lambda$-abstraction. To this end, we provide a function that return the set of free variables of a
-term:
+To formalize the concept of free variables (i.e. variables referring to a non existing
+$\lambda$-abstraction), we provide a function that return the set of free variables of a term:
 *}
 
 primrec FV :: "lterm \<Rightarrow> nat set" where
@@ -287,8 +285,8 @@ lemma "is_closed (LAbs Bool (LAbs Bool (LAbs Bool (LIf (LVar 2) (LVar 0) (LVar 1
 
 (*>*)
 text {*
-We now prove the progress theorem, i.e. a well-typed term is either a value or can take a step
-according to the evaluation rules:
+We now prove the progress theorem (i.e. a well-typed term is either a value or can take a step
+according to the evaluation rules):
 *}
 
 theorem progress:
@@ -312,7 +310,7 @@ lemma[simp]: "nat (1 + int x) = Suc x" by simp
 
 text {*
 Proving the preservation theorem requires use to first prove a number of helper lemmas. For these,
-our usage of the "de Bruijn indicies" force use to diverge substancially from the book.
+our reliance on "de Bruijn indices" forces us to depart substantially from the book.
 
 The first lemma the book consider is the permutation of the typing context:
 
@@ -321,13 +319,14 @@ The first lemma the book consider is the permutation of the typing context:
   $\Delta \vdash t : T$. Moreover, the latter derivation has the same depth as the former.
 \end{quotation}
 
-This lemma does not hold with our representation of the typing context as an ordred list.
+Translated naïvely, this lemma does not hold with our representation of the typing context as an
+ordered list.
 
 The book then consider the weakening the typing context:
 
 \begin{quotation}
   \noindent If $\Gamma \vdash t : T$ and $x \notin dom(\Gamma)$, then $\Gamma , x:S \vdash t : T$.
-Moreover, the latter derivation has the same depth as the former.
+  Moreover, the latter derivation has the same depth as the former.
 \end{quotation}
 
 This lemma does hold with our representation of the typing context, but we need to express it in
@@ -339,13 +338,16 @@ lemma weakening:
   "\<Gamma> \<turnstile> t |:| T \<Longrightarrow> n \<le> length \<Gamma> \<Longrightarrow> insert_nth n S \<Gamma> \<turnstile> shift_L 1 n t |:| T"
 proof (induction \<Gamma> t T arbitrary: n rule: has_type_L.induct)
   case (has_type_LAbs \<Gamma> T1 t2 T2)
-  from has_type_LAbs.prems has_type_LAbs.hyps has_type_LAbs.IH[where n="Suc n"] show ?case
+  from has_type_LAbs.prems has_type_LAbs.hyps
+    has_type_LAbs.IH[where n="Suc n"] show ?case
     by (auto intro: has_type_L.intros)
 qed (auto simp: nth_append min_def intro: has_type_L.intros)
 
 text {*
-This specific formulation was difficult to come with but the proof is, after simplifications,
-significantly shorter than it used to.
+This specific formulation was difficult to come with but the proof is, after simplifications, fairly
+short. It is a typical situation in interactive theorem proving that the result seems simple and
+does not make justice to the effort. It can be considered an achievement to reduce a huge and
+unreadable proof to a small and readable one.
 *}
 
 (* Lemma 9.3.8 *)
@@ -358,7 +360,7 @@ The book then consider, as its last helper lemma, the preservation of types unde
   $\Gamma \vdash [x \mapsto s] : T$.
 \end{quotation}
 
-We prove a slightly different theorem that is more suitable for the comming proofs:
+We prove a slightly different theorem that is more suitable for the coming proofs:
 *}
 
 lemma substitution:
@@ -392,8 +394,8 @@ proof (induction "insert_nth n U \<Gamma>" t T arbitrary: \<Gamma> n rule: has_t
 qed (fastforce intro: has_type_L.intros simp: nth_append min_def)+
 
 text {*
-This lemma was the most challenging to come with. It was difficult to define the correct set of
-assumptions and, prior to simplifications, the proof was quite imposing.
+This lemma was the most challenging to express and prove. It was difficult to define the correct set
+of assumptions and, prior to simplifications, the proof was quite imposing.
 
 We also need to define how the @{const FV} function react with respect to the @{term shift_L} and
 @{term subst_L} functions:
@@ -404,13 +406,15 @@ lemma gr_Suc_conv: "Suc x \<le> n \<longleftrightarrow> (\<exists>m. n = Suc m \
   by (cases n) auto
 
 (*>*)
-lemma FV_shift: "FV (shift_L (int d) c t) = image (\<lambda>x. if x \<ge> c then x + d else x) (FV t)"
+lemma FV_shift:
+  "FV (shift_L (int d) c t) = image (\<lambda>x. if x \<ge> c then x + d else x) (FV t)"
 proof (induction t arbitrary: c rule: lterm.induct)
   case (LAbs T t)
   thus ?case by (auto simp: gr_Suc_conv image_iff) force+
 qed auto
 
-lemma FV_subst: "FV (subst_L n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"
+lemma FV_subst:
+  "FV (subst_L n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"
 proof (induction u arbitrary: n t rule: lterm.induct)
   case (LAbs T u)
   thus ?case
@@ -419,8 +423,9 @@ proof (induction u arbitrary: n t rule: lterm.induct)
 qed (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1])
 
 text {*
-Again, those lemmas are not present in the book. The need for these arise from the use of the
-@{const FV} function in the @{thm [source] shift_down} lemma.
+Again, those lemmas are not present in the book. It is usual for paper proofs to be a little sketchy
+and rely on readers to imagine fill in the blanks for some simple lemmas. The need for these arise
+from the use of the @{const FV} function in the @{thm [source] shift_down} lemma.
 
 Building on top of these lemmas, we can now prove the preservation theorem:
 *}
@@ -444,119 +449,14 @@ qed (auto elim: eval1_L.cases)
 
 text {*
 By proving the progress and the preservation theorems, we have shown that the typed
-$\lambda$-calculus is type safe, i.e. every well-typed programs have a well-defined semantics.
+$\lambda$-calculus is type safe, i.e. every well-typed program has a well-defined semantics.
 *}
-(*<*)
 
-inductive eval_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
-  "eval_L t t" |
-  "eval1_L t t' \<Longrightarrow> eval_L t' t'' \<Longrightarrow> eval_L t t''"
-
-definition is_normal_form_L :: "lterm \<Rightarrow> bool" where
-  "is_normal_form_L t \<longleftrightarrow> (\<forall>t'. \<not> eval1_L t t')"
-
-corollary eval_preserves_type:
-  "eval_L t t' \<Longrightarrow> \<Gamma> \<turnstile> t |:| T \<Longrightarrow> \<Gamma> \<turnstile> t' |:| T"
-by (induction t t' arbitrary: rule: eval_L.induct) (auto dest: preservation)
-
-lemma foo:
-  "eval_L t1 t1' \<Longrightarrow> eval_L (LIf t1' t2 t3) u \<Longrightarrow> eval_L (LIf t1 t2 t3) u"
-by (induction t1 t1' arbitrary: t2 t3 rule: eval_L.induct) (auto intro: eval1_LIf eval_L.intros)
-
-lemma bar:
-  "eval_L t1 t1' \<Longrightarrow> eval_L (LApp t1' t2) u \<Longrightarrow> eval_L (LApp t1 t2) u"
-  "eval_L t2 t2' \<Longrightarrow> eval_L (LApp v1 t2') u \<Longrightarrow> eval_L (LApp v1 t2) u"
-sorry
-
-theorem "\<Gamma> \<turnstile> t |:| T \<Longrightarrow> \<exists>t'. eval_L t t' \<and> is_normal_form_L t'"
-proof (induction \<Gamma> t T rule: has_type_L.induct)
-  print_cases
-  case has_type_LTrue
-  thus ?case by (auto intro: eval_L.intros simp: is_normal_form_L_def elim: eval1_L.cases)
-next
-  case has_type_LFalse
-  thus ?case by (auto intro: eval_L.intros simp: is_normal_form_L_def elim: eval1_L.cases)
-next
-  case (has_type_LIf \<Gamma> t1 t2 T t3)
-  thus ?case
-    apply (cases "is_value_L t1")
-    apply (auto intro!: eval1_L.intros eval_L.intros dest: canonical_forms) [1]
-    apply (erule exE) +
-    apply (erule conjE) +
-    apply (frule eval_preserves_type[of t1], assumption)
-    apply (frule eval_preserves_type[of t2], assumption)
-    apply (frule eval_preserves_type[of t3], assumption)
-    apply (case_tac "is_value_L t'")
-    apply (drule canonical_forms)
-    apply assumption
-    apply (erule disjE)
-    apply hypsubst
-    apply (rule exI)
-    apply (rule conjI)
-    apply (erule foo)
-    apply (rule eval_L.intros(2))
-    apply (rule eval1_L.intros)
-    apply assumption
-    apply assumption
-    apply hypsubst
-    apply (rule exI)
-    apply (rule conjI)
-    apply (erule foo)
-    apply (rule eval_L.intros(2))
-    apply (rule eval1_L.intros)
-    apply assumption
-    apply assumption
-    apply (rule exI)
-    apply (rule conjI)
-    apply (erule foo)
-    apply (rule eval_L.intros)
-    unfolding is_normal_form_L_def
-    apply (rule allI)
-    apply (rule notI)
-    apply (erule eval1_L.cases)
-    by (auto intro: is_value_L.intros)
-next
-  case (has_type_LVar x T \<Gamma>)
-  thus ?case by (auto intro: eval_L.intros elim: eval1_L.cases simp: is_normal_form_L_def)
-next
-  case has_type_LAbs
-  thus ?case by (auto intro: eval_L.intros elim: eval1_L.cases simp: is_normal_form_L_def)
-next
-  case (has_type_LApp \<Gamma> t1 T11 T12 t2)
-  thus ?case
-    apply -
-    apply (erule exE)+
-    apply (erule conjE)+
-    apply (rename_tac t1' t2')
-    apply (frule eval_preserves_type[of t1], assumption)
-    apply (frule eval_preserves_type[of t2], assumption)
-    apply (case_tac "is_value_L t1'")
-    apply (drule canonical_forms(2))
-    apply assumption
-    apply (erule exE)
-    apply hypsubst
-    apply (rule exI)
-    apply (case_tac "is_value_L t2'")
-
-    apply (erule is_value_L.cases)
-    apply hypsubst
-    apply (drule inversion)
-    apply hypsubst
-    apply (rule conjI)
-    apply (erule bar)+
-    apply (rule eval_L.intros(2))
-    apply (rule eval1_L.intros(6))
-    apply (rule is_value_L.intros)
-    unfolding shift_L.simps
-    sorry
-qed
-
-(*>*)
 subsection {* Erasure and Typability *}
 
 text {*
-The type system we defined is completly static, i.e. there is no run-time checked involving the
-types of terms. Since the type annotations are not used during evaluation, it is worth exploring
+The type system we formalized is completely static (i.e. there is no run-time checked involving the
+types of terms). Since the type annotations are not used during evaluation, it is worth exploring
 the possibility to erase them prior to execution. To this end, we define an untyped version of
 our $\lambda$-calculus with booleans:
 *}
@@ -614,8 +514,8 @@ primrec erase :: "lterm \<Rightarrow> uterm" where
   "erase (LApp t1 t2) = UApp (erase t1) (erase t2)"
 
 text {*
-We also define how the @{const erase} function react with respect to values and the @{const shift_L}
-and @{const subst_L} functions.
+We also characterize how the @{const erase} function reacts with respect to values and the
+@{const shift_L} and @{const subst_L} functions.
 *}
 
 lemma is_value_erasure:
@@ -634,7 +534,7 @@ by (induction t arbitrary: j s rule: lterm.induct) (auto simp: shift_erasure)
 
 text {*
 We can now prove that every step of evaluation on a typed term can be perform in parallel on a
-coresponding untyped term.
+corresponding untyped term.
 *}
 
 theorem

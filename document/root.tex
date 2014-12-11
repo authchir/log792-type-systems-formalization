@@ -78,6 +78,7 @@
 \makeatother
 
 \begin{document}
+\pagestyle{empty}
 
 % \title{Formalizing \emph{Types and Programming Languages} in Isabelle/HOL}
 % \author{Martin Desharnais}
@@ -89,7 +90,7 @@
     \includegraphics[width=6cm]{./logo-ETS.png}~\\[1cm]
 
     \textsc{\LARGE École de technologie supérieure}\\[1.5cm]
-    \textsc{\Large Bachelor Thesis}\\[0.5cm]
+    \textsc{\Large Bachelor's Thesis}\\[0.5cm]
 
     % Title
     \HRule \\[0.4cm]
@@ -116,13 +117,15 @@
 \end{titlepage}
 
 \newpage
+\null
+\newpage
 \pagenumbering{roman}
 %\maketitle
 
 \begin{abstract}
-We formalize, using Isabelle/HOL, some languages present in the first two sections, namely "Untyped
-Systems" and "Simple Types", of the book \emph{Types and Programming Languages} by
-Benjamin~C.~Pierce. We first begin with a short tour of $\lambda$-calculus, type systems and the
+We formalize, using Isabelle/HOL, some languages present in the first two sections, namely ``Untyped
+Systems'' and ``Simple Types'', of the book \emph{Types and Programming Languages} by
+Benjamin~C.~Pierce. We first begin with a short tour of the $\lambda$-calculus, type systems and the
 Isabelle/HOL theorem prover before attacking the formalization \emph{per se}. Starting with an
 arithmetic expressions language offering booleans and natural numbers, we pursue, after a brief
 digression to the "de Bruijn indices", to the untyped $\lambda$-calculus. We then return to a typed
@@ -130,25 +133,35 @@ variant of the arithmetic expression language before to conclude with the simply
 $\lambda$-calculus.
 \end{abstract}
 
+\newpage
+\null
+\newpage
+
 \begin{acknowledgements}
   I first would like to thank Jasmin Blanchette, one of my advisors, who gave me the opportunity to
-  move in Munich for an eight months intership as a research assistant. This experience gave me a
+  move to Munich for an eight month intership as a research assistant. This experience gave me a
   taste of academic research and introduced me to the world of formal verifications and theorem
   provers. I greatly benefited from the numerous discussions we had and the advices he gave me.
 
-  I am equally grathefull to Dmitriy Traytel, my second advisor, for all the help he gave me for
-  both my intership and my thesis. He taught me a lot and his help was precious when I encountered
+  I am equally grateful to Dmitriy Traytel, my second advisor, for all the help he gave me for
+  both my internship and my thesis. He taught me a lot and his help was precious when I encountered
   some harder parts.
 
-  I want to thank all member of the research chair for the warm welcoming the gave me. A special
+  I want to thank all members of the research chair for the warm welcoming the gave me. A special
   thought goes to Lars Noschinski, my officemate, for all the conversations we had and all the
-  insights he gave me of the german culture.
+  insights he gave me of the German culture.
 \end{acknowledgements}
 
-\cleardoublepage
+\newpage
+\null
+\newpage
+
 \tableofcontents
 
-\cleardoublepage
+\newpage
+\null
+\newpage
+
 \pagenumbering{arabic}
 \pagestyle{headings}
 

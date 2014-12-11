@@ -4,120 +4,117 @@
 \subsection{Lambda-Calculus}
 \label{sec:background-lambda-calculus}
 
-The $\lambda$-calculus is a minimalist language, where everything is a functions, that can be use as
-a core calculus capturing the essential features of complex programming languages. It was formulated
-by Alonzo Church \cite{???} in the 1930s as a model of computability. At the same time, Alan Turing
-was formulating what is now known as a Turing machine \cite{???} for the same purpose. It was later
-proved that both systems are equivalent in expressive power \cite{???}.
+The $\lambda$-calculus is a minimalistic language, where every value is a functions, that can be use
+as a core calculus capturing the essential features of complex programming
+languages. It was formulated by Alonzo Church \cite{church-1936-unsolvable-problem} in
+the 1930s as a model of computability. At about the same time, Alan Turing was
+formulating what is now known as a Turing machine
+\cite{turing-1936-on-computable-numbers} for the same purpose. It was later
+proved that both systems are equally expressive
+\cite{turing-1937-computability}.
 
-As a programming language, it can be intriguing at first because everything reduces to function
-abstraction and application. The syntax comprises three sorts of terms: variables, function
-abstractions over a variable and applications of a term to an other. Those three constructs are
-summarized in the following grammar of $\lambda$-terms using a BNF-like notation:
+As a programming language, the $\lambda$-calculus can be intriguing at first because everything
+reduces to function abstraction and application. The syntax comprises three sorts of terms:
+variables, function abstractions over a variable and applications of a term to an other. Those three
+constructs are summarized in the following grammar:
 \begin{align*}
   t ::= & \\
     & x && \text{variable} \\
-    & \lambda x. t && \text{abstraction} \\
+    & \lambda x. \ t && \text{abstraction} \\
     & t_1 \text{ } t_2 && \text{application}
 \end{align*}
 
-Following are a few standard $\lambda$-term shown as examples of how the grammar is actually
+Below are a few standard $\lambda$-term shown as examples of how the grammar is actually
 used:\footnote{To reduce the need for parenthesis, we use the following standard conventions:
 \begin{enumerate*}[label=(\arabic*)]
-  \item the body of a $\lambda$-abstraction expands as much as possible to the right and
-  \item function application is left associative.
+  \item the body of a $\lambda$-abstraction expands for as possible to the right and
+  \item function application is left-associative.
 \end{enumerate*}}
 \begin{align*}
-  & \lambda x. x && \text{identity} \\
-  & \lambda x. \lambda y. x && \text{constant} \\
-  & \lambda x. \lambda y. x \text{ } y \text{ } y && \text{double application} \\
-  & \lambda x. \lambda y. \lambda z. x (y \text{ } z) && \text{function composition}
+  & \lambda x. \ x && \text{identity} \\
+  & \lambda x. \lambda y. \ x && \text{constant} \\
+  & \lambda f. \lambda x. \ f \ x \ x && \text{double application} \\
+  & \lambda f. \lambda g. \lambda x. \ f \ (g \ x) && \text{function composition}
 \end{align*}
 
-Having no built-in constant or primitive operators (e.g. numbers, arithmetic operations,
-conditionals, loops, etc.), the only way to "compute" something is by function application, also
-known as $\beta$-reduction and noted $\to_\beta$). It consists of replacing every instance of the
-abstracted variable in the abstraction body by the effective argument. Following is an example of a
-$\lambda$-term that is $\beta$-reduced twice:
+The $\lambda$-calculus having no built-in constant or primitive operators (e.g. numbers, arithmetic
+operations, conditionals, loops, etc.), the only way to compute a value is by function application,
+also known as $\beta$-reduction and denoted by $\to_\beta$). It consists of replacing every instance
+of the abstracted variable in the abstraction body by the effective argument.  Following is an
+example of a $\lambda$-term that is $\beta$-reduced twice:
 \begin{align*}
-  (\lambda x. (\lambda y. y) x) ((\lambda w. w) z)
-    & \to_\beta (\lambda x. (\lambda y. y) x) z \\
-    & \to_\beta (\lambda y. y) z \\
-    & \to_\beta z
+  (\lambda x. \ (\lambda y. \ y) \ x) \ ((\lambda w. \ w) \ z)
+    & \: \to_\beta \: (\lambda x. \ (\lambda y. \ y) \ x) \ z \\
+    & \: \to_\beta \: (\lambda y. \ y) \ z \\
+    & \: \to_\beta \: z
 \end{align*}
 
-This apparently simple operation hide a complex corner case: name clashes. Nothing prevent two
-functions from using the same name for their abstracted variable. One can not simply replace every
+This apparently simple operation hides a subtle corner case: name clashes. Nothing prevent two
+functions from using the same name for their abstracted variable. One cannot simply replace every
 variable with the same name when performing a substitution but must also take variable scopes into
 account. Here is a simple example that demonstrate that a naïve approche can fail to preserve the
 semantic of the original $\lambda$-term:
-
 \begin{displaymath}
-  (\lambda x. \lambda y. x) y \not\to_\beta \lambda y. y \\
+  (\lambda x. \lambda y. \ x) \ y \: \not\to_\beta \: \lambda y. \ y \\
 \end{displaymath}
 
 One solution to this problem is to rename function arguments, also known as $\alpha$-equivalence and
-noted $=_\alpha$, prior to $\beta$-reduction. Here is a correct $\beta$-reduction for the previous
+denoted by $=_\alpha$, prior to $\beta$-reduction. Here is a correct $\beta$-reduction for the previous
 example:
 \begin{align*}
-  (\lambda x. \lambda y. x) y
-    & =_\alpha (\lambda x. \lambda w. x) y \\
-    & \to_\beta \lambda w. y \\
+  (\lambda x. \lambda y. \ x) \ y
+    & \: =_\alpha \: (\lambda x. \lambda w. \ x) \ y \\
+    & \: \to_\beta \: \lambda w. \ y \\
 \end{align*}
 
-The difference is important. Under the naïve approche, the $\lambda$-term was wrongly reduced to the
+The difference is important: under the naïve approche, the $\lambda$-term was wrongly reduced to the
 identity function while the correct reduction lead to a function returning the constant $y$.
 
 Many constructions from high level programming languages can be encoded using only those basic
-features.  Unary functions are already supported and n-ary functions can be straitforwardly emulate
-by having a function return an other function, as was done in the previous examples:
-
+features. Unary functions are already supported and $n$-ary functions can be straightforwardly
+emulated by having a function return another function, as was done in the previous examples:
 \begin{displaymath}
-  \text{n-ary function} \equiv \lambda x_1. \lambda x_2 \dots \lambda x_n. t
+  n\text{-ary function} \: \equiv \: \lambda x_1. \lambda x_2 \dots \lambda x_n. t
 \end{displaymath}
 
-An other common construction is a \emph{let binding} which serves to attach an identifier to a
-complex expression. It can be emulated in $\lambda$-calculus with a single function abstraction:
-
+Another common construction is a \emph{let binding} which serves to attach an identifier to a
+complex expression. It can be emulated in the $\lambda$-calculus with a single function abstraction:
 \begin{displaymath}
-  \text{let } x = y \text{ in } t \equiv (\lambda x. t) y
+  \text{let } x = y \text{ in } t \: \equiv \: (\lambda x. t) y
 \end{displaymath}
 
 Although significantly less obvious, it is also possible to express booleans only with functions.
-The encoding is based on the idea that any use of booleans can be express with only three
-primitives: a constant representing a true value, a constant representing false values and an
-operation to choose between two alternatives:
+The encoding is based on the idea that any use of booleans can be expressed with only three
+primitives: a constant representing a true value, a constant representing a false value and an
+operation to choose between two options:
 \begin{align*}
   \text{true}
-    & \equiv \lambda t. \lambda f. t \\
+    & \: \equiv \: \lambda t. \lambda f. \ t \\
   \text{false}
-    & \equiv \lambda t. \lambda f. f \\
+    & \: \equiv \: \lambda t. \lambda f. \ f \\
   \text{if } b \text{ then } t \text{ else } e
-    & \equiv \lambda b. \lambda t. \lambda f. b \text{ } t \text{ } f
+    & \: \equiv \: \lambda b. \lambda t. \lambda f. \ b \ t \ f
 \end{align*}
 
-Using the rules already discussed, it is trivial to show that the following reduction is valid:
-
+Using the rules already discussed, it is easy to show that the following reduction is valid:
 \begin{displaymath}
-  \text{if true then } x \text{ else } y \to_\beta \dots \to_\beta x
+  \text{if true then } x \text{ else } y \: \to_\beta \: \dots \: \to_\beta \: x
 \end{displaymath}
 
 Other encodings exist for constructions such as numbers, list, datatypes, arbitrary recursion, etc.
-For a more comprehensive introduction to the subject, \emph{An Introduction to Lambda Calculi for
-Computer Scientists} \cite{hankin-2004-ILCCS} can serve as a good starting point.
-
+For a more comprehensive introduction to the subject, Hankin's monograph \cite{hankin-2004-ILCCS} is
+a good starting point.
 
 \subsection{Type Systems}
 
-Type systems are a syntactic method to prove the absence of certain behaviors. They differ from
-testing in that they are exhaustive, automatic and compositional. In this context, exhaustiveness
-means that each checked invarient is proved to hold for the complete program instead of focusing on
-a single unit of code. Automaticness means that the process is non-interactive, i.e. the algorithm
-does not need other informations than what it can find in the source code of the program.
-Compositional means that proofs for individual components ca be use to satisfy an obligation about
-the interaction of the components.
+Type systems are a syntactic method to prove the absence of certain erroneous behaviors. They differ
+from testing in that they are exhaustive, automatic and compositional. In this context,
+exhaustiveness means that each checked invariant is proved for the complete program instead of
+focusing on a single unit of code. Automation means that the process does not need input from the
+user. Compositionality means that proofs for individual components can be use to discharge an obligation
+about the interaction of the components.
 
-The kind of errors detected depends on the specific type system considered: it can range from
+The kinds of errors detected depends on the specific type system considered: they can range from
 fairly simple to very complex. Examples of simple errors include typographical mistakes, usage of
 values of the wrong kind and usage of undefined operations:
 
@@ -126,37 +123,37 @@ values of the wrong kind and usage of undefined operations:
     $\text{add} : \mathbb{N} \to \mathbb{N} \to \mathbb{N}$ \newline
     $\text{true} : \mathbb{B}$ \newline
     add true true
-    & Error in function application, "add" expects a $\mathbb{N}$ but a $\mathbb{B}$ was provided.
+    & Error in function application, "add" expects a $\mathbb{N}$ as first argument but a
+    $\mathbb{B}$ was provided.
   \end{tabular}
 \end{center}
 
-With sufficiently powerfull type systems, specific requirements can be provide as type annotations.
+With sufficiently powerful type systems, specific requirements can be provided as type annotations.
 Examples of such include that the output of a sorting function is a permutation of its input, that
-the argument of an indexing operation on a list is in a valid range and that two multiplied matrixes
-have compatible dimenssions. The more informations one put in the types, the more invalid programs
+the argument of an indexing operation on a list is in a valid range and that two multiplied matrices
+have compatible dimenssions. The more information one puts in the types, the more invalid programs
 the type checker can catch, but the more work is required by the programmer to convince the
-algorithm that the program fullfill it's specifications. An important design decision when defining
-a type system is to find a tradeoff between those two conflicting properties.
+algorithm that the program fulfill its specification. An important design decision when defining
+a type system is to find a tradeoff between those conflicting goals.
 
 Since they are often bundle with the compiler of a programming language and, thus, part of the
 normal programming cycle, type systems allow early detection of programming errors. Moreover, the
-diagnoses of type checkers can often pointed accuratly the source of the error, at the difference of
-run-time tests where the effect of an error can sometime be visible only much farther in the code
-when something start to go wrong.
+diagnoses of type checkers can often pointed accurately the source of the error, unlike run-time
+tests where the effect of an error can sometime be visible only much further in the code when
+something starts to go wrong.
 
-An other important way in which type systems can be use is as an abstraction tool. It is widely
-accepted that, in the context of large scale software developpement, programs should be split into
-distinct modules that communicate through interfaces. Types are an natural fit to serve as such an
-interface. Even in smaller scale programming, it is usefull to caracterise a datatype not by the
-way it is implemented but by the different operations that can be perform on it. This focus on
-operations led to the concept of abstract datatypes.
+Another important way in which type systems can be used is as an abstraction tool. Large scale
+software generally consist of modules that communicate through interfaces. Types are a natural fit
+to serve as such an interface. Even in smaller scale programming, it is useful to caracterise a
+datatype not by the way it is implemented but by the different operations that can be perform on it.
+This focus on operations led to the concept of abstract datatypes.
 
-Types can also be used an invaluable maintenance tool. More informally, they serve as a checked
-documentation of programs and, being simpler than the computation they caracterise, they can help
-to reason about such computation on a higher level. But they can also serve a very practical
-purpose, by checking which part of a program is affected by a change. If one decides to change the
-arguments of a function or remove a field in a structure, a simple type checking pass will provide
-an exhaustive list of the places that need to be updated to cope with the modification.
+Types can also be used an invaluable maintenance tool. They serve as a checked documentation of
+programs and, being simpler than the computation they caracterise, they can help to reason about
+such computation on a higher level. But they can also serve a very practical purpose, by checking
+which part of a program is affected by a change. If one decides to change the arguments of a
+function or to remove a field in a structure, a simple type checking pass will provide an exhaustive
+list of the places that must be updated.
 
 % Language safety is a very desirable property of programming language that can be achived by type
 % systems.
@@ -164,20 +161,24 @@ an exhaustive list of the places that need to be updated to cope with the modifi
 %   * A safe language is completly defined by its programmer manual.
 %     * C contains a lot of implementation defined and undefined behaviours.
 
-Due to their static nature, type systems are conservatives in that they will always reject bad
-programs at the expence of sometime rejecting good ones. A simple example of such limitation is the
-following program that fails to typecheck, even if it happens that the complex boolean expression
-will always evaluate to true at runtime:
+Due to their static nature, type systems are normally conservatives in that they will always reject
+bad programs at the expence of sometime rejecting good ones. A simple example of such limitation is
+the following program that fails to type-check, even though the complex boolean expression will
+always evaluate to true at runtime:
 
 \begin{displaymath}
-  \text{if} <\text{complex-expression}> \text{then } 42 \text{ else } \text{true}
+  \begin{tabular}{m{4.5cm} | m{6cm}}
+    if true then 42 else true
+    & Type mismatch in conditional expression, the type of the 'then' branch is $\mathbb{N}$ while
+    the type of the 'else' branch is $\mathbb{B}$.
+  \end{tabular}
 \end{displaymath}
 
 Having only access to static information, a type checker only see that a boolean can take two
-different values and, thus, must insure that the program is valide in both cases. In this example,
-this implies that both branch of the \texttt{if} must be well-typed and that their type must be
-compatible. It is the main goal of type theory scientists to develop type systems in which more more
-valid programs are accepted while more invalid programs are rejected.
+different values and, thus, must ensure that the program is valid in both cases. In this example,
+this implies that both branches of the \texttt{if} must be well typed and that their types must be
+compatible. It is the main goal of searchers on type systems to develop systems in which more valid
+programs are accepted while more invalid programs are rejected.
 
 \subsection{Isabelle/HOL}
 
