@@ -59,7 +59,7 @@
   \titlepage
 \end{frame}
 
-\begin{frame}
+\begin{frame}{Types and Programming Languages}
   \footnotesize
   \begin{center}
     \begin{varwidth}{\textwidth}
@@ -116,18 +116,7 @@
   \begin{center}
     \includegraphics[scale=0.2]{whiteboard_math.jpg} \\
     \vspace{20pt}
-    \begin{columns}[c]
-      \column{0.48\textwidth}
-      \flushright{Formalization}
-      \column{0.04\textwidth}
-      \flushright{=}
-      \column{0.48\textwidth}
-      \begin{center}
-        Definitions \\ + \\
-        Properties \\ + \\
-        Computer-Checked \\ Proofs
-      \end{center}
-    \end{columns}
+    Formalization = Definitions + Properties + Proofs
   \end{center}
 \end{frame}
 
@@ -173,7 +162,7 @@
   \end{columns}
   \vspace{20pt}
   \begin{center}
-    Bounded variable names are irrelevent: \\
+    Bound variable names are irrelevent: \\
     $\lambda x. \; x \: = \: \lambda y. \; y$ \\
     \vspace{20pt}
     Function application: \\
@@ -299,14 +288,14 @@
     also well typed.
 }
 
-% \begin{frame}{The progress theorem}
-%   \begin{center}
-%     \alt<3>{\includegraphics[scale=0.3]{progress_thm_highlighted.png}}
-%       {\includegraphics[scale=0.3]{progress_thm.png}} \\
-%       \uncover<2->{\alt<3>{\includegraphics[scale=0.3]{progress_highlighted.png}}
-%       {\includegraphics[scale=0.3]{progress.png}}}
-%   \end{center}
-% \end{frame}
+\begin{frame}{The progress theorem}
+  \begin{center}
+    \alt<3>{\includegraphics[scale=0.3]{progress_thm_highlighted.png}}
+      {\includegraphics[scale=0.3]{progress_thm.png}} \\
+      \uncover<2->{\alt<3>{\includegraphics[scale=0.3]{progress_highlighted.png}}
+      {\includegraphics[scale=0.3]{progress.png}}}
+  \end{center}
+\end{frame}
 
 \begin{frame}{Other theorems proved}
   \begin{itemize}
@@ -323,7 +312,7 @@
 
 \begin{frame}{What I learned}
   \begin{itemize}
-    \item $\lambda$-calculus as core-calculus
+    \item $\lambda$-calculus and why it is relevent
     \item Type systems as security net
     \item Isabelle/HOL as development platform
     \item Formalization is as concrete as programming
