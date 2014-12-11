@@ -1,3 +1,0 @@
-normalize every type name with small letters
-normalize every function type to use suffix
-explicitly explain that we don't expect the ready to understand the proofs
