@@ -12,7 +12,7 @@ A partial Isabelle/HOL formalization of the book "Types and Programming Language
   * We formalized the simply typed lambda-calculus.
 
 We formalized, using Isabelle/HOL, some languages presented in the first two sections, namely
-"Untyped Systems" and "Simple Types", of the book "Types and Programming Languages" by Benjamen C.
+"Untyped Systems" and "Simple Types", of the book "Types and Programming Languages" by Benjamin C.
 Pierce. We first begin with a short tour of the field of type theory and formalization before to
 attack the formalization per se. Starting with an arithmetic expression language offering booleans
 and natural numbers, we pursue, after a brief digression to the "De Bruijn indices", to the untyped
