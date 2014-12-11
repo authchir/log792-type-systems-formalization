@@ -11,8 +11,8 @@ This section only presents briefly the most used constructions in the formalizat
 this thesis. It is not expected from the reader to fully understand the proofs presented in this
 report. It is sufficient to recognise key concepts such as induction and case analyses.
 
-The theorem proving community is subdivised in two groups: automatic theorem proving (ATP) and
-interactive theorem proving (ITP). Each have their own set of goals, motivation, methodologies,
+The theorem proving community is subdivided in two groups: automatic theorem proving (ATP) and
+interactive theorem proving (ITP). Each has its own set of goals, motivations, methodologies,
 tools and terminology. In ATP, one must formulate its context and equations in some logical
 formalism and ask the theorem prover to find a proof. The limiting factor is the algorithm used by
 the tool. Examples of such provers include SPASS, Vampire and Z3. In ITP, one must also formulate
@@ -48,9 +48,9 @@ previous example is @{typ "nat list"}).
 
 Function definitions can take many forms in Isabelle/HOL. A primitively recursive function is
 introduced with the \texttt{primrec} command and defined by pattern matching over its arguments.
-Each pattern match entry must then provide the value to which the function evaluate. Following is a
-definition of a higher order function (i.e. a function that takes a function as argument) that check
-if all the elements of a list are ordered with respect to a binary predicate provided as an
+Each pattern match entry must then provide the value to which the function evaluates. Following is a
+definition of a higher order function (i.e. a function that takes a function as argument) that
+checks if all the elements of a list are ordered with respect to a binary predicate provided as an
 argument:
 *}
 
@@ -79,14 +79,14 @@ inductive ordered' :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a
     "p x1 x2 \<Longrightarrow> ordered' p (Cons x2 xs) \<Longrightarrow> ordered' p (Cons x1 (Cons x2 xs))"
 
 text {*
-Theorems, also named lemmas, are true facts involving the defined elements. They could be compare to
-the asserts used in programming languages. The main difference is that asserts are validate by
+Theorems, also named lemmas, are true facts involving the defined elements. They could be compared
+to the assertions used in programming languages. The main difference is that asserts are validate by
 evaluating the expression while theorems are validated by a formal proof. This is the point where
 the analogy with programming languages stops since this concept is unique to theorem provers. In
-Isabelle/HOL, a proof can take two forms: a low level sequence of \texttt{apply} steps or
-higher level structured definition. Following is an example of a lemma that proves, using the
-low level style, that the list of increasing natural numbers are ordered with respect to the usual
-comparison operation:
+Isabelle/HOL, a proof can take two forms: a low level sequence of \texttt{apply} steps or higher
+level structured definition. Following is an example of a lemma that proves, using the low level
+style, that the list of increasing natural numbers are ordered with respect to the usual comparison
+operation:
 \newpage
 *}
 

@@ -35,8 +35,8 @@ free:
   w \qquad (\lambda x. \ x) \ w \qquad (\lambda x. \lambda y. \lambda z. \ w \ x \ y \ z)
 \end{displaymath}
 
-There is no concensus on how the semantic should handle such situations. By excluding them from the
-set of values, the semantics described in the book defines that such term are meaningless. This
+There is no consensus on how the semantic should handle such situations. By excluding them from the
+set of values, the semantics described in the book defines that such terms are meaningless. This
 decision is consistent with many programming languages where the use of an undefined identifier
 leads to an error, either at compile-time or at run-time.
 

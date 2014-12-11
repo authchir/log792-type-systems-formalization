@@ -128,7 +128,7 @@ A key concept is that of normal form, for which the book gives the following def
   \noindent A term $t$ is in \emph{normal form} if no evaluation rule applies to it --- i.e.,
   if there is no $t'$ such that $t \to t'$.
 \end{quotation}
-Since this definition mainly introduces some standard terminologie for some property of terms with
+Since this definition mainly introduces some standard terminology for a property of terms with
 respect to the single-step evaluation relation, we translate it using a simple synonym definition:
 *}
 
@@ -390,7 +390,7 @@ inductive eval1_NB :: "nbterm \<Rightarrow> nbterm \<Rightarrow> bool" where
   eval1_NBPred:
     "eval1_NB t t' \<Longrightarrow> eval1_NB (NBPred t) (NBPred t')" |
 
--- "Rules relating to the evaluation of the test for equality with zero"
+  -- "Rules relating to the evaluation of the test for equality with zero"
   eval1_NBIs_zero_NBZero:
     "eval1_NB (NBIs_zero NBZero) NBTrue" |
   eval1_NBIs_zero_NBSucc:

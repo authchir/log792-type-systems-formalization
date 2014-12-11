@@ -71,7 +71,7 @@ primrec shift_UL :: "int \<Rightarrow> nat \<Rightarrow> ulterm \<Rightarrow> ul
 text {*
 In this definition, there is a possible information loss in this definition. The variables use a
 natural number as index but the function allows to shift both up and down, thus the use of an
-integer the shift increment. When a variable is encounter, we first convert the index from natural
+integer the shift increment. When a variable is encountered, we first convert the index from natural
 number to integer, which is always safe, perform the integer addition, which correspond to a
 subtraction if @{term d} is negative, and convert the result back to natural numbers to serve as the
 new index. This last operation converts negative numbers to zero. We know this loss of information
@@ -142,7 +142,7 @@ text {*
 Note that the indices are relative to their position in the term. This is why @{term "ULVar 2"} is
 also substituted in the previous example: counting the number of enclosing $\lambda$-abstractions
 shows us that this variable is, indeed, the same as @{term "ULVar 0"}. Of course, we must maintain
-this invarient by incrementing variables in our substituting term accordingly.
+this invariant by incrementing variables in our substituting term accordingly.
 *}
 
 (*<*)

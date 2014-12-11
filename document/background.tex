@@ -4,7 +4,7 @@
 \subsection{Lambda-Calculus}
 \label{sec:background-lambda-calculus}
 
-The $\lambda$-calculus is a minimalistic language, where every value is a functions, that can be use
+The $\lambda$-calculus is a minimalistic language, where every value is a function, that can be use
 as a core calculus capturing the essential features of complex programming
 languages. It was formulated by Alonzo Church \cite{church-1936-unsolvable-problem} in
 the 1930s as a model of computability. At about the same time, Alan Turing was
@@ -24,8 +24,8 @@ constructs are summarized in the following grammar:
     & t_1 \text{ } t_2 && \text{application}
 \end{align*}
 
-Below are a few standard $\lambda$-term shown as examples of how the grammar is actually
-used:\footnote{To reduce the need for parenthesis, we use the following standard conventions:
+Below are a few standard $\lambda$-terms shown as examples of how the grammar is actually
+used:\footnote{To reduce the need for parentheses, we use the following standard conventions:
 \begin{enumerate*}[label=(\arabic*)]
   \item the body of a $\lambda$-abstraction expands for as possible to the right and
   \item function application is left-associative.
@@ -40,7 +40,7 @@ used:\footnote{To reduce the need for parenthesis, we use the following standard
 The $\lambda$-calculus having no built-in constant or primitive operators (e.g. numbers, arithmetic
 operations, conditionals, loops, etc.), the only way to compute a value is by function application,
 also known as $\beta$-reduction and denoted by $\to_\beta$). It consists of replacing every instance
-of the abstracted variable in the abstraction body by the effective argument.  Following is an
+of the abstracted variable in the abstraction body by the effective argument. Following is an
 example of a $\lambda$-term that is $\beta$-reduced twice:
 \begin{align*}
   (\lambda x. \ (\lambda y. \ y) \ x) \ ((\lambda w. \ w) \ z)
@@ -49,22 +49,22 @@ example of a $\lambda$-term that is $\beta$-reduced twice:
     & \: \to_\beta \: z
 \end{align*}
 
-This apparently simple operation hides a subtle corner case: name clashes. Nothing prevent two
+This apparently simple operation hides a subtle corner case: name clashes. Nothing prevents two
 functions from using the same name for their abstracted variable. One cannot simply replace every
 variable with the same name when performing a substitution but must also take variable scopes into
-account. Here is a simple example that demonstrate that a naïve approche can fail to preserve the
-semantic of the original $\lambda$-term:
+account. Here is a simple example that demonstrates that a naïve approach can fail to preserve the
+semantics of the original $\lambda$-term:
 \begin{displaymath}
-  (\lambda x. \lambda y. \ x) \ y \: \not\to_\beta \: \lambda y. \ y \\
+  (\lambda x. \lambda y. \ x) \ y \: \not\to_\beta \: \lambda y. \ y
 \end{displaymath}
 
 One solution to this problem is to rename function arguments, also known as $\alpha$-equivalence and
-denoted by $=_\alpha$, prior to $\beta$-reduction. Here is a correct $\beta$-reduction for the previous
-example:
+denoted by $=_\alpha$, prior to $\beta$-reduction. Here is a correct $\beta$-reduction for the
+previous example:
 \begin{align*}
   (\lambda x. \lambda y. \ x) \ y
     & \: =_\alpha \: (\lambda x. \lambda w. \ x) \ y \\
-    & \: \to_\beta \: \lambda w. \ y \\
+    & \: \to_\beta \: \lambda w. \ y
 \end{align*}
 
 The difference is important: under the naïve approche, the $\lambda$-term was wrongly reduced to the
@@ -131,7 +131,7 @@ values of the wrong kind and usage of undefined operations:
 With sufficiently powerful type systems, specific requirements can be provided as type annotations.
 Examples of such include that the output of a sorting function is a permutation of its input, that
 the argument of an indexing operation on a list is in a valid range and that two multiplied matrices
-have compatible dimenssions. The more information one puts in the types, the more invalid programs
+have compatible dimensions. The more informations one puts in the types, the more invalid programs
 the type checker can catch, but the more work is required by the programmer to convince the
 algorithm that the program fulfill its specification. An important design decision when defining
 a type system is to find a tradeoff between those conflicting goals.

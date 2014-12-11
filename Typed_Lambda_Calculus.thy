@@ -14,7 +14,7 @@ We now revisit the $\lambda$-calculus (Section \ref{sec:untyped-lambda-calculus}
 with static types. Unlike the typed arithmetic expressions language, types are an integral part of
 the language and its syntax. For this reason, we cannot import the theory of the untyped variant
 and build on top of it, but need to provide new, although similar, definitions. We will prove type
-safety through the progress and preservation theorems before to show that types can be safely erase
+safety through the progress and preservation theorems before to show that types can be safely erased
 while preserving the semantic of the language.
 *}
 
@@ -42,7 +42,7 @@ types for some concreate domain and codomain. Examples of such types include @{t
 @{term "(Bool \<rightarrow> Bool) \<rightarrow> Bool \<rightarrow> Bool"}, etc. Note that the last two examples are equivalent, since
 the @{text "\<rightarrow>"} operator is right-associative.
 
-In programming languages, more types are usually added as base case to the core calculus for
+In programming languages, more types are usually added as base cases to the core calculus for
 performance reason. Examples include integers, floating point numbers, characters, arrays, etc.
 
 Since variables can now range over infinitely many types, we need a way to know which type a
@@ -115,7 +115,7 @@ inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
 text {*
 When type-checking the body of a function abstraction, we assume that the given function argument
 does have the type annotated. Since the body could itself be a function abstraction, we need to keep
-track of this set of assumptions, also known as typing context. Since the book consider variables
+track of this set of assumptions, also known as typing context. Since the book considers variables
 to be a named reference to a $\lambda$-absraction, its typing context is a set of identifier--type
 pairs. Our use of ``de Bruijn indices'' requires us to consider an alternative representation. We
 define a context to be a list of types whose $n$th position contains the type of the $n$th
@@ -200,7 +200,7 @@ subsection {* Properties of Typing *}
 
 text {*
 The inversion of typing relation, which gives us informations on types for specific terms, will be
-a useful lemma in the comming theorems:
+a useful lemma in the following theorems:
 *}
 
 lemma inversion:
