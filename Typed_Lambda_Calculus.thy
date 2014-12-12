@@ -10,7 +10,7 @@ section {* Typed Lambda Calculus *}
 text {* \label{sec:simply-typed-lambda-calculus} *}
 
 text {*
-We now revisit the $\lambda$-calculus (Section \ref{sec:untyped-lambda-calculus}) and augment it
+We now revisit the $\lambda$-calculus (Section~\ref{sec:untyped-lambda-calculus}) and augment it
 with static types. Unlike the typed arithmetic expressions language, types are an integral part of
 the language and its syntax. For this reason, we cannot import the theory of the untyped variant
 and build on top of it, but need to provide new, although similar, definitions. We will prove type
@@ -126,7 +126,7 @@ When type checking the body of a function abstraction, we assume that the given 
 does have the type annotated. Since the body could itself be a function abstraction, we need to keep
 track of this set of typing assumptions, also known as a typing context. Since the book considers
 variables to be a named reference to a $\lambda$-abstraction, its typing context is a set of
-identifier--type pairs. Our use of de Bruijn indices'' requires us to consider an alternative
+identifier--type pairs. Our use of de Bruijn indices requires us to consider an alternative
 representation. We define a context to be a list of types whose $n$th position contains the type of
 the $n$th free variale:
 *}
@@ -144,10 +144,16 @@ abbreviation cons :: "lcontext \<Rightarrow> ltype \<Rightarrow> lcontext" (infi
 abbreviation elem' :: "(nat \<times> ltype) \<Rightarrow> lcontext \<Rightarrow> bool" (infix "|\<in>|" 200) where
   "elem' p \<Gamma> \<equiv> fst p < length \<Gamma> \<and> snd p = nth \<Gamma> (fst p)"
 
-text {*
-We now define the typing relation by translating the induction rules present in the book to an
-inductive definition:
-*}
+text \<open>
+With the concept of typing concept, the syntax use for the typing relation needs to be extended:
+\begin{equation*}
+\Gamma \vdash t : T
+\end{equation*}
+
+This syntax can be read as ``under the context $\Gamma$, the term $t$ have type $T$. We now define
+the typing relation by translating the induction rules present in the book to an inductive
+definition:
+\<close>
 
 inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> ltype \<Rightarrow> bool" ("((_)/ \<turnstile> (_)/ |:| (_))" [150, 150, 150] 150) where
   -- "Rules relating to the type of Booleans"
@@ -167,8 +173,13 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> ltype \<Righ
     "\<Gamma> \<turnstile> t1 |:| (T11 \<rightarrow> T12) \<Longrightarrow> \<Gamma> \<turnstile> t2 |:| T11 \<Longrightarrow> \<Gamma> \<turnstile> (LApp t1 t2) |:| T12"
 
 text {*
-As an example of a usage of the typing relation, consider the type of the application of
-@{term LTrue} to the Boolean identity function:
+The rules for Booleans are the same as in section \ref{sec:typed-arith-expr}. The rule
+@{thm [source] has_type_LVar} states that the type of a variable must be in the typing context. The
+rule @{thm [source] has_type_LAbs} states that the type of an $\lambda$-abstraction depends on the
+type of both its argument and body. Finally, the rule @{thm [source] has_type_LApp} states that the
+type of a function application is the codomain of the function. As an example of a usage of the
+typing relation, consider the type of the application of @{term LTrue} to the Boolean identity
+function:
 *}
 
 lemma "\<emptyset> \<turnstile> (LApp (LAbs Bool (LVar 0)) LTrue) |:| Bool"

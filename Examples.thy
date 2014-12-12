@@ -87,7 +87,6 @@ Isabelle/HOL, a proof can take two forms: a low level sequence of \texttt{apply}
 level structured definition. Following is an example of a lemma that proves, using the low level
 style, that the list of increasing natural numbers are ordered with respect to the usual comparison
 operation:
-\newpage
 *}
 
 lemma "ordered (\<lambda>x (y :: nat). x < y) (Cons 1 (Cons 2 (Cons 3 (Cons 4 Nil))))"
@@ -98,12 +97,12 @@ lemma "ordered (\<lambda>x (y :: nat). x < y) (Cons 1 (Cons 2 (Cons 3 (Cons 4 Ni
 done
 
 text {*
-This proof is easily checked by a computer but very hard to read for a human. For this reason,
-the alternative structured Isar proof language was designed to allow the writing of more human-friendly
+This proof is easily checked by a computer but very hard to read for a human. For this reason, the
+alternative structured Isar proof language was designed to allow the writing of more human-friendly
 proofs. Following is a theorem showing that, whenever the @{const ordered} function returns true for
 a given predicate and list, the @{const ordered'} function will also return true:\footnote{In
 Isabelle, every unbound term is implicitly universally quantified:
-@{prop [source] "n + 1 > n"}~$\equiv$~@{prop [source] "(\<And>n. n + 1 > n)"}.}
+$n + 1 > n \: \equiv \: (\forall n. \ n + 1 > n)$.}
 *}
 
 lemma primrec_imp_inductive:
@@ -118,8 +117,8 @@ qed
 
 text {*
 This proof is still easily checked by a computer but is also more readable for a human. It is easy
-to see that the proof works by induction on the list @{term xs}, that the base case (@{const Nil}) is
-first proved and that in the inductive case (@{const Cons}), a cases analysis of the values the
+to see that the proof works by induction on the list @{term xs}, that the base case (@{const Nil})
+is first proved and that in the inductive case (@{const Cons}), a cases analysis of the values the
 argument @{term ys} can take is performed.
 
 For a more comprehensive introduction to Isabelle/HOL, the reader is encourage to start with the

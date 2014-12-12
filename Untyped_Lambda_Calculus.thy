@@ -9,7 +9,7 @@ text {* \label{sec:untyped-lambda-calculus} *}
 
 text {*
 The untyped lambda calculus is the first core calculus we formalize. It imports the theory on the
-nameless representation of terms (Section \ref{sec:nameless-rep-of-terms}), which formalizes the
+nameless representation of terms (Section~\ref{sec:nameless-rep-of-terms}), which formalizes the
 representation used for the syntax of the language. We complete the definitions by providing the
 semantics and prove the determinacy of evaluation, the relation between values and normal form, the
 uniqueness of normal form and the potentially non-terminating nature of evaluation.
@@ -44,8 +44,8 @@ The single-step evaluation relation is defined, in the book, with the following 
 where $[x \mapsto s] \ t$ is the replacement of variable $x$ by $s$ in $t$:
 \setcounter{equation}{0}
 \begin{gather}
-  \inferrule {t_1 \implies t_1'}{t_1 \ t_2 \implies t_1' \ t_2} \\[1em]
-  \inferrule {t_2 \implies t_2'}{v_1 \ t_2 \implies v_1 \ t_2'} \\[1em]
+  \inferrule {t_1 \implies t_1'}{t_1 \ t_2 \implies t_1' \ t_2} \\[0.8em]
+  \inferrule {t_2 \implies t_2'}{v_1 \ t_2 \implies v_1 \ t_2'} \\[0.8em]
   \inferrule {}{(\lambda x. \ t_{12}) \ v_2 \implies [x \mapsto v_2] \ t_{12}}
 \end{gather}
 
@@ -71,7 +71,7 @@ Apart from the explicit assumption on the nature of @{term v1}, the only differe
 substitution in the third rule. This is the reason that motivated us to formalize the nameless
 representation of terms in the first place. The book uses a high level definition of substitution
 where name clashes are not considered. We replace this higher level operation by our concrete
-substitution operation on de Bruijn indices''. We begin by shifting up by on the concrete argument
+substitution operation on de Bruijn indices. We begin by shifting up by on the concrete argument
 because, conceptually, it \emph{enters} the function abstraction. We then perform the proper
 substitution of the function's variable, i.e. of index zero. Finally, we shift down every variable
 of the resulting body to account for the removed $\lambda$-abstraction.
@@ -92,9 +92,9 @@ subsection {* Theorems *}
 
 text {*
 In the book, this chapter consists mainly of the presentation of the $\lambda$-calculus, of which we
-gave a short introduction in the background section (Section \ref{sec:background-lambda-calculus}),
+gave a short introduction in the background section (Section~\ref{sec:background-lambda-calculus}),
 and does not contains meaningful theorems. Nevertheless, we revisit the properties
-introduced with the arithmetic expressions language (Section \ref{sec:untyped-arith-expr}) and
+introduced with the arithmetic expressions language (Section~\ref{sec:untyped-arith-expr}) and
 either prove that they are still theorems or disprove them.
 *}
 

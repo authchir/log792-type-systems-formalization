@@ -9,7 +9,7 @@ section {* Typed Arithmetic Expressions *}
 text {* \label{sec:typed-arith-expr} *}
 
 text {* In this section, we revisit the previously formalized arithmetic expression language
-(Section \ref{sec:untyped-arith-expr}) and augment it with static types. Since types are a
+(Section~\ref{sec:untyped-arith-expr}) and augment it with static types. Since types are a
 characterization external to the definition of terms, we import the theory to reuse its definitions
 and theorems. We complete the definitions with the typing relation and prove type safety through the
 progress and preservation theorems.
@@ -27,17 +27,38 @@ datatype nbtype = Bool | Nat
 (* Definition 8.2.1 *)
 
 text {*
-The typing relation serves to assign a type to an expression. We express it with an inductive
-definition for which we also provide the @{text "|:|"} operator as a more conventional notation:
+The typing relation serves to assign a type to an expression. It is descibed with the following
+inference rules:
+\setcounter{equation}{0}
+\begin{gather}
+  \inferrule {}{\text{true} : \text{Bool}} \\[0.8em]
+  \inferrule {}{\text{false} : \text{Bool}} \\[0.8em]
+  \inferrule {t_1 : \text{Bool} \\ t_2 : \text{T} \\ t_3 : \text{T}}
+    {\text{if } t_1 \text{ then } t_2 \text{ else } t_3 : \text{T}} \\[0.8em]
+    \inferrule {}{0 : \text{Nat}} \\[0.8em]
+  \inferrule {t_1 : \text{Nat}}{\text{succ } t_1 : \text{Nat}} \\[0.8em]
+  \inferrule {t_1 : \text{Nat}}{\text{pred } t_1 : \text{Nat}} \\[0.8em]
+  \inferrule {t_1 : \text{Nat}}{\text{iszero } t_1 : \text{Bool}}
+\end{gather}
+
+The first, second and fourth rules give the type of constants. The third rule requires that both
+branches of a conditional have the same type and that the condition is a Boolean. The fifth and
+sixth rules state that the successor and predecessor of natural numbers are natural numbers
+themselves. Finally, the seventh rule state that the test of equality with zero requires a natural
+number and leads a Boolean. We translate these in an inductive definition, for which we also provide
+the @{text "|:|"} operator as a more conventional notation:
 *}
 
 inductive has_type :: "nbterm \<Rightarrow> nbtype \<Rightarrow> bool" (infix "|:|" 150) where
+  -- "Rules relating to the type of Booleans"
   has_type_NBTrue:
     "NBTrue |:| Bool" |
   has_type_NBFalse:
     "NBFalse |:| Bool" |
   has_type_NBIf:
     "t1 |:| Bool \<Longrightarrow> t2 |:| T \<Longrightarrow> t3 |:| T \<Longrightarrow> NBIf t1 t2 t3 |:| T" |
+
+  -- "Rules relating to the type of natural numbers"
   has_type_NBZero:
     "NBZero |:| Nat" |
   has_type_NBSucc:

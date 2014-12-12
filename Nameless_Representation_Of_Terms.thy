@@ -8,7 +8,7 @@ section {* Nameless Representation of Terms *}
 text {* \label{sec:nameless-rep-of-terms} *}
 
 text {*
-In the background section on $\lambda$-calculus (Section \ref{sec:background-lambda-calculus}), we
+In the background section on $\lambda$-calculus (Section~\ref{sec:background-lambda-calculus}), we
 presented the problem of name clashes that can arise when performing $\beta$-reduction. In its
 definitions and proofs, the book only works up to $\alpha$-equivalence: assuming that the variables
 would be implicitly renamed if such a name clash occurred. In a separate chapter, a different
@@ -19,10 +19,10 @@ Even though we are not building a compiler, our computer verified formalization 
 explicitly handle this problem. We chose to use this representation and, thus must also formalize
 this chapter.
 
-The idea behind this representation, known as de Bruijn indices'', is to make variables reference
+The idea behind this representation, known as de Bruijn indices, is to make variables reference
 directly their corresponding binder, rather than referring to them by name. This is accomplished by
 using an index that count the number of enclosing $\lambda$-abstractions between a variable and its
-binder. Following is an example of de Bruijn indices'' representation for the function composition
+binder. Following is an example of de Bruijn indices representation for the function composition
 combinator:
 \begin{displaymath}
   \lambda f. \lambda g. \lambda x. \ f \ (g \ x)
@@ -118,8 +118,9 @@ qed
 
 (*>*)
 text {*
-We now define a substitution function that replaces every free variable referring to the
-@{term j}'st $\lambda$ by @{term s} in some term:
+We now define a substitution function that replaces every free variable with index @{term j} by
+the term @{term s}:
+\newpage
 *}
 (* Definition 6.2.4 *)
 

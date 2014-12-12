@@ -30,6 +30,7 @@ Its counterpart, using Isabelle/HOL's syntax, is a recursive datatype: \footnote
 name clashes with Isabelle's predefined types and constants of the same name, our types and type
 constructors are prefixed with \texttt{b}, which stand for \emph{Booleans}. Functions use a suffix
 for the same purpose.}
+\newpage
 \<close>
 
 datatype bterm =
@@ -61,8 +62,8 @@ text \<open>
 The evaluation relation is concerned with the way a conditional expression will be reduced. The book
 uses the standard mathematical notation for inference rules:
 \begin{gather}
-  \inferrule {}{\text{if true then } t_2 \text{ else } t_3 \implies t_2} \\[1em]
-  \inferrule {}{\text{if false then } t_2 \text{ else } t_3 \implies t_3} \\[1em]
+  \inferrule {}{\text{if true then } t_2 \text{ else } t_3 \implies t_2} \\[0.8em]
+  \inferrule {}{\text{if false then } t_2 \text{ else } t_3 \implies t_3} \\[0.8em]
   \inferrule {t_1 \implies t_1'}
     {\text{if } t_1 \text{ then } t_2 \text{ else } t_3
       \implies \text{if } t_1' \text{ then } t_2 \text{ else } t_3}
@@ -73,6 +74,7 @@ The first rule states that the evaluation of a conditional with a true condition
 leads to the ``else'' branch and the third rule states that, if the condition is not a Boolean
 constant, it must be itself evaluated. These rules translate easily into another inductive predicate
 that returns true if the first argument can be reduced in one step to the second argument:
+\newpage
 \<close>
 
 inductive eval1_B :: "bterm \<Rightarrow> bterm \<Rightarrow> bool" where
@@ -82,6 +84,7 @@ inductive eval1_B :: "bterm \<Rightarrow> bterm \<Rightarrow> bool" where
     "eval1_B (BIf BFalse t2 t3) t3" |
   eval1_BIf:
     "eval1_B t1 t1' \<Longrightarrow> eval1_B (BIf t1 t2 t3) (BIf t1' t2 t3)"
+
 (*<*)
 (* Example of definition 3.5.3 *)
 
@@ -101,9 +104,10 @@ qed
 
 text {*
 With these basic definitions, we can turn to the first theorem: the determinacy of one-step
-evaluation. The focus of this paper being on the definitions and theorems, we can skim over the
-proof, just highlighting that it goes by induction over the evaluation relation and that it involves
-some case analyses:
+evaluation. This theorem states that the evaluation relation is deterministic (i.e. there is only
+one way in which a given term can be evaluate). The focus of this paper being on the definitions and
+theorems, we can skim over the proof, just highlighting that it goes by induction over the
+evaluation relation and that it involves some case analyses:
 *}
 
 theorem eval1_B_determinacy:
@@ -137,6 +141,7 @@ definition is_normal_form_B :: "bterm \<Rightarrow> bool" where
 
 text {*
 We continue by proving that every value is in normal form:
+\newpage
 *}
 
 theorem value_imp_normal_form:
@@ -190,6 +195,7 @@ three cases for each induction on a evaluation relation. Instead, we choose to d
 evaluation relation using a shape similar to a list of one-step evaluations. The inductive
 definition consists of a base case, the reflexive application, and of an inductive case where one
 step of evaluation is performed:
+\newpage
 *}
 
 inductive eval_B :: "bterm \<Rightarrow> bterm \<Rightarrow> bool" where
@@ -242,6 +248,7 @@ by (induction t u rule: eval_B.induct)
 text {*
 The last theorem we consider is the termination of evaluation. To prove it, we need first to add a
 helper lemma, which was implicitly assumed in the book, about the size of terms after evaluation:
+\newline
 *}
 (*<*)
 (* subsubsection {* Theorem 3.5.12 *} *)
@@ -401,6 +408,7 @@ inductive eval1_NB :: "nbterm \<Rightarrow> nbterm \<Rightarrow> bool" where
 text {*
 The multi-step evaluation relation and the definition of normal form are perfectly analogous to
 these for Booleans:
+\newpage
 *}
 
 inductive eval_NB :: "nbterm \<Rightarrow> nbterm \<Rightarrow> bool" where

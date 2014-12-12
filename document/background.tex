@@ -94,10 +94,15 @@ operation to choose between two options:
     & \: \equiv \: \lambda b. \lambda t. \lambda f. \ b \ t \ f
 \end{align*}
 
-Using the rules already discussed, it is easy to show that the following reduction is valid:
-\begin{displaymath}
-  \text{if true then } x \text{ else } y \: \to_\beta \: \dots \: \to_\beta \: x
-\end{displaymath}
+Using the rules already discussed, it is easy to show that the following reduction is
+valid:\footnote{Multiple consecutive $\beta$-reductions are denoted with $\to_\beta^*$.}
+\begin{align*}
+  \text{if true then } x \text{ else } y
+    & \equiv \: (\lambda b. \lambda t. \lambda f. \ b \ t \ f) \ true \ x \ y \\
+    & \to_\beta^* \: true \ x \ y \\
+    & \equiv \: (\lambda t. \lambda f. \ t) \ x \ y \\
+    & \to_\beta^* \: x
+\end{align*}
 
 Other encodings exist for constructions such as numbers, list, datatypes, arbitrary recursion, etc.
 For a more comprehensive introduction to the subject, Hankin's monograph \cite{hankin-2004-ILCCS} is
@@ -123,7 +128,7 @@ parentheses: $T_1 \to T_2 \to T_3$.}
     $\text{add} : \mathbb{N} \to \mathbb{N} \to \mathbb{N}$ \newline
     $\text{true} : \mathbb{B}$ \newline
     add true true
-    & Error in function application, "add" expects a $\mathbb{N}$ as first argument but a
+    & Error in function application, ``add'' expects a $\mathbb{N}$ as first argument but a
     $\mathbb{B}$ was provided.
   \end{tabular}
 \end{center}

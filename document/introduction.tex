@@ -18,7 +18,7 @@ role and the process of formalization. Thus, the choice of this subject for this
 opportunity to fulfill both goals.
 
 Before entering into the realm of formalizations, we first introduce the required background
-(Section \ref{sec:background}) for $\lambda$-calculus, type systems and Isabelle/HOL. The
+(Section~\ref{sec:background}) for $\lambda$-calculus, type systems and Isabelle/HOL. The
 $\lambda$-calculus is a core calculus that captures the essential features of functional programming
 languages.  That is, there exists a way to encode high level features such as recursion, datatypes,
 records, etc. Such calculus can come, as programming languages do, in two variants: typed and
@@ -29,9 +29,9 @@ datatypes and functions. The difference is that it allows to postulate propertie
 defined elements and to provide machine checked poofs that those properties are theorems.
 
 The formalizations we perform all have a direct correspondence with chapters from \emph{TAPL}
-(Section \ref{sec:structure-of-formalization}). We provide one Isabelle/HOL theory file per chapter.
+(Section~\ref{sec:structure-of-formalization}). We provide one Isabelle/HOL theory file per chapter.
 
-The untyped arithmetic expressions language (Section \ref{sec:untyped-arith-expr}) serves as a
+The untyped arithmetic expressions language (Section~\ref{sec:untyped-arith-expr}) serves as a
 warm-up to experiment with the general structure of formalizations. It consists of Boolean
 expressions and natural numbers. This simplicity allows us to concentrate on the translation to
 Isabelle/HOL of the definitions found in the book and to accustom ourselves with the notation. Most
@@ -39,29 +39,29 @@ of our definitions and theorems closely follows the ones from the book. The main
 that we expose some hypotheses that are implicit in the book and that we use a different definition
 of the mutli-step evaluation relation.
 
-The formalization (Section \ref{sec:nameless-rep-of-terms}) of the nameless representation of terms,
-also known as de Bruijn indices'', was not initially planned but arose from the need to use a
-concrete representation for variables in the $\lambda$-calculus. Our formalization closely follows
-the book.
+The formalization (Section~\ref{sec:nameless-rep-of-terms}) of the nameless representation of terms,
+also known as de Bruijn indices \cite{bruijn-1972-indices}, was not initially planned but arose
+from the need to use a concrete representation for variables in the $\lambda$-calculus. Our
+formalization closely follows the book.
 
 While the previous formalizations are either a warm-up or a representation necessity, the untyped
-$\lambda$-calculus (Section \ref{sec:untyped-lambda-calculus}) is the first core calculus we
+$\lambda$-calculus (Section~\ref{sec:untyped-lambda-calculus}) is the first core calculus we
 formalized. We differ from the book in the definition of the evaluation relation. In \emph{TAPL},
 the evaluation relation assumes that name clashes in variables are automatically solved by renaming
 them and, thus, ignore this possibility from there on. Such an assumption is not accepted by
-computer-verified proof. We use de Bruijn indices'' as representation for variables to encode this
+computer-verified proof. We use de Bruijn indices as representation for variables to encode this
 assumption. Also, since the chapter in the book is more focused on explaining the
 $\lambda$-calculus, it contains no meaningful theorems. Nevertheless, we revisit the properties
 introduced with the arithmetic expressions language and either prove that they are still theorems or
 disprove them.
 
-The typed arithmetic expressions language (Section \ref{sec:typed-arith-expr}) is again a warm-up;
+The typed arithmetic expressions language (Section~\ref{sec:typed-arith-expr}) is again a warm-up;
 this time, to experiment with the formalization of a type system. Our formalization closely follows
 the book.
 
-The simply typed $\lambda$-calculus (Section \ref{sec:simply-typed-lambda-calculus}) is the second
+The simply typed $\lambda$-calculus (Section~\ref{sec:simply-typed-lambda-calculus}) is the second
 core calculus we formalize. Here, we differ significantly from the book, mainly because of our use
-of de Bruijn indices'' but also because of our representation of the typing context, we need to
+of de Bruijn indices but also because of our representation of the typing context, we need to
 adapt some lemmas and replace others. This is certainly the most challenging part of the
 formalization, since we cannot follow the described proofs anymore and must find the right
 assumptions for our lemmas. In spite of these differences, our formalization still respects the

@@ -33,6 +33,7 @@
 \usepackage{lipsum} % just to automatically generate text
 \usepackage[nottoc,numbib]{tocbibind}
 \usepackage{mathpartir}
+\usepackage{subcaption}
 
 \usetikzlibrary{arrows}
 
@@ -128,7 +129,7 @@ Systems'' and ``Simple Types'', of the book \emph{Types and Programming Language
 Benjamin~C.~Pierce. We first begin with a short tour of the $\lambda$-calculus, type systems and the
 Isabelle/HOL theorem prover before attacking the formalization \emph{per se}. Starting with an
 arithmetic expressions language offering Booleans and natural numbers, we pursue, after a brief
-digression to the "de Bruijn indices", to the untyped $\lambda$-calculus. We then return to a typed
+digression to the de Bruijn indices, to the untyped $\lambda$-calculus. We then return to a typed
 variant of the arithmetic expression language before to conclude with the simply typed
 $\lambda$-calculus.
 \end{abstract}
@@ -183,6 +184,7 @@ $\lambda$-calculus.
 
 %\part{Conclusion}
 \input{conclusion}
+\newpage
 
 \nocite{*}
 \bibliographystyle{alpha}
