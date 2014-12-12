@@ -67,7 +67,7 @@ by (auto elim: has_type.cases)
 
 text {*
 In the typed arithmetic language, every term @{term t} has at most one type. That is, if @{term t}
-is typeable, then its type is unique:
+is typable, then its type is unique:
 *}
 
 theorem uniqueness_of_types:
@@ -91,7 +91,7 @@ with this term.
 
 text {*
 An other usefull lemma is the canonical form of values which, for well typed terms, give us
-informations on the nature of the terms:
+information on the nature of the terms:
 *}
 
 lemma canonical_form:

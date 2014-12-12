@@ -20,7 +20,7 @@ explicitly handle this problem. We chose to use this representation and, thus mu
 this chapter.
 
 The idea behind this representation, known as ``de Bruijn indices'', is to make variables reference
-directly their corresponding binder, rather than refering to them by name. This is accomplished by
+directly their corresponding binder, rather than referring to them by name. This is accomplished by
 using an index that count the number of enclosing $\lambda$-abstractions between a variable and its
 binder. Following is an example of ``de Bruijn indices'' representation for the function composition
 combinator:
@@ -80,7 +80,7 @@ have an implicit assumption that it should not be called with a negative number 
 smallest variable in the term. Following is an example of shifting up every free variable by 2:
 *}
 
-(* Exercice 6.2.2 *)
+(* Exercise 6.2.2 *)
 
 lemma "shift_UL 2 0
   (ULAbs (ULAbs (ULApp (ULVar 1) (ULApp (ULVar 0) (ULVar 2))))) =
@@ -91,7 +91,7 @@ text {*
 On first reading, the previous example may seems broken: the variables @{term "ULVar 0"} and
 @{term "ULVar 1"} are not incremented. This is because the shift function operates on free
 variables, i.e. variables whose index refers to a non-existing $\lambda$-abstraction. Since the
-binding refered by @{term "ULVar 1"} is in the term, it is not a free variable: it is bounded.
+binding referred by @{term "ULVar 1"} is in the term, it is not a free variable: it is bounded.
 *}
 (*<*)
 
@@ -100,7 +100,7 @@ lemma "shift_UL 2 0
    ULAbs (ULApp (ULVar 0) (ULApp (ULVar 3) (ULAbs (ULApp (ULVar 0) (ULApp (ULVar 1) (ULVar 4))))))"
   by simp
 
-(* Exercice 6.2.3 *)
+(* Exercise 6.2.3 *)
 
 lemma "n_term n t \<Longrightarrow> n_term (n + nat d) (shift_UL d c t)"
 proof (induction n t arbitrary: d c rule: n_term.induct)
@@ -117,7 +117,7 @@ qed
 
 (*>*)
 text {*
-We now define a substitution function that replaces every free variable refering to the
+We now define a substitution function that replaces every free variable referring to the
 @{term [source] "(j + 1)"}'st $\lambda$ by @{term s} in some term:
 *}
 (* Definition 6.2.4 *)
@@ -127,10 +127,10 @@ primrec subst_UL :: "nat \<Rightarrow> ulterm \<Rightarrow> ulterm \<Rightarrow>
   "subst_UL j s (ULAbs t) = ULAbs (subst_UL (Suc j) (shift_UL 1 0 s) t)" |
   "subst_UL j s (ULApp t1 t2) = ULApp (subst_UL j s t1) (subst_UL j s t2)"
 
-(* Exercice 6.2.5 *)
+(* Exercise 6.2.5 *)
 
 text {*
-Here is an example of substituing variable 0 by variable 1:
+Here is an example of substituting the variable 0 by the variable 1:
 *}
 
 lemma "subst_UL 0 (ULVar 1)
@@ -161,7 +161,7 @@ lemma "subst_UL 0 (ULVar 1)
    ULAbs (ULApp (ULVar 2) (ULVar 0))"
   by simp
 
-(* Exercice 6.2.6 *)
+(* Exercise 6.2.6 *)
 
 lemma n_term_shift_UL: "n_term n t \<Longrightarrow> n_term (n + nat j) (shift_UL j i t)"
   by (induction n t arbitrary: j i rule: n_term.induct)

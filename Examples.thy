@@ -124,7 +124,7 @@ argument @{term ys} can take is performed.
 
 For a more comprehensive introduction to Isabelle/HOL, the reader is encourage to start with the
 first part of the book \emph{Concrete Semantics} \cite{nipkow-klein-2014-concrete-semantics} and
-continue, for a deeper understanding, with the more exaustive tutorial
+continue, for a deeper understanding, with the more exhaustive tutorial
 \cite{nipkow-et-al-2014-tutorial}.
 *}
 

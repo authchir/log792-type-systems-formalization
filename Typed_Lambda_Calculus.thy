@@ -37,7 +37,7 @@ datatype_new ltype =
 
 text {*
 In the previous definition, @{const Fun} is a type constructor which can be use to create functions
-types for some concreate domain and codomain. Examples of such types include @{term "Bool \<rightarrow> Bool"},
+types for some concrete domain and codomain. Examples of such types include @{term "Bool \<rightarrow> Bool"},
 @{term "(Bool \<rightarrow> Bool) \<rightarrow> Bool"}, @{term [source] "(Bool \<rightarrow> Bool) \<rightarrow> (Bool \<rightarrow> Bool)"},
 @{term "(Bool \<rightarrow> Bool) \<rightarrow> Bool \<rightarrow> Bool"}, etc. Note that the last two examples are equivalent, since
 the @{text "\<rightarrow>"} operator is right-associative.
@@ -116,7 +116,7 @@ text {*
 When type-checking the body of a function abstraction, we assume that the given function argument
 does have the type annotated. Since the body could itself be a function abstraction, we need to keep
 track of this set of assumptions, also known as typing context. Since the book considers variables
-to be a named reference to a $\lambda$-absraction, its typing context is a set of identifier--type
+to be a named reference to a $\lambda$-abstraction, its typing context is a set of identifier--type
 pairs. Our use of ``de Bruijn indices'' requires us to consider an alternative representation. We
 define a context to be a list of types whose $n$th position contains the type of the $n$th
 enclosing $\lambda$-abstraction:
@@ -162,7 +162,7 @@ As an example of a usage of the typing relation, consider the type of the applic
 lemma "\<emptyset> \<turnstile> (LApp (LAbs Bool (LVar 0)) LTrue) |:| Bool"
   by (auto intro!: has_type_L.intros)
 
-(* Exercice 9.2.2 *)
+(* Exercise 9.2.2 *)
 
 text {*
 A more interesting example, assuming there is one variable of type @{term "Bool \<rightarrow> Bool"} in the
@@ -180,7 +180,7 @@ lemma
   shows "\<Gamma> \<turnstile> LAbs Bool (LApp (LVar 1) (LIf (LVar 0) LTrue LFalse)) |:| Bool \<rightarrow> Bool"
   by (auto intro!: has_type_L.intros simp: assms)
 
-(* Exercice 9.2.3 *)
+(* Exercise 9.2.3 *)
 
 lemma
   assumes "\<Gamma> = \<emptyset> |,| Bool \<rightarrow> Bool \<rightarrow> Bool |,| Bool |,| Bool"
@@ -199,7 +199,7 @@ subsection {* Properties of Typing *}
 (* Lemma 9.3.1 *)
 
 text {*
-The inversion of typing relation, which gives us informations on types for specific terms, will be
+The inversion of typing relation, which gives us information on types for specific terms, will be
 a useful lemma in the following theorems:
 *}
 
@@ -331,7 +331,7 @@ The book then consider the weakening the typing context:
 
 This lemma does hold with our representation of the typing context, but we need to express it in
 terms of list by inserting @{term s} at a fixed position @{term n}. Moreover, we need to shift up
-every variable refering to a $\lambda$-abstraction farther in the context than @{term n}.
+every variable referring to a $\lambda$-abstraction farther in the context than @{term n}.
 *}
 
 lemma weakening:

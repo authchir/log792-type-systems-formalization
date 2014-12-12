@@ -399,8 +399,8 @@ inductive eval1_NB :: "nbterm \<Rightarrow> nbterm \<Rightarrow> bool" where
     "eval1_NB t t' \<Longrightarrow> eval1_NB (NBIs_zero t) (NBIs_zero t')"
 
 text {*
-The multi-step evaluation relation and the definition of normal form are perectly analogous to these
-for booleans:
+The multi-step evaluation relation and the definition of normal form are perfectly analogous to
+these for booleans:
 *}
 
 inductive eval_NB :: "nbterm \<Rightarrow> nbterm \<Rightarrow> bool" where
@@ -413,7 +413,7 @@ definition is_normal_form_NB :: "nbterm \<Rightarrow> bool" where
   "is_normal_form_NB t \<longleftrightarrow> (\<forall>t'. \<not> eval1_NB t t')"
 
 text {*
-The reason is that all the actual work is perfomed by the single-step evaluation relation.
+The reason is that all the actual work is performed by the single-step evaluation relation.
 
 In the book, the section covering this fully fledged arithmetic expression language is mainly an
 explanation of the constructions not present in the boolean expression language and does not
