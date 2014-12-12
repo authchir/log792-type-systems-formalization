@@ -2,24 +2,24 @@
 
 In this thesis, we formalized a number of languages presented in \emph{Types and Programming
 Languages} using the Isabelle/HOL interactive theorem prover. We started with a simple arithmetic
-language of booleans and natural numbers. We continued with the nameless representation of terms for
+language of Booleans and natural numbers. We continued with the nameless representation of terms for
 the $\lambda$-calculus, which we used as a basis for the pure untyped $\lambda$-calculus. For those
 languages, we proved the determinacy of evaluation, the relation between values and normal form, the
 uniqueness of normal form and the termination, or non-termination, of evaluation.
 
 We then revisited both languages and augmented them with type systems. We proved the uniqueness of
 types and the safety of the languages through the progress and preservation theorems. We also
-demonstrated that the addition of types did not changed the semantic of the $\lambda$-calculus by
-proving that types can be erase without affecting the evaluation of terms.
+demonstrated that the addition of types did not changed the semantics of the $\lambda$-calculus by
+proving that types can be erased without affecting the evaluation of terms.
 
-A formalization can be separate in three main elements: definitions, properties involving these
+A formalization can be separated in three main elements: definitions, properties involving these
 definitions and computer-checked proofs that those properties hold. In retrospective, expressing the
 definitions and properties was the more important and difficult activity. Once the right
 abstractions and the correct formulations for theorems were found, the proofs were usually fairly
-simple: a good definition worth three theorems! Conversely, a wrong abstraction or hypothesis
-have led use to theorems very difficult to prove, or even properties that ended not being theorems
-at all.
+simple: a good definition is worth three theorems! Conversely, a wrong abstraction or hypothesis
+have led use to theorems very difficult to prove, or even properties that ended up not being
+theorems at all.
 
-In this report, we focused our attention on the definitions on how theorems were expressed,
-highlighting the differences with the book. The complete Isabelle/HOL theories provided along this
-report contain more examples, exercises and less important theorems.
+In this report, we focused our attention on the definitions and theorems, highlighting the
+differences with the book. The complete Isabelle/HOL theories provided along with this report
+contain more examples, exercises and less important theorems.

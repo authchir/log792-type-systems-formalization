@@ -9,25 +9,25 @@ hide_type list
 text {*
 This section only presents briefly the most used constructions in the formalizations described in
 this thesis. It is not expected from the reader to fully understand the proofs presented in this
-report. It is sufficient to recognise key concepts such as induction and case analyses.
+report; it is sufficient to recognise key concepts such as induction and case analysis.
 
 The theorem proving community is subdivided in two groups: automatic theorem proving (ATP) and
 interactive theorem proving (ITP). Each has its own set of goals, motivations, methodologies,
 tools and terminology. In ATP, one must formulate its context and equations in some logical
 formalism and ask the theorem prover to find a proof. The limiting factor is the algorithm used by
 the tool. Examples of such provers include SPASS, Vampire and Z3. In ITP, one must also formulate
-its context and equations in some logical formalisms, although usually a more expressive one, but
+its context and equations in some logical formalism, although usually a more expressive one, but
 must also give instructions guiding the prover. The term proof assistant is sometime used to
 highlight this collaboration between the human and the machine. Here, the limiting factor is the
 ability of the human to guide its tool. Examples of interactive theorem provers include Agda, Coq
 and Isabelle. Isabelle is a generic interactive theorem prover for implementing logical formalisms
-and Isabelle/HOL is its specialization to a specific formalism called higher order logic.
+and Isabelle/HOL is its specialization to a formalism called higher order logic.
 
 An Isabelle theory file serves as the basic unit of encapsulation of formalizations and reusable
 libraries. It is analogous to modules in programming languages. Every definition and theorem
 developed must belong to a theory and can be made accessible to other theories by importing them.
 
-Types and function definitions serve to describe entities and how to operate on them. They work in
+Types and function definitions serve to describe entities and how to operate on them. They work in a
 very similar way to their counterpart in functional programming languages. A new type is introduced
 with the \texttt{datatype} command, followed by the name of the type and the different constructors
 separated by a \texttt{|}. Following is the standard definition of the type of parametric
@@ -39,12 +39,12 @@ lists:\footnote{Prefixing an element with a descriptive name, as done for the ar
 datatype_new 'a list = Nil | Cons (head: 'a) (tail: "'a list")
 
 text {*
-The datatype consits of two constructors. The first one, @{const Nil}, is used to represent the
+The datatype consists of two constructors. The first one, @{const Nil}, is used to represent the
 empty list while the second one, @{const Cons}, is used to add an element in front of an existing
-list. Using those two primitives, a list can be created by successive application of the
-@{const Cons} constructor (e.g. @{term "Cons 1 (Cons 2 (Cons 3 Nil))"}). The \texttt{'a} in front of
-the name is a placeholder for a concrete type that must be provide later (e.g. the type of the
-previous example is @{typ "nat list"}).
+list. Using those two primitives, a list can be created by successive application of the @{const
+Cons} constructor (e.g. @{term [source] "Cons 1 (Cons 2 (Cons 3 Nil))"}). The \emph{'a} in front
+of the name is a placeholder for a concrete type that must be provide later (e.g. the type of the
+previous example could be @{typ "nat list"}).
 
 Function definitions can take many forms in Isabelle/HOL. A primitively recursive function is
 introduced with the \texttt{primrec} command and defined by pattern matching over its arguments.
@@ -61,13 +61,13 @@ primrec ordered :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a li
      Cons y ys \<Rightarrow> p x y \<and> ordered p xs)"
 
 text {*
-An alternative way in which this function could be defined is with an inductive definition.
-Introduced with the \texttt{inductive} command, it allows to express boolean functions by providing
-an inductive definition of when the function should evaluate to true, leaving all the other cases to
-false. The definition consists of base cases and possibly many inductive cases. Following is the
-same function defined by induction:\footnote{Here, a descriptive name have been given to each rule.
-The base cases are @{text empty_list} and @{text singleton_list} while the inductive case is
-@{text arbitrary_list}.}
+An alternative way in which this function could be defined is inductively. Introduced with the
+\texttt{inductive} command, it allows to express Boolean functions by providing an inductive
+definition of when the function should evaluate to true, leaving all the other cases to false. The
+definition consists of base cases and possibly many inductive cases. Following is the same function
+defined inductively:\footnote{Here, a descriptive name have been given to each rule. The base
+cases are @{text empty_list} and @{text singleton_list} while the inductive case is @{text
+arbitrary_list}.}
 *}
 
 inductive ordered' :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> bool" where
@@ -99,7 +99,7 @@ done
 
 text {*
 This proof is easily checked by a computer but very hard to read for a human. For this reason,
-the alternative Isar structured proof language was designed to allow the writing of more human-friendly
+the alternative structured Isar proof language was designed to allow the writing of more human-friendly
 proofs. Following is a theorem showing that, whenever the @{const ordered} function returns true for
 a given predicate and list, the @{const ordered'} function will also return true:\footnote{In
 Isabelle, every unbound term is implicitly universally quantified:
@@ -118,7 +118,7 @@ qed
 
 text {*
 This proof is still easily checked by a computer but is also more readable for a human. It is easy
-to see that the proof work by induction on the list @{term xs}, that the base case (@{const Nil}) is
+to see that the proof works by induction on the list @{term xs}, that the base case (@{const Nil}) is
 first proved and that in the inductive case (@{const Cons}), a cases analysis of the values the
 argument @{term ys} can take is performed.
 

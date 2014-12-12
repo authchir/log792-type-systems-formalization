@@ -8,11 +8,11 @@ section {* Untyped Arithmetic Expressions *}
 text {* \label{sec:untyped-arith-expr} *}
 
 text {*
-The language of untyped arithmetic expressions consists of boolean expressions, containing the
+The language of untyped arithmetic expressions consists of Boolean expressions, containing the
 constants \texttt{true} and \texttt{false} and conditionals as primitives, and natural numbers,
 containing the constant \texttt{zero}, the successor and predecessor functions and an operation to
 test equality with zero as primitives. Following the book, we start with a subset containing only
-the boolean expression and carry on with fully fledged arithmetic expressions.
+the Boolean expression and carry on with fully fledged arithmetic expressions.
 *}
 
 subsection {* Booleans *}
@@ -28,8 +28,8 @@ The syntax of this language is defined, in the book, in the following way:
 
 Its counterpart, using Isabelle/HOL's syntax, is a recursive datatype: \footnote{To prevent
 name clashes with Isabelle's predefined types and constants of the same name, our types and type
-constructors are prefixed with \texttt{b}, which stand for "booleans". Functions use a suffix for
-the same purpose.}
+constructors are prefixed with \texttt{b}, which stand for \emph{Booleans}. Functions use a suffix
+for the same purpose.}
 \<close>
 
 datatype bterm =
@@ -39,9 +39,10 @@ datatype bterm =
 
 text \<open>
 The semantics of the language is defined using the small-step operational semantics which consists
-of an evaluation relation that performs the smallest possible step toward the final value. For the
-booleans, the only values are the constants @{term BTrue} and @{term BFalse}. To describe those,
-the book uses the following notation:
+of an evaluation relation that performs the smallest possible step towards the final value. Values
+are a subset of terms that are considered as the final output of a computation. For the Booleans,
+the only values are the constants @{term BTrue} and @{term BFalse}. To describe these, the book uses
+the following notation:
 \begin{align*}
   t ::= & \\
     & \text{true} && \text{true value} \\
@@ -60,19 +61,18 @@ text \<open>
 The evaluation relation is concerned with the way a conditional expression will be reduced. The book
 uses the standard mathematical notation for inference rules:
 \begin{gather}
-  \inferrule {}{\text{if true then } t_2 \text{ else } t_3 \implies t_2} \\
-  \inferrule {}{\text{if false then } t_2 \text{ else } t_3 \implies t_3} \\
+  \inferrule {}{\text{if true then } t_2 \text{ else } t_3 \implies t_2} \\[1em]
+  \inferrule {}{\text{if false then } t_2 \text{ else } t_3 \implies t_3} \\[1em]
   \inferrule {t_1 \implies t_1'}
     {\text{if } t_1 \text{ then } t_2 \text{ else } t_3
       \implies \text{if } t_1' \text{ then } t_2 \text{ else } t_3}
 \end{gather}
 
 The first rule states that the evaluation of a conditional with a true condition leads to the
-\texttt{then} branch, the second rule states that the evaluation of a conditional with a false
-condition leads to the \texttt{else} branch and the third rule states that, if the condition is not
-a boolean constant, it must be itself evaluated. These rules translate easily into another
-inductive predicate that returns true when the first argument can be reduced in one step to the
-second argument:
+``then'' branch, the second rule states that the evaluation of a conditional with a false condition
+leads to the ``else'' branch and the third rule states that, if the condition is not a Boolean
+constant, it must be itself evaluated. These rules translate easily into another inductive predicate
+that returns true if the first argument can be reduced in one step to the second argument:
 \<close>
 
 inductive eval1_B :: "bterm \<Rightarrow> bterm \<Rightarrow> bool" where
@@ -129,7 +129,7 @@ A key concept is that of normal form, for which the book gives the following def
   if there is no $t'$ such that $t \to t'$.
 \end{quotation}
 Since this definition mainly introduces some standard terminology for a property of terms with
-respect to the single-step evaluation relation, we translate it using a simple synonym definition:
+respect to the single-step evaluation relation, we translate it using a simple definition:
 *}
 
 definition is_normal_form_B :: "bterm \<Rightarrow> bool" where
@@ -240,7 +240,7 @@ by (induction t u rule: eval_B.induct)
   (metis eval_B.cases is_normal_form_B_def eval1_B_determinacy)+
 
 text {*
-The last theorem we consider is the termination of evaluation. To prove it, we must first add a
+The last theorem we consider is the termination of evaluation. To prove it, we need first to add a
 helper lemma, which was implicitly assumed in the book, about the size of terms after evaluation:
 *}
 (*<*)
@@ -264,7 +264,7 @@ subsection {* Arithmetic Expressions *}
 
 text {*
 We now turn to the fully fledged arithmetic expression language. The syntax is defined in the same
-way as for booleans:\footnote{The prefix \emph{nb} stands for \emph{numeric and booleans}.}
+way as for Booleans:\footnote{The prefix \emph{nb} stands for \emph{numeric and Booleans}.}
 *}
 
 datatype nbterm =
@@ -337,7 +337,7 @@ theorems structural_induction = nbterm.induct
 
 (*>*)
 text \<open>
-Values now consist either of booleans or numeric values, for which a separate inductive
+Values now consist either of Booleans or numeric values, for which a separate inductive
 definition is given. Here is the definition as found in the book:
 \begin{align*}
   v ::= & \\
@@ -354,8 +354,8 @@ Our inductive definition is very similar, but contains explicit assumptions on t
 always representing terms, letters such as \texttt{v} as always representing values and variants of
 \texttt{nv} as always representing numeric values. In our formalization, such implicit assumption is
 possible for \texttt{t} because Isabelle/HOL infers that @{term nberm} is the only type that could
-be place at this position. Since values and numeric values do not have a proper type but are a
-subset of terms, we must add assumptions to declare the nature of these variables:
+be place at this position. Since values and numeric values do not have a proper type but
+characterize a subset of terms, we must add assumptions to declare the nature of these variables:
 \<close>
 
 inductive is_numeric_value_NB :: "nbterm \<Rightarrow> bool" where
@@ -368,11 +368,11 @@ inductive is_value_NB :: "nbterm \<Rightarrow> bool" where
   "is_numeric_value_NB nv \<Longrightarrow> is_value_NB nv"
 
 text {*
-The single-step evaluation relation is a superset of the one defined for booleans:
+The single-step evaluation relation is a superset of the one defined for Booleans:
 *}
 
 inductive eval1_NB :: "nbterm \<Rightarrow> nbterm \<Rightarrow> bool" where
-  -- "Rules relating to the evaluation of booleans"
+  -- "Rules relating to the evaluation of Booleans"
   eval1_NBIf_NBTrue:
     "eval1_NB (NBIf NBTrue t2 t3) t2" |
   eval1_NBIf_NBFalse:
@@ -400,7 +400,7 @@ inductive eval1_NB :: "nbterm \<Rightarrow> nbterm \<Rightarrow> bool" where
 
 text {*
 The multi-step evaluation relation and the definition of normal form are perfectly analogous to
-these for booleans:
+these for Booleans:
 *}
 
 inductive eval_NB :: "nbterm \<Rightarrow> nbterm \<Rightarrow> bool" where
@@ -416,9 +416,9 @@ text {*
 The reason is that all the actual work is performed by the single-step evaluation relation.
 
 In the book, the section covering this fully fledged arithmetic expression language is mainly an
-explanation of the constructions not present in the boolean expression language and does not
+explanation of the constructions not present in the Boolean expression language and does not
 contains any proper theorems. Nevertheless, we revisit the properties introduced for the language of
-booleans and either prove that they are still theorems or disprove them.
+Booleans and either prove that they are still theorems or disprove them.
 *}
 
 (*<*)
@@ -497,7 +497,7 @@ by (auto
 (* subsubsection {* Theorem 3.5.8 does not hold for Arithmetic Expressions *} *)
 
 text {*
-But, unlike for boolean expressions, some terms that are in normal form are not values. An example
+But, unlike for Boolean expressions, some terms that are in normal form are not values. An example
 of such term is @{term "NBSucc NBTrue"}.
 *}
 

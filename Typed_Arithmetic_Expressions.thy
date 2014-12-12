@@ -18,7 +18,7 @@ progress and preservation theorems.
 subsection {* Definitions *}
 
 text {*
-The language of arithmetic expressions contains two types for booleans and natural numbers, which we
+The language of arithmetic expressions contains two types for Booleans and natural numbers, which we
 model using a datatype:
 *}
 
@@ -78,9 +78,9 @@ subsection {* Safety = Progress + Preservation *}
 
 text {*
 The most basic property a type system must provide is \emph{safety}, also called \emph{soundness}:
-the evaluation of a well-typed term will not reach a state whose semantic is undefined. Since our
-\emph{operational semantic} is based the of the evaluation relation and the value predicate, every
-term that does not fit in one or the other have no defined semantic.
+the evaluation of a well-typed term will not reach a state whose semantics is undefined. Since our
+\emph{operational semantics} is based the of the evaluation relation and the value predicate, every
+term that does not fit in one or the other has no defined semantics.
 
 An example of an undefined state is @{term "NBSucc NBTrue"}: there is no further evaluation
 step possible but it is not a value neither. In our current language, there is nothing we can do
@@ -90,7 +90,7 @@ with this term.
 (* Lemma 8.3.1 *)
 
 text {*
-An other usefull lemma is the canonical form of values which, for well typed terms, give us
+Another usefull lemma is the canonical form of values which, for well typed terms, give us
 information on the nature of the terms:
 *}
 
@@ -107,7 +107,8 @@ a well-typed term is not stuck, i.e. either it is a value or it can take a step 
 evaluation rules.
 *}
 
-theorem progress: "t |:| T \<Longrightarrow> is_value_NB t \<or> (\<exists>t'. eval1_NB t t')"
+theorem progress:
+  "t |:| T \<Longrightarrow> is_value_NB t \<or> (\<exists>t'. eval1_NB t t')"
 proof (induction t T rule: has_type.induct)
   case (has_type_NBPred t)
   thus ?case

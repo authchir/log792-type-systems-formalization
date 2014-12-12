@@ -25,28 +25,27 @@ inductive is_value_UL :: "ulterm \<Rightarrow> bool" where
   "is_value_UL (ULAbs t)"
 
 text {*
-Variables are not part of this definition because they are a way to refer to a specific of a
-function abstraction. Since function abstractions are values, we do not need to consider their
-variable. The only ones we could consider as values are the free variables, i.e. variables referring
-to non-existing function abstractions. In the following examples, every occurrence of @{term w} is
-free:
+Variables are not part of this definition because they are a way to refer to a specific
+$\lambda$-abstraction. Since abstractions are themselves values, we do not need to consider their
+bound variables. The only ones we could consider as values are the free variables, i.e. variables
+referring to non-existing $\lambda$-abstractions. In the following examples, every occurrence of
+@{term w} is free:
 
 \begin{displaymath}
   w \qquad (\lambda x. \ x) \ w \qquad (\lambda x. \lambda y. \lambda z. \ w \ x \ y \ z)
 \end{displaymath}
 
-There is no consensus on how the semantic should handle such situations. By excluding them from the
+There is no consensus on how the semantics should handle such situations. By excluding them from the
 set of values, the semantics described in the book defines that such terms are meaningless. This
 decision is consistent with many programming languages where the use of an undefined identifier
 leads to an error, either at compile-time or at run-time.
 
 The single-step evaluation relation is defined, in the book, with the following inference rules
 where $[x \mapsto s] \ t$ is the replacement of variable $x$ by $s$ in $t$:
-
 \setcounter{equation}{0}
 \begin{gather}
-  \inferrule {t_1 \implies t_1'}{t_1 \ t_2 \implies t_1' \ t_2} \\
-  \inferrule {t_2 \implies t_2'}{v_1 \ t_2 \implies v_1 \ t_2'} \\
+  \inferrule {t_1 \implies t_1'}{t_1 \ t_2 \implies t_1' \ t_2} \\[1em]
+  \inferrule {t_2 \implies t_2'}{v_1 \ t_2 \implies v_1 \ t_2'} \\[1em]
   \inferrule {}{(\lambda x. \ t_{12}) \ v_2 \implies [x \mapsto v_2] \ t_{12}}
 \end{gather}
 
@@ -70,15 +69,14 @@ inductive eval1_UL :: "ulterm \<Rightarrow> ulterm \<Rightarrow> bool" where
 text {*
 Apart from the explicit assumption on the nature of @{term v1}, the only difference is the
 substitution in the third rule. This is the reason that motivated us to formalize the nameless
-representation of terms in the first place. The book use a high level definition of substitution
+representation of terms in the first place. The book uses a high level definition of substitution
 where name clashes are not considered. We replace this higher level operation by our concrete
-substitution operation on ``de Bruijn indices''. We begin by shifting up by on the concrete argument
+substitution operation on de Bruijn indices''. We begin by shifting up by on the concrete argument
 because, conceptually, it \emph{enters} the function abstraction. We then perform the proper
 substitution of the function's variable, i.e. of index zero. Finally, we shift down every variable
 of the resulting body to account for the removed $\lambda$-abstraction.
 
 The multi-step evaluation relation and the normal form definitions follow the usual pattern:
-\newpage
 *}
 
 inductive eval_UL :: "ulterm \<Rightarrow> ulterm \<Rightarrow> bool" where
@@ -165,8 +163,8 @@ by (induction t u rule: eval_UL.induct)
 
 text {*
 This time, the evaluation relation could be non-terminating. A typical example of term whose
-evaluation does not terminate is the self-application combinator (called $\omega$) applied to
-itself, resulting in a term called $\Omega$:
+evaluation does not terminate is the self-application combinator
+($\omega \: \equiv \: \lambda x. \ x \ x$) applied to itself, resulting in a term called $\Omega$:
 *}
 
 (*<*)
@@ -200,6 +198,10 @@ will loop infinitely (e.g. $\Omega \to \Omega \to \dots$):
 lemma eval_UL_\<Omega>:
   "eval_UL \<Omega> t \<Longrightarrow> \<Omega> = t"
 by (induction \<Omega> t rule: eval_UL.induct) (blast dest: eval1_UL_\<Omega>)+
+
+lemma
+  "eval_UL \<Omega> \<Omega>"
+by (rule eval_UL.intros)
 
 text {*
 Based on this simple example, we can show that there exists some terms which cannot be reduce to a

@@ -19,10 +19,10 @@ Even though we are not building a compiler, our computer verified formalization 
 explicitly handle this problem. We chose to use this representation and, thus must also formalize
 this chapter.
 
-The idea behind this representation, known as ``de Bruijn indices'', is to make variables reference
+The idea behind this representation, known as de Bruijn indices'', is to make variables reference
 directly their corresponding binder, rather than referring to them by name. This is accomplished by
 using an index that count the number of enclosing $\lambda$-abstractions between a variable and its
-binder. Following is an example of ``de Bruijn indices'' representation for the function composition
+binder. Following is an example of de Bruijn indices'' representation for the function composition
 combinator:
 \begin{displaymath}
   \lambda f. \lambda g. \lambda x. \ f \ (g \ x)
@@ -69,15 +69,16 @@ primrec shift_UL :: "int \<Rightarrow> nat \<Rightarrow> ulterm \<Rightarrow> ul
   "shift_UL d c (ULApp t1 t2) = ULApp (shift_UL d c t1) (shift_UL d c t2)"
 
 text {*
-In this definition, there is a possible information loss in this definition. The variables use a
+In this definition, there is a possible information loss. The variables use a
 natural number as index but the function allows to shift both up and down, thus the use of an
 integer the shift increment. When a variable is encountered, we first convert the index from natural
 number to integer, which is always safe, perform the integer addition, which correspond to a
 subtraction if @{term d} is negative, and convert the result back to natural numbers to serve as the
-new index. This last operation converts negative numbers to zero. We know this loss of information
-is safe, since it makes no sense to speak of negative indices. Our @{const shift_UL} function thus
-have an implicit assumption that it should not be called with a negative number larger than the
-smallest variable in the term. Following is an example of shifting up every free variable by 2:
+new index. This last operation converts negative numbers to zero. We know that this loss of
+information is safe, since it makes no sense to speak of negative indices. Our @{const shift_UL}
+function thus has an implicit assumption that it should not be called with a negative number larger
+than the smallest free variable in the term. Following is an example of shifting up every free variable
+by 2:
 *}
 
 (* Exercise 6.2.2 *)
@@ -88,10 +89,10 @@ lemma "shift_UL 2 0
   by simp
 
 text {*
-On first reading, the previous example may seems broken: the variables @{term "ULVar 0"} and
+On a first reading, the previous example may seems broken: the variables @{term "ULVar 0"} and
 @{term "ULVar 1"} are not incremented. This is because the shift function operates on free
 variables, i.e. variables whose index refers to a non-existing $\lambda$-abstraction. Since the
-binding referred by @{term "ULVar 1"} is in the term, it is not a free variable: it is bounded.
+binding referred by @{term "ULVar 1"} is in the term, it is not a free variable: it is bound.
 *}
 (*<*)
 
@@ -118,7 +119,7 @@ qed
 (*>*)
 text {*
 We now define a substitution function that replaces every free variable referring to the
-@{term [source] "(j + 1)"}'st $\lambda$ by @{term s} in some term:
+@{term j}'st $\lambda$ by @{term s} in some term:
 *}
 (* Definition 6.2.4 *)
 
@@ -141,8 +142,9 @@ lemma "subst_UL 0 (ULVar 1)
 text {*
 Note that the indices are relative to their position in the term. This is why @{term "ULVar 2"} is
 also substituted in the previous example: counting the number of enclosing $\lambda$-abstractions
-shows us that this variable is, indeed, the same as @{term "ULVar 0"}. Of course, we must maintain
-this invariant by incrementing variables in our substituting term accordingly.
+shows us that this variable is, indeed, the same as @{term "ULVar 0"} outside the
+$\lambda$-abstractions. Of course, we must maintain this invariant by incrementing variables in our
+substituting term accordingly.
 *}
 
 (*<*)

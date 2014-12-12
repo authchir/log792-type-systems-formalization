@@ -4,14 +4,12 @@
 \subsection{Lambda-Calculus}
 \label{sec:background-lambda-calculus}
 
-The $\lambda$-calculus is a minimalistic language, where every value is a function, that can be use
-as a core calculus capturing the essential features of complex programming
-languages. It was formulated by Alonzo Church \cite{church-1936-unsolvable-problem} in
-the 1930s as a model of computability. At about the same time, Alan Turing was
-formulating what is now known as a Turing machine
-\cite{turing-1936-on-computable-numbers} for the same purpose. It was later
-proved that both systems are equally expressive
-\cite{turing-1937-computability}.
+The $\lambda$-calculus is a minimalistic language, where every value is a function, that can be used
+as a core calculus capturing the essential features of complex functional programming languages. It
+was formulated by Alonzo Church \cite{church-1936-unsolvable-problem} in the 1930s as a model of
+computability. At about the same time, Alan Turing was formulating what is now known as a Turing
+machine \cite{turing-1936-on-computable-numbers} for the same purpose. It was later proved that both
+systems are equally expressive \cite{turing-1937-computability}.
 
 As a programming language, the $\lambda$-calculus can be intriguing at first because everything
 reduces to function abstraction and application. The syntax comprises three sorts of terms:
@@ -27,7 +25,7 @@ constructs are summarized in the following grammar:
 Below are a few standard $\lambda$-terms shown as examples of how the grammar is actually
 used:\footnote{To reduce the need for parentheses, we use the following standard conventions:
 \begin{enumerate*}[label=(\arabic*)]
-  \item the body of a $\lambda$-abstraction expands for as possible to the right and
+  \item the body of a $\lambda$-abstraction expands as far as possible to the right and
   \item function application is left-associative.
 \end{enumerate*}}
 \begin{align*}
@@ -40,8 +38,8 @@ used:\footnote{To reduce the need for parentheses, we use the following standard
 The $\lambda$-calculus having no built-in constant or primitive operators (e.g. numbers, arithmetic
 operations, conditionals, loops, etc.), the only way to compute a value is by function application,
 also known as $\beta$-reduction and denoted by $\to_\beta$). It consists of replacing every instance
-of the abstracted variable in the abstraction body by the effective argument. Following is an
-example of a $\lambda$-term that is $\beta$-reduced twice:
+of the abstracted variable in the abstraction body by the provided argument. Following is an
+example of a $\lambda$-term that is $\beta$-reduced three times:
 \begin{align*}
   (\lambda x. \ (\lambda y. \ y) \ x) \ ((\lambda w. \ w) \ z)
     & \: \to_\beta \: (\lambda x. \ (\lambda y. \ y) \ x) \ z \\
@@ -83,8 +81,8 @@ complex expression. It can be emulated in the $\lambda$-calculus with a single f
   \text{let } x = y \text{ in } t \: \equiv \: (\lambda x. t) y
 \end{displaymath}
 
-Although significantly less obvious, it is also possible to express booleans only with functions.
-The encoding is based on the idea that any use of booleans can be expressed with only three
+Although significantly less obvious, it is also possible to express Booleans only with functions.
+The encoding is based on the idea that any use of Booleans can be expressed with only three
 primitives: a constant representing a true value, a constant representing a false value and an
 operation to choose between two options:
 \begin{align*}
@@ -108,15 +106,17 @@ a good starting point.
 \subsection{Type Systems}
 
 Type systems are a syntactic method to prove the absence of certain erroneous behaviors. They differ
-from testing in that they are exhaustive, automatic and compositional. In this context,
-exhaustiveness means that each checked invariant is proved for the complete program instead of
-focusing on a single unit of code. Automation means that the process does not need input from the
-user. Compositionality means that proofs for individual components can be use to discharge an obligation
-about the interaction of the components.
+from testing in that they are exhaustive and compositional. In this context, exhaustiveness means
+that each checked invariant is proved for the complete program instead of focusing on a single unit
+of code. Compositionality means that proofs for individual components can be use to discharge an
+obligation about the interaction of the components.
 
 The kinds of errors detected depends on the specific type system considered: they can range from
 fairly simple to very complex. Examples of simple errors include typographical mistakes, usage of
-values of the wrong kind and usage of undefined operations:
+values of the wrong kind and usage of undefined operations:\footnote{The syntax $T_1 \to T_2$ is the
+standard notation for the type of a function with domain $T_1$ and codomain $T_2$. The $\to$
+operator being right-associative, the type $T_1 \to (T_2 \to T_3)$ can be written without
+parentheses: $T_1 \to T_2 \to T_3$.}
 
 \begin{center}
   \begin{tabular}{m{3.5cm} | m{5.5cm}}
@@ -133,10 +133,10 @@ Examples of such include that the output of a sorting function is a permutation 
 the argument of an indexing operation on a list is in a valid range and that two multiplied matrices
 have compatible dimensions. The more information one puts in the types, the more invalid programs
 the type checker can catch, but the more work is required by the programmer to convince the
-algorithm that the program fulfill its specification. An important design decision when defining
-a type system is to find a tradeoff between those conflicting goals.
+type checking algorithm that the program fulfills its specification. An important design decision
+when defining a type system is to find a tradeoff between those conflicting goals.
 
-Since they are often bundle with the compiler of a programming language and, thus, part of the
+Since they are often bundled with the compiler of a programming language and, thus, part of the
 normal programming cycle, type systems allow early detection of programming errors. Moreover, the
 diagnoses of type checkers can often pointed accurately the source of the error, unlike run-time
 tests where the effect of an error can sometime be visible only much further in the code when
@@ -149,30 +149,29 @@ datatype not by the way it is implemented but by the different operations that c
 This focus on operations led to the concept of abstract datatypes.
 
 Types can also be used an invaluable maintenance tool. They serve as a checked documentation of
-programs and, being simpler than the computation they characterise, they can help to reason about
-such computation on a higher level. But they can also serve a very practical purpose, by checking
+programs and, being simpler than the computations they characterise, they can help to reason about
+such computations on a higher level. But they can also serve a very practical purpose, by checking
 which part of a program is affected by a change. If one decides to change the arguments of a
 function or to remove a field in a structure, a simple type checking pass will provide an exhaustive
 list of the places that must be updated.
 
-Due to their static nature, type systems are normally conservatives in that they will always reject
+Due to their static nature, type systems are normally conservative in that they will always reject
 bad programs at the expense of sometime rejecting good ones. A simple example of such limitation is
-the following program that fails to type-check, even though the complex boolean expression will
-always evaluate to true at runtime:
-
+the following program that fails to type-check, even though the Boolean expression will always
+evaluate to true at runtime:
 \begin{displaymath}
   \begin{tabular}{m{4.5cm} | m{6cm}}
     if true then 42 else true
-    & Type mismatch in conditional expression, the type of the 'then' branch is $\mathbb{N}$ while
-    the type of the 'else' branch is $\mathbb{B}$.
+    & Type mismatch in conditional expression, the type of the ``then'' branch is $\mathbb{N}$ while
+    the type of the ``else'' branch is $\mathbb{B}$.
   \end{tabular}
 \end{displaymath}
 
-Having only access to static information, a type checker only see that a boolean can take two
+Having only access to static information, a type checker only see that a Boolean can take two
 different values and, thus, must ensure that the program is valid in both cases. In this example,
-this implies that both branches of the \texttt{if} must be well typed and that their types must be
-compatible. It is the main goal of searchers on type systems to develop systems in which more valid
-programs are accepted while more invalid programs are rejected.
+this implies that both branches of the ``if'' must be well typed and that their types must be
+compatible. It is the main goal of researchers on type systems to develop systems in which more
+valid programs are accepted while more invalid programs are rejected.
 
 \subsection{Isabelle/HOL}
 
