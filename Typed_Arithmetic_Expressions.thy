@@ -27,7 +27,7 @@ datatype nbtype = Bool | Nat
 (* Definition 8.2.1 *)
 
 text {*
-The typing relation serves to assign a type to an expression. It is descibed with the following
+The typing relation serves to assign a type to an expression. It is characterized by the following
 inference rules:
 \setcounter{equation}{0}
 \begin{gather}
@@ -35,7 +35,7 @@ inference rules:
   \inferrule {}{\text{false} : \text{Bool}} \\[0.8em]
   \inferrule {t_1 : \text{Bool} \\ t_2 : \text{T} \\ t_3 : \text{T}}
     {\text{if } t_1 \text{ then } t_2 \text{ else } t_3 : \text{T}} \\[0.8em]
-    \inferrule {}{0 : \text{Nat}} \\[0.8em]
+    \inferrule {}{0 : \text{Nat}} \displaybreak\\[0.8em]
   \inferrule {t_1 : \text{Nat}}{\text{succ } t_1 : \text{Nat}} \\[0.8em]
   \inferrule {t_1 : \text{Nat}}{\text{pred } t_1 : \text{Nat}} \\[0.8em]
   \inferrule {t_1 : \text{Nat}}{\text{iszero } t_1 : \text{Bool}}
@@ -45,8 +45,8 @@ The first, second and fourth rules give the type of constants. The third rule re
 branches of a conditional have the same type and that the condition is a Boolean. The fifth and
 sixth rules state that the successor and predecessor of natural numbers are natural numbers
 themselves. Finally, the seventh rule state that the test of equality with zero requires a natural
-number and leads a Boolean. We translate these in an inductive definition, for which we also provide
-the @{text "|:|"} operator as a more conventional notation:
+number and leads a Boolean. We translate these rules in an inductive definition, for which we also
+provide the @{text "|:|"} operator as a more conventional notation:
 *}
 
 inductive has_type :: "nbterm \<Rightarrow> nbtype \<Rightarrow> bool" (infix "|:|" 150) where

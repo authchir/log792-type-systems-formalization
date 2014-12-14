@@ -9,7 +9,7 @@ hide_type list
 text {*
 This section only presents briefly the most used constructions in the formalizations described in
 this thesis. It is not expected from the reader to fully understand the proofs presented in this
-report; it is sufficient to recognise key concepts such as induction and case analysis.
+report; it is sufficient to recognize key concepts such as induction and case analysis.
 
 The theorem proving community is subdivided in two groups: automatic theorem proving (ATP) and
 interactive theorem proving (ITP). Each has its own set of goals, motivations, methodologies,
@@ -124,7 +124,7 @@ argument @{term ys} can take is performed.
 For a more comprehensive introduction to Isabelle/HOL, the reader is encourage to start with the
 first part of the book \emph{Concrete Semantics} \cite{nipkow-klein-2014-concrete-semantics} and
 continue, for a deeper understanding, with the more exhaustive tutorial
-\cite{nipkow-et-al-2014-tutorial}.
+\cite{nipkow-et-al-2014-tutorial} distributed with the system.
 *}
 
 (*<*)

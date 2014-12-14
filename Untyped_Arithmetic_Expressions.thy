@@ -30,7 +30,6 @@ Its counterpart, using Isabelle/HOL's syntax, is a recursive datatype: \footnote
 name clashes with Isabelle's predefined types and constants of the same name, our types and type
 constructors are prefixed with \texttt{b}, which stand for \emph{Booleans}. Functions use a suffix
 for the same purpose.}
-\newpage
 \<close>
 
 datatype bterm =
@@ -74,7 +73,6 @@ The first rule states that the evaluation of a conditional with a true condition
 leads to the ``else'' branch and the third rule states that, if the condition is not a Boolean
 constant, it must be itself evaluated. These rules translate easily into another inductive predicate
 that returns true if the first argument can be reduced in one step to the second argument:
-\newpage
 \<close>
 
 inductive eval1_B :: "bterm \<Rightarrow> bterm \<Rightarrow> bool" where
@@ -134,6 +132,7 @@ A key concept is that of normal form, for which the book gives the following def
 \end{quotation}
 Since this definition mainly introduces some standard terminology for a property of terms with
 respect to the single-step evaluation relation, we translate it using a simple definition:
+\newpage
 *}
 
 definition is_normal_form_B :: "bterm \<Rightarrow> bool" where
@@ -141,7 +140,6 @@ definition is_normal_form_B :: "bterm \<Rightarrow> bool" where
 
 text {*
 We continue by proving that every value is in normal form:
-\newpage
 *}
 
 theorem value_imp_normal_form:

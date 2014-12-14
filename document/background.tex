@@ -30,9 +30,9 @@ used:\footnote{To reduce the need for parentheses, we use the following standard
 \end{enumerate*}}
 \begin{align*}
   & \lambda x. \ x && \text{identity} \\
-  & \lambda x. \lambda y. \ x && \text{constant} \\
-  & \lambda f. \lambda x. \ f \ x \ x && \text{double application} \\
-  & \lambda f. \lambda g. \lambda x. \ f \ (g \ x) && \text{function composition}
+  & \lambda x. \ \lambda y. \ x && \text{constant} \\
+  & \lambda f. \ \lambda x. \ f \ x \ x && \text{double application} \\
+  & \lambda f. \ \lambda g. \ \lambda x. \ f \ (g \ x) && \text{function composition}
 \end{align*}
 
 The $\lambda$-calculus having no built-in constant or primitive operators (e.g. numbers, arithmetic
@@ -50,35 +50,35 @@ example of a $\lambda$-term that is $\beta$-reduced three times:
 This apparently simple operation hides a subtle corner case: name clashes. Nothing prevents two
 functions from using the same name for their abstracted variable. One cannot simply replace every
 variable with the same name when performing a substitution but must also take variable scopes into
-account. Here is a simple example that demonstrates that a naïve approach can fail to preserve the
+account. Here is a simple example that demonstrates that a naive approach can fail to preserve the
 semantics of the original $\lambda$-term:
 \begin{displaymath}
-  (\lambda x. \lambda y. \ x) \ y \: \not\to_\beta \: \lambda y. \ y
+  (\lambda x. \ \lambda y. \ x) \ y \: \not\to_\beta \: \lambda y. \ y
 \end{displaymath}
 
 One solution to this problem is to rename function arguments, also known as $\alpha$-equivalence and
 denoted by $=_\alpha$, prior to $\beta$-reduction. Here is a correct $\beta$-reduction for the
 previous example:
 \begin{align*}
-  (\lambda x. \lambda y. \ x) \ y
-    & \: =_\alpha \: (\lambda x. \lambda w. \ x) \ y \\
+  (\lambda x. \ \lambda y. \ x) \ y
+    & \: =_\alpha \: (\lambda x. \ \lambda w. \ x) \ y \\
     & \: \to_\beta \: \lambda w. \ y
 \end{align*}
 
-The difference is important: under the naïve approach, the $\lambda$-term was wrongly reduced to the
+The difference is important: under the naive approach, the $\lambda$-term was wrongly reduced to the
 identity function while the correct reduction lead to a function returning the constant $y$.
 
 Many constructions from high level programming languages can be encoded using only those basic
 features. Unary functions are already supported and $n$-ary functions can be straightforwardly
 emulated by having a function return another function, as was done in the previous examples:
 \begin{displaymath}
-  n\text{-ary function} \: \equiv \: \lambda x_1. \lambda x_2 \dots \lambda x_n. t
+  n\text{-ary function} \: \equiv \: \lambda x_1. \ \lambda x_2. \ \cdots \ \lambda x_n. \ t
 \end{displaymath}
 
 Another common construction is a \emph{let binding} which serves to attach an identifier to a
 complex expression. It can be emulated in the $\lambda$-calculus with a single function abstraction:
 \begin{displaymath}
-  \text{let } x = y \text{ in } t \: \equiv \: (\lambda x. t) y
+  \text{let } x = y \text{ in } t \: \equiv \: (\lambda x. \ t) \ y
 \end{displaymath}
 
 Although significantly less obvious, it is also possible to express Booleans only with functions.
@@ -87,20 +87,20 @@ primitives: a constant representing a true value, a constant representing a fals
 operation to choose between two options:
 \begin{align*}
   \text{true}
-    & \: \equiv \: \lambda t. \lambda f. \ t \\
+    & \: \equiv \: \lambda t. \ \lambda f. \ t \\
   \text{false}
-    & \: \equiv \: \lambda t. \lambda f. \ f \\
+    & \: \equiv \: \lambda t. \ \lambda f. \ f \\
   \text{if } b \text{ then } t \text{ else } e
-    & \: \equiv \: \lambda b. \lambda t. \lambda f. \ b \ t \ f
+    & \: \equiv \: \lambda b. \ \lambda t. \ \lambda f. \ b \ t \ f
 \end{align*}
 
 Using the rules already discussed, it is easy to show that the following reduction is
 valid:\footnote{Multiple consecutive $\beta$-reductions are denoted with $\to_\beta^*$.}
 \begin{align*}
   \text{if true then } x \text{ else } y
-    & \equiv \: (\lambda b. \lambda t. \lambda f. \ b \ t \ f) \ true \ x \ y \\
+    & \equiv \: (\lambda b. \ \lambda t. \ \lambda f. \ b \ t \ f) \ true \ x \ y \\
     & \to_\beta^* \: true \ x \ y \\
-    & \equiv \: (\lambda t. \lambda f. \ t) \ x \ y \\
+    & \equiv \: (\lambda t. \ \lambda f. \ t) \ x \ y \\
     & \to_\beta^* \: x
 \end{align*}
 
@@ -137,9 +137,11 @@ With sufficiently powerful type systems, specific requirements can be provided a
 Examples of such include that the output of a sorting function is a permutation of its input, that
 the argument of an indexing operation on a list is in a valid range and that two multiplied matrices
 have compatible dimensions. The more information one puts in the types, the more invalid programs
-the type checker can catch, but the more work is required by the programmer to convince the
-type checking algorithm that the program fulfills its specification. An important design decision
-when defining a type system is to find a tradeoff between those conflicting goals.
+the type checker can catch. The interactive theorem prover Coq is based on this idea: each
+transformation, including theorems, is internally a type-transformation. The drawback of such
+expressive type systems is that more work is required by the programmer to convince the type
+checking algorithm that the program fulfills its specification.  An important design decision when
+defining a type system is to find a tradeoff between those conflicting goals.
 
 Since they are often bundled with the compiler of a programming language and, thus, part of the
 normal programming cycle, type systems allow early detection of programming errors. Moreover, the
@@ -149,12 +151,12 @@ something starts to go wrong.
 
 Another important way in which type systems can be used is as an abstraction tool. Large scale
 software generally consist of modules that communicate through interfaces. Types are a natural fit
-to serve as such an interface. Even in smaller scale programming, it is useful to characterise a
+to serve as such an interface. Even in smaller scale programming, it is useful to characterize a
 datatype not by the way it is implemented but by the different operations that can be perform on it.
 This focus on operations led to the concept of abstract datatypes.
 
 Types can also be used an invaluable maintenance tool. They serve as a checked documentation of
-programs and, being simpler than the computations they characterise, they can help to reason about
+programs and, being simpler than the computations they characterize, they can help to reason about
 such computations on a higher level. But they can also serve a very practical purpose, by checking
 which part of a program is affected by a change. If one decides to change the arguments of a
 function or to remove a field in a structure, a simple type checking pass will provide an exhaustive

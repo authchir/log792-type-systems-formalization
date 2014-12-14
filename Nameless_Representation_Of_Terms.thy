@@ -25,8 +25,8 @@ using an index that count the number of enclosing $\lambda$-abstractions between
 binder. Following is an example of de Bruijn indices representation for the function composition
 combinator:
 \begin{displaymath}
-  \lambda f. \lambda g. \lambda x. \ f \ (g \ x)
-    \equiv \lambda. \lambda. \lambda. 2 \ (1 \ 0)
+  \lambda f. \ \lambda g. \ \lambda x. \ f \ (g \ x)
+    \equiv \lambda \ \lambda \ \lambda \ 2 \ (1 \ 0)
 \end{displaymath}
 
 This representation releases us from having to consider the case of variable name clashes at the

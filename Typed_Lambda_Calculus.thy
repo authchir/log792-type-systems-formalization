@@ -2,7 +2,7 @@
 theory Typed_Lambda_Calculus
 imports
   Main
-  "~/afp-code/thys/List-Index/List_Index"
+  "$AFP/List-Index/List_Index"
 begin
 (*>*)
 
@@ -145,7 +145,7 @@ abbreviation elem' :: "(nat \<times> ltype) \<Rightarrow> lcontext \<Rightarrow>
   "elem' p \<Gamma> \<equiv> fst p < length \<Gamma> \<and> snd p = nth \<Gamma> (fst p)"
 
 text \<open>
-With the concept of typing concept, the syntax use for the typing relation needs to be extended:
+With the concept of typing concept, the syntax used for the typing relation needs to be extended:
 \begin{equation*}
 \Gamma \vdash t : T
 \end{equation*}
@@ -335,14 +335,14 @@ text {*
 Proving the preservation theorem requires use to first prove a number of helper lemmas. For these,
 our reliance on "de Bruijn indices" forces us to depart substantially from the book.
 
-The first lemma the book consider is the permutation of the typing context:
+The first lemma the book considers is the permutation of the typing context:
 
 \begin{quotation}
   \noindent If $\Gamma \vdash t : T$ and $\Delta$ is a permutation of $\Gamma$, then
   $\Delta \vdash t : T$. Moreover, the latter derivation has the same depth as the former.
 \end{quotation}
 
-Translated naïvely, this lemma does not hold with our representation of the typing context as an
+Translated naively, this lemma does not hold with our representation of the typing context as an
 ordered. Instead, we will prove an other lemma which states that it is safe to remove a variable
 from the context if it is not referenced in the considered term:
 *}
@@ -481,7 +481,8 @@ text {*
 The type system we formalized is completely static (i.e. there is no run-time checked involving the
 types of terms). Since the type annotations are not used during evaluation, it is worth exploring
 the possibility to erase them prior to execution. To this end, we define an untyped version of
-our $\lambda$-calculus with Booleans:
+our $\lambda$-calculus with Booleans:\footnote{The definitions are analogous to their typed
+counterpart.}
 *}
 
 datatype uterm =
@@ -492,7 +493,7 @@ datatype uterm =
   UAbs uterm |
   UApp uterm uterm
 
-primrec shift_U :: "int \<Rightarrow> nat \<Rightarrow> uterm \<Rightarrow> uterm" where
+primrec shift_U :: "int \<Rightarrow> nat \<Rightarrow> uterm \<Rightarrow> uterm" (*<*) where
   "shift_U d c UTrue = UTrue" |
   "shift_U d c UFalse = UFalse" |
   "shift_U d c (UIf t1 t2 t3) =
@@ -500,8 +501,9 @@ primrec shift_U :: "int \<Rightarrow> nat \<Rightarrow> uterm \<Rightarrow> uter
   "shift_U d c (UVar k) = UVar (if k < c then k else nat (int k + d))" |
   "shift_U d c (UAbs t) = UAbs (shift_U d (Suc c) t)" |
   "shift_U d c (UApp t1 t2) = UApp (shift_U d c t1) (shift_U d c t2)"
+(*>*)
 
-primrec subst_U :: "nat \<Rightarrow> uterm \<Rightarrow> uterm \<Rightarrow> uterm" where
+primrec subst_U :: "nat \<Rightarrow> uterm \<Rightarrow> uterm \<Rightarrow> uterm" (*<*) where
   "subst_U j s UTrue = UTrue" |
   "subst_U j s UFalse = UFalse" |
   "subst_U j s (UIf t1 t2 t3) =
@@ -509,13 +511,15 @@ primrec subst_U :: "nat \<Rightarrow> uterm \<Rightarrow> uterm \<Rightarrow> ut
   "subst_U j s (UVar k) = (if k = j then s else UVar k)" |
   "subst_U j s (UAbs t) = UAbs (subst_U (Suc j) (shift_U 1 0 s) t)" |
   "subst_U j s (UApp t1 t2) = UApp (subst_U j s t1) (subst_U j s t2)"
+(*>*)
 
-inductive is_value_U :: "uterm \<Rightarrow> bool" where
+inductive is_value_U :: "uterm \<Rightarrow> bool" (*<*) where
   "is_value_U UTrue" |
   "is_value_U UFalse" |
   "is_value_U (UAbs t)"
+(*>*)
 
-inductive eval1_U :: "uterm \<Rightarrow> uterm \<Rightarrow> bool" where
+inductive eval1_U :: "uterm \<Rightarrow> uterm \<Rightarrow> bool" (*<*) where
   "eval1_U (UIf UTrue t2 t3) t2" |
   "eval1_U (UIf UFalse t2 t3) t3" |
   "eval1_U t1 t1' \<Longrightarrow> eval1_U (UIf t1 t2 t3) (UIf t1' t2 t3)" |
@@ -523,6 +527,7 @@ inductive eval1_U :: "uterm \<Rightarrow> uterm \<Rightarrow> bool" where
   "is_value_U v1 \<Longrightarrow> eval1_U t2 t2' \<Longrightarrow> eval1_U (UApp v1 t2) (UApp v1 t2')" |
   "is_value_U v2 \<Longrightarrow> eval1_U (UApp (UAbs t12) v2)
     (shift_U (-1) 0 (subst_U 0 (shift_U 1 0 v2) t12))"
+(*>*)
 
 text {*
 We now define a morphism which maps every typed term to an equivalent untyped one:
@@ -549,6 +554,8 @@ lemma shift_erasure:
   "erase (shift_L d c t) = shift_U d c (erase t)"
 by (induction t arbitrary: d c rule: lterm.induct) auto
 
+text {* \newpage *}
+
 lemma subst_erasure:
   "erase (subst_L j s t) = subst_U j (erase s) (erase t)"
 by (induction t arbitrary: j s rule: lterm.induct) (auto simp: shift_erasure)
@@ -561,7 +568,7 @@ corresponding untyped term.
 *}
 
 theorem
-"eval1_L t t' \<Longrightarrow> eval1_U (erase t) (erase t')"
+ "eval1_L t t' \<Longrightarrow> eval1_U (erase t) (erase t')"
 by (induction t t' rule: eval1_L.induct)
   (auto intro: eval1_U.intros simp: shift_erasure subst_erasure is_value_erasure)
 

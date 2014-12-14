@@ -48,6 +48,8 @@
 %\renewcommand{\isastyle}{\isastyleminor}
 %
 \hyphenation{Isa-belle}
+\interfootnotelinepenalty=10000
+\widowpenalty=10000
 
 \newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
 
@@ -125,13 +127,13 @@
 
 \begin{abstract}
 We formalize, using Isabelle/HOL, some languages present in the first two sections, namely ``Untyped
-Systems'' and ``Simple Types'', of the book \emph{Types and Programming Languages} by
-Benjamin~C.~Pierce. We first begin with a short tour of the $\lambda$-calculus, type systems and the
-Isabelle/HOL theorem prover before attacking the formalization \emph{per se}. Starting with an
-arithmetic expressions language offering Booleans and natural numbers, we pursue, after a brief
-digression to the de Bruijn indices, to the untyped $\lambda$-calculus. We then return to a typed
-variant of the arithmetic expression language before to conclude with the simply typed
-$\lambda$-calculus.
+Systems'' and ``Simple Types'', of the book \emph{Types and Programming Languages}
+\cite{pierce-2002-TAPL} by Benjamin~C.~Pierce. We first begin with a short tour of the
+$\lambda$-calculus, type systems and the Isabelle/HOL theorem prover before attacking the
+formalization \emph{per se}. Starting with an arithmetic expressions language offering Booleans and
+natural numbers, we pursue, after a brief digression to de Bruijn indices, to the untyped
+$\lambda$-calculus. Then, we return to a typed variant of the arithmetic expression language before
+concluding with the simply typed $\lambda$-calculus.
 \end{abstract}
 
 \newpage
@@ -173,18 +175,14 @@ $\lambda$-calculus.
 % sane default for proof documents
 \parindent 0pt\parskip 0.5ex
 
-%\part{Untyped Systems}
 \input{Untyped_Arithmetic_Expressions}
 \input{Nameless_Representation_Of_Terms}
 \input{Untyped_Lambda_Calculus}
 
-%\part{Typed Systems}
 \input{Typed_Arithmetic_Expressions}
 \input{Typed_Lambda_Calculus}
 
-%\part{Conclusion}
 \input{conclusion}
-\newpage
 
 \nocite{*}
 \bibliographystyle{alpha}

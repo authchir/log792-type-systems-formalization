@@ -37,7 +37,7 @@ expressions and natural numbers. This simplicity allows us to concentrate on the
 Isabelle/HOL of the definitions found in the book and to accustom ourselves with the notation. Most
 of our definitions and theorems closely follows the ones from the book. The main exceptions are
 that we expose some hypotheses that are implicit in the book and that we use a different definition
-of the mutli-step evaluation relation.
+of the multi-step evaluation relation.
 
 The formalization (Section~\ref{sec:nameless-rep-of-terms}) of the nameless representation of terms,
 also known as de Bruijn indices \cite{bruijn-1972-indices}, was not initially planned but arose
@@ -49,7 +49,7 @@ $\lambda$-calculus (Section~\ref{sec:untyped-lambda-calculus}) is the first core
 formalized. We differ from the book in the definition of the evaluation relation. In \emph{TAPL},
 the evaluation relation assumes that name clashes in variables are automatically solved by renaming
 them and, thus, ignore this possibility from there on. Such an assumption is not accepted by
-computer-verified proof. We use de Bruijn indices as representation for variables to encode this
+computer-verified proofs. We use de Bruijn indices as representation for variables to encode this
 assumption. Also, since the chapter in the book is more focused on explaining the
 $\lambda$-calculus, it contains no meaningful theorems. Nevertheless, we revisit the properties
 introduced with the arithmetic expressions language and either prove that they are still theorems or
