@@ -12,10 +12,10 @@ In the background section on $\lambda$-calculus (Section~\ref{sec:background-lam
 presented the problem of name clashes that can arise when performing $\beta$-reduction. In its
 definitions and proofs, the book only works up to $\alpha$-equivalence: assuming that the variables
 would be implicitly renamed if such a name clash occurred. In a separate chapter, a different
-representation of terms that avoids such problem is presented. It is described to as one possible
+representation of terms that avoids such problem is presented. It is described as one possible
 encoding that can be used when implementing an compiler for the $\lambda$-calculus.
 
-Even though we are not building a compiler, our computer verified formalization requires us to
+Even though we are not building a compiler, our computer-verified formalization requires us to
 explicitly handle this problem. We chose to use this representation and, thus must also formalize
 this chapter.
 
@@ -71,14 +71,14 @@ primrec shift_UL :: "int \<Rightarrow> nat \<Rightarrow> ulterm \<Rightarrow> ul
 text {*
 In this definition, there is a possible information loss. The variables use a
 natural number as index but the function allows to shift both up and down, thus the use of an
-integer the shift increment. When a variable is encountered, we first convert the index from natural
-number to integer, which is always safe, perform the integer addition, which correspond to a
+integer for the shift increment. When a variable is encountered, we first convert the index from
+natural number to integer, which is always safe, perform the integer addition, which correspond to a
 subtraction if @{term d} is negative, and convert the result back to natural numbers to serve as the
 new index. This last operation converts negative numbers to zero. We know that this loss of
 information is safe, since it makes no sense to speak of negative indices. Our @{const shift_UL}
 function thus has an implicit assumption that it should not be called with a negative number larger
-than the smallest free variable in the term. Following is an example of shifting up every free variable
-by 2:
+than the smallest free variable in the term. Following is an example of shifting up every free
+variable by 2:
 *}
 
 (* Exercise 6.2.2 *)

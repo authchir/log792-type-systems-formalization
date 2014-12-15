@@ -10,9 +10,9 @@ text {* \label{sec:untyped-lambda-calculus} *}
 text {*
 The untyped lambda calculus is the first core calculus we formalize. It imports the theory on the
 nameless representation of terms (Section~\ref{sec:nameless-rep-of-terms}), which formalizes the
-representation used for the syntax of the language. We complete the definitions by providing the
-semantics and prove the determinacy of evaluation, the relation between values and normal form, the
-uniqueness of normal form and the potentially non-terminating nature of evaluation.
+representation used for the syntax of the language. We complete the definitions, by providing the
+semantics, and we prove the determinacy of evaluation, the relation between values and normal form,
+the uniqueness of normal form and the potentially non-terminating nature of evaluation.
 *}
 
 subsection {* Definitions *}
@@ -52,7 +52,7 @@ where $[x \mapsto s] \ t$ is the replacement of variable $x$ by $s$ in $t$:
 The first rule states that the left side of an application must be reduced first, the second rule
 states that the right side of an application must be reduced second and the third rule states that
 an application consists of replacing both the $\lambda$-abstraction and the argument by the
-$\lambda$-abstraction's body where the substitution have been performed. We translate these rules
+$\lambda$-abstraction's body where the substitution has been performed. We translate these rules
 with the following inductive definition:
 *}
 

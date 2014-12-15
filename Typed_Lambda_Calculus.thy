@@ -52,9 +52,9 @@ Programming languages usually have more than our base type. Examples include int
 point numbers, characters, arrays, etc.
 
 Since variables can now range over infinitely many types, we need a way to know which type a
-function require as domain. There are two possible strategies: annotate the $\lambda$-abstractions
-with the intended type of their arguments or analyse the body of the abstraction to infer the
-required type. \emph{TAPL} chose the former strategy.
+function requires as domain. There are two possible strategies: we can annotate the
+$\lambda$-abstractions with the intended type of their arguments, or else we can analyze the body of
+the abstraction to infer the required type. \emph{TAPL} chose the former strategy.
 
 The syntax of this language differs from the pure $\lambda$-calculus by having constructions for
 Boolean expressions and a type annotation on function abstractions:
@@ -332,7 +332,7 @@ lemma[simp]: "nat (1 + int x) = Suc x" by simp
 (* Lemma 9.3.7 *)
 
 text {*
-Proving the preservation theorem requires use to first prove a number of helper lemmas. For these,
+Proving the preservation theorem requires us to first prove a number of helper lemmas. For these,
 our reliance on "de Bruijn indices" forces us to depart substantially from the book.
 
 The first lemma the book considers is the permutation of the typing context:
