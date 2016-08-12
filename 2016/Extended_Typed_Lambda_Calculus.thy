@@ -2,7 +2,7 @@
 theory Extended_Typed_Lambda_Calculus
 imports
   Main
-  "~~/src/HOL/List-Index/List_Index" 
+  "$AFP/List-Index/List_Index" 
 begin
 (*>*)
 
@@ -21,13 +21,13 @@ subsection {* Definitions *}
    We add base types T(1) T(2) .... and Unit 
  *)
 
-datatype_new ltype =
+datatype ltype =
   Bool |
   T (num:nat) |
   Unit |
   Fun (domain: ltype) (codomain: ltype) (infixr "\<rightarrow>" 225)
 
-datatype_new lterm =
+datatype lterm =
   LTrue |
   LFalse |
   LIf (bool_expr: lterm) (then_expr: lterm) (else_expr: lterm) |
@@ -68,7 +68,7 @@ inductive is_value_L :: "lterm \<Rightarrow> bool" where
 *)
 
 abbreviation sequence :: "lterm\<Rightarrow>lterm\<Rightarrow>lterm" (infix ";" 200) where
- "sequence t1 t2 \<equiv> (LApp (LAbs Unit  (shift_L 1 1 t2)) t1)"
+ "sequence t1 t2 \<equiv> (LApp (LAbs Unit  (shift_L 1 0 t2)) t1)"
 
 primrec FV :: "lterm \<Rightarrow> nat set" where
   "FV LTrue = {}" |
@@ -144,9 +144,9 @@ lemma FV_subst:
   "FV (subst_L n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"
 proof (induction u arbitrary: n t rule: lterm.induct)
   case (LAbs T u)
-  thus ?case
-    apply (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1])
-    by (metis DiffI One_nat_def UnCI diff_Suc_1 empty_iff imageI insert_iff nat.distinct(1))+
+  thus ?case 
+    by (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1],
+        (metis DiffI One_nat_def UnCI diff_Suc_1 empty_iff imageI insert_iff nat.distinct(1))+)
 qed (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1])
 
 
@@ -195,19 +195,26 @@ lemma eval1_Lseq:
 lemma subst_free_var_only: "x\<notin>FV t \<Longrightarrow> subst_L x t1 t = t"
 by (induction t arbitrary:t1 x, force+)
 
+lemma shift_shift_invert: "a>0 \<Longrightarrow> shift_L (-a) b (shift_L a b t) = t"
+by(induction t arbitrary: a b, auto)
+
 lemma eval1_Lseq_next:
   "0\<notin>FV t2 \<Longrightarrow> eval1_L (unit ; t2) t2"
 proof -
   assume H:"0\<notin>FV t2"
   
-  have "eval1_L (unit ; t2) (shift_L (-1) 0 (subst_L 0 (shift_L 1 0 unit) (shift_L 1 (Suc 0) t2)))"
-    by (simp del:shift_L.simps, rule eval1_LApp_LAbs, simp add: is_value_L.intros(4))
-  have " subst_L 0 (shift_L 1 0 unit) (shift_L 1 (Suc 0) t2) = (shift_L 1 (Suc 0) t2)"
-    using subst_free_var_only[of 0 "shift_L (int 1) (Suc 0) t2" "unit"] 
-          H 
-          FV_shift[of 1 "Suc 0" t2]
-          image_iff
-    by auto
-    
-           
-    
+  have A:"eval1_L (unit ; t2) (shift_L (-1) 0 (subst_L 0 (shift_L 1 0 unit) (shift_L 1 0 t2)))"
+    using eval1_LApp_LAbs
+          "is_value_L.simps"
+     by (presburger)
+
+  have " subst_L 0 (shift_L 1 0 unit) (shift_L 1 0 t2) = (shift_L 1 0 t2)"
+      using subst_free_var_only[of 0 "shift_L (int 1) 0 t2" "unit"] 
+            H 
+            FV_shift[of 1 0 t2]
+            image_iff
+      by auto
+  with A show ?thesis 
+    using shift_shift_invert
+    by force        
+qed    

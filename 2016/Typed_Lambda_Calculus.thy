@@ -1,8 +1,11 @@
+(* original Author: Martin Desharnais
+    updated to version 2016 by Michaël Noël Divo
+*)
 (*<*)
 theory Typed_Lambda_Calculus
 imports
   Main
-  "~~/src/HOL/List-Index/List_Index" 
+  "$AFP/List-Index/List_Index"
 begin
 (*>*)
 
@@ -31,7 +34,7 @@ only add the Boolean type as a base case:\footnote{The prefix \emph{l} stands fo
 \emph{lambda-calculus}.}
 *}
 
-datatype_new ltype =
+datatype ltype =
   Bool |
   Fun (domain: ltype) (codomain: ltype) (infixr "\<rightarrow>" 225)
 
@@ -60,7 +63,7 @@ The syntax of this language differs from the pure $\lambda$-calculus by having c
 Boolean expressions and a type annotation on function abstractions:
 *}
 
-datatype_new lterm =
+datatype lterm =
   LTrue |
   LFalse |
   LIf (bool_expr: lterm) (then_expr: lterm) (else_expr: lterm) |
@@ -433,16 +436,16 @@ lemma FV_shift:
   "FV (shift_L (int d) c t) = image (\<lambda>x. if x \<ge> c then x + d else x) (FV t)"
 proof (induction t arbitrary: c rule: lterm.induct)
   case (LAbs T t)
-  thus ?case by (auto simp: gr_Suc_conv image_iff) force+
+  thus ?case  by (auto simp: gr_Suc_conv image_iff) force+
 qed auto
 
 lemma FV_subst:
   "FV (subst_L n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"
 proof (induction u arbitrary: n t rule: lterm.induct)
   case (LAbs T u)
-  thus ?case
-    apply (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1])
-    by (metis DiffI One_nat_def UnCI diff_Suc_1 empty_iff imageI insert_iff nat.distinct(1))+
+  thus ?case 
+    by (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1],
+        (metis DiffI One_nat_def UnCI diff_Suc_1 empty_iff imageI insert_iff nat.distinct(1))+)
 qed (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1])
 
 text {*
@@ -460,7 +463,7 @@ proof (induction \<Gamma> t T arbitrary: t' rule: has_type_L.induct)
   thus ?case by (auto intro: has_type_L.intros eval1_L.cases[OF has_type_LIf.prems])
 next
   case (has_type_LApp \<Gamma> t1 T11 T12 t2)
-  thus ?case by (auto
+  thus ?case  by (auto
     intro!: has_type_L.intros substitution shift_down
     dest!: inversion
     dest: weakening[where n=0, unfolded insert_nth_def nat.rec]
@@ -577,6 +580,8 @@ We can now prove that if an evaluation step on a untyped term leads to some unty
 then there is an evaluation steps during corresponding typed terms
 *}
 
+(*Added by Michaël Noël Divo*)
+
 lemma erase_inversions:
   "erase(t) = UIf t1 t2 t3 \<Longrightarrow>
   \<exists>t1' t2' t3'. erase(t1') = t1 \<and> erase(t2') = t2 \<and> erase(t3') = t3 \<and> t = LIf t1' t2' t3'"
@@ -585,68 +590,40 @@ lemma erase_inversions:
   "erase(t) = UVar x \<Longrightarrow> t = LVar x"
   "erase(t) = UAbs (t1) \<Longrightarrow> \<exists> t1' y. erase(t1') = t1 \<and> t = LAbs y t1'"
   "erase(t) = UApp t1 t2 \<Longrightarrow> \<exists> t1' t2'. erase(t1') = t1 \<and> erase(t2') = t2 \<and> t = LApp t1' t2'" 
-by (induction t , auto)
+by(induction t, auto)
 
+(*Theorem 9.5.2*)
 
 theorem
   "eval1_U (erase t) m' \<Longrightarrow> \<exists>t'. erase(t') = m' \<and> eval1_L t t'"
 proof(induction "(erase t)" m' arbitrary: t rule: eval1_U.induct)
-  case(IfT t2 t3)
-    obtain t1' t2' t3' where inv1: "erase t1' = UTrue" "erase t2' = t2"
-                                    "erase t3' = t3"
-                                    "t = LIf t1' t2' t3'"
-      using erase_inversions(1) IfT
-        by metis
-    thus ?case by 
-      (auto intro :eval1_L.intros(1) dest: erase_inversions(2))
-next
-  case(IfF t2 t3)         
-    obtain t1' t2' t3' where inv1: "erase t1' = UFalse" "erase t2' = t2"
-                                    "erase t3' = t3"
-                                    "t = LIf t1' t2' t3'"
-      using erase_inversions(1) IfF.hyps
-        by metis
-    thus ?case by 
-      (auto intro :eval1_L.intros(2) dest: erase_inversions(3))   
-next
   case (IfCdt t1 t1' t2 t3)      
-    obtain b' t2' t3' where inv1: "t1 = erase b'" "erase t2' = t2"
+    obtain b' t2' t3' where  "t1 = erase b'" "erase t2' = t2"
                                     "erase t3' = t3"
-                                    "t = LIf b' t2' t3'"
-      using erase_inversions(1) IfCdt.hyps(3)
-        by metis
-    from IfCdt.hyps(2)[OF inv1(1)]
-      obtain t' where H1:"erase t' = t1'" " eval1_L b' t'"
-        by auto
-    have "erase (LIf t' t2' t3') = UIf t1' t2 t3 \<and> eval1_L t (LIf t' t2' t3')"
-      by (auto intro: inv1(2,3) H1  eval1_LIf simp: inv1(4))
-    from this show ?case 
-      by metis
+                                    "t = LIf b' t2' t3'" 
+      by (metis erase_inversions(1) IfCdt.hyps(3))
+    
+    thus ?case  
+      by (force intro: eval1_LIf dest:IfCdt.hyps(2))
 next
   case (Appl t1 t1' t2)        
-    obtain a b  where inv1: "t1 = erase a" "erase b = t2"
+    obtain a b  where  "t1 = erase a" "erase b = t2"
                              "t = LApp a b"
-      using erase_inversions(6) Appl.hyps(3)
-        by metis
-    from Appl.hyps(2)[OF inv1(1)]
-      obtain t3 where H1: " erase t3 = t1'" "eval1_L a t3"          
-        by auto
-    have "erase (LApp t3 b) = UApp t1' t2 \<and> eval1_L t (LApp t3 b)"
-      by (auto intro: inv1(1,2) H1  eval1_LApp1 simp: inv1(3)) 
-    thus ?case by metis
+      by(metis erase_inversions(6) Appl.hyps(3))
+    
+    thus ?case 
+      by (force intro: eval1_LApp1 dest: Appl.hyps(2))
 next
   case (Appr t1 t2 t2')    
     obtain a b  where inv1: "erase a = t1" "erase b = t2"
                              "t = LApp a b"
-      using erase_inversions(6) Appr.hyps(4)
-        by metis
-    from Appr.hyps(3) inv1(2)
-      obtain t3 where H1: " erase t3 = t2'" "eval1_L b t3"          
-        by auto
-    have "erase (LApp a t3) = UApp t1 t2' \<and> eval1_L t (LApp a t3)"
-      by (auto intro: inv1(1,2) H1  simp: inv1(3), 
-          metis Appr.hyps(1) inv1(1) is_value_erasure eval1_LApp2 H1(2))
-    thus ?case by metis
+      by (metis erase_inversions(6) Appr.hyps(4))
+    
+    have "\<exists>t3. erase (LApp a t3) = UApp t1 t2' \<and> eval1_L t (LApp a t3)"
+      using Appr.hyps inv1 is_value_erasure eval1_LApp2
+        by fastforce
+           
+    thus ?case by blast
 next
   case(beta_red v1 t1)
     obtain a b c y where inv1: "(UAbs t1) = erase a" "a = LAbs y c" " erase b = v1"
@@ -657,10 +634,10 @@ next
     let ?t'="shift_L (-1) 0 (subst_L 0 (shift_L 1 0 b) c)"
 
     have "erase ?t' = shift_U (- 1) 0 (subst_U 0 (shift_U 1 0 v1) t1) \<and> eval1_L t ?t'"
-       by(auto simp: inv1 shift_erasure subst_erasure, 
-            metis eval1_LApp_LAbs is_value_erasure inv1(2,3,4) beta_red.hyps(1))
-    thus ?case by metis
-qed    
+      using inv1 shift_erasure subst_erasure eval1_LApp_LAbs is_value_erasure beta_red.hyps(1)
+        by presburger
+    thus ?case by blast
+qed (metis erase_inversions erase_inversions eval1_L.intros)+   
           
 (*<*)
 
