@@ -206,7 +206,7 @@ proof -
   have A:"eval1_L (unit ; t2) (shift_L (-1) 0 (subst_L 0 (shift_L 1 0 unit) (shift_L 1 0 t2)))"
     using eval1_LApp_LAbs
           "is_value_L.simps"
-     by (presburger)
+     by presburger
 
   have " subst_L 0 (shift_L 1 0 unit) (shift_L 1 0 t2) = (shift_L 1 0 t2)"
       using subst_free_var_only[of 0 "shift_L (int 1) 0 t2" "unit"] 
@@ -218,3 +218,5 @@ proof -
     using shift_shift_invert
     by force        
 qed    
+
+
