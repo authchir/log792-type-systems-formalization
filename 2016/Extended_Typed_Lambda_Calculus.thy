@@ -508,7 +508,9 @@ next
 qed
 
 theorem equiv_eval :
- "(\<Gamma> \<turnstile>\<^sup>E t |:| A \<and>  eval1_LE t t') \<longleftrightarrow> (\<Gamma> \<turnstile> (e t) |:| A \<and> eval1_L (e t) (e t'))" (is "?P \<longleftrightarrow> ?Q")
+  fixes   t t'::ltermE
+  assumes welltyped: "\<Gamma> \<turnstile> (e t) |:| A" 
+  shows   "(eval1_LE t t') \<longleftrightarrow> (eval1_L (e t) (e t'))" (is "?P \<longleftrightarrow> ?Q")
 proof 
   show "?P \<Longrightarrow> ?Q"
     proof(induction t arbitrary: t' A)
@@ -520,14 +522,13 @@ proof
               f1: "t1 = LETrue \<and> t2 = t' \<or> t1 = LEFalse \<and> t3 = t' \<or> t' = LEIf ll t2 t3 \<and> eval1_LE t1 ll"
               by (metis H eval1_LEIf_E)       
             have "t' = LEIf ll t2 t3 \<and> eval1_LE t1 ll \<longrightarrow> eval1_L (LIf (e t1) (e t2) (e t3)) (LIf (e ll) (e t2) (e t3))"
-              using LEIf.IH(1)[of Bool] eval1_LIf H has_type_LE.cases
+              using LEIf.IH(1) eval1_LIf H
                 by blast
             with f1 show ?thesis
-              using equiv_type H "eval1_L.intros"(1,2)
-              by auto            
+              by (auto intro: "eval1_L.intros"(1,2))            
           qed
     next       
-      case (LEApp t1 t2 t' B)
+      case (LEApp t1 t2 t')
         note H=this(3)
         show ?case
           proof -
@@ -538,7 +539,7 @@ proof
               by (metis eval1_LEApp_E H)
             let ?substll="shift_LE (- 1) 0 (subst_LE 0 (shift_LE 1 0 t2) ll)"
            
-            have L:"t' = ?substll \<and> is_value_LE t2 \<and> t1 = LEAbs A ll
+            have "t' = ?substll \<and> is_value_LE t2 \<and> t1 = LEAbs A ll
                     \<longrightarrow> eval1_L (LApp (e t1) (e t2)) (e ?substll)"
               using value_equiv
                     e_comp_shift
@@ -546,14 +547,8 @@ proof
                     "LEApp.IH"
                     eval1_LApp_LAbs
               by simp
-            show ?thesis
-              proof (rule conjI, metis H equiv_type, rule disjE[OF f1], auto)
-                from L 
-                  show "t' = shift_LE (- 1) 0 (subst_LE 0 (shift_LE 1 0 t2) ll) \<Longrightarrow> is_value_LE t2 \<Longrightarrow> 
-                              t1 = LEAbs A ll \<Longrightarrow> 
-                             eval1_L (LApp (LAbs A (e ll)) (e t2)) (e (shift_LE (- 1) 0 (subst_LE 0 (shift_LE 1 0 t2) ll)))"
-                  by auto     
-              qed (metis "LEApp.IH" H inversionE(6) eval1_L.intros(4,5) value_equiv)+
+            with f1 show ?thesis
+              by(auto)(metis "LEApp.IH" H inversionE(6) eval1_L.intros(4,5) value_equiv)+
           qed
     next
       case (SeqE t1 t2)
@@ -563,33 +558,32 @@ proof
             obtain ll :: ltermE where
               f1: "t' = SeqE ll t2 \<and> eval1_LE t1 ll \<or> t2 = t' \<and> t1 = unitE"
               by (metis eval1_LESeq_E H)
-             show ?thesis
-              by (rule conjI, metis H equiv_type, rule disjE[OF f1])
-                 (metis "SeqE.IH" eval1_Lseq eval1_Lseq_next H inversionE(8) e.simps)+
+             then show ?thesis
+              by (metis "SeqE.IH" eval1_Lseq eval1_Lseq_next e.simps(7,8))+
           qed
     qed (auto elim: eval1_LE.cases)
 next
-  show "?Q \<Longrightarrow> ?P"
+  from welltyped show "?Q \<Longrightarrow> ?P"
     proof(induction t arbitrary:t' A)
       case LETrue
         thus ?case
-          using e.simps(1) eval1_L.cases ltermI.distinct(3) ltermI.distinct(9) by fastforce
+          by (induction "e LETrue" "e t'" rule: eval1_L.induct, auto)
     next
       case LEFalse
-        thus ?case
-          using e.simps(1) eval1_L.cases ltermI.distinct(3) ltermI.distinct(9) by fastforce
+        thus ?case          
+          by (induction "e LEFalse" "e t'" rule: eval1_L.induct, auto)
     next
       case (LEVar x)
-        thus ?case
-          using e.simps(1) eval1_L.cases ltermI.distinct(3) ltermI.distinct(9) by fastforce
+        thus ?case          
+          by (induction "e (LEVar x)" "e t'" rule: eval1_L.induct, auto)
     next
       case (unitE)
         thus ?case
-          using e.simps(1) eval1_L.cases ltermI.distinct(3) ltermI.distinct(9) by fastforce
+          by (induction "e unitE" "e t'" rule: eval1_L.induct, auto)
     next
-      case (LEAbs A t1)
-        from this(2) show ?case
-          using e.simps(1) eval1_L.cases ltermI.distinct(3) ltermI.distinct(9) by fastforce
+      case (LEAbs A t1 t' B)
+        from this(2) show ?case          
+          by (induction "e (LEAbs A t1)" "e t'" rule: eval1_L.induct, auto)
     next    
       case (LEIf c t1 t2)           
         note H=this(4) 
@@ -602,10 +596,9 @@ next
             have H1:
               "e t' = LIf ll (e t1) (e t2) \<and> eval1_L (e c) ll \<and> e u = ll \<longrightarrow> eval1_LE (LEIf c t1 t2) (LEIf u t1 t2) \<and>
                  e u = ll \<and> t' = LEIf u t1 t2 "
-              by (metis e_iso "LEIf.IH"(1) eval1_LEIf H inversion(3) "e.simps"(3))                            
-            show ?thesis
-              by(rule conjI, metis H equiv_type, rule disjE[OF f1], auto)
-                (metis H1 eval1_LE.intros(1,2) e_inv(1,2,3) e_iso)+               
+              by (metis e_iso "LEIf.IH"(1) "LEIf.prems"(2) inversion(3) eval1_LEIf "e.simps"(3))                            
+            with f1 show ?thesis
+              by(auto)(metis eval1_LE.intros(1,2) e_inv(1,2,3) e_iso)+               
           qed          
     next     
       case (SeqE t1 t2)
@@ -616,14 +609,14 @@ next
             obtain ll :: ltermI and u::ltermE where
               f1: "e u = ll \<and> eval1_L (e t1) ll \<and> e t' = (ll;e t2)  \<or> e t1 = unit \<and> e t' = e t2 \<or>
                     is_value_L (e t1) \<and> e t' = e t2"
-              by (metis eval1_LSeq_E[OF A] e_complete)
-              from SeqE.IH H
-                have 1:"is_value_L (e t1) \<and> e t' = e t2 \<Longrightarrow> eval1_LE (SeqE t1 t2) t'"
-                  by (metis canonical_forms(3) e_inv(6) e_iso equiv_type inversionE(8) 
-                              eval1_LE_E_Seq_Next)
-              show ?case
-                by (rule conjI, metis H equiv_type, rule disjE[OF f1], auto)
-                    (metis SeqE.IH(1) H e.simps(7,8) e_iso eval1_LE_E_Seq 
+              by (metis eval1_LSeq_E[OF A] e_complete) 
+            have 1:"is_value_L (e t1) \<and> e t' = e t2 \<Longrightarrow> eval1_LE (SeqE t1 t2) t'"
+              by (metis ltype.inject(2) SeqE.prems(2) e.simps(8) canonical_forms(3) 
+                        e_inv(6) e_iso inversion(5,6) eval1_LE_E_Seq_Next)
+              
+            with f1 show ?case
+                by (auto)
+                    (metis SeqE.IH(1) SeqE.prems(2)  e.simps(7,8) e_iso eval1_LE_E_Seq 
                            inversion(6) eval1_LE_E_Seq_Next 1)+                  
           qed
     next
@@ -639,22 +632,22 @@ next
               by (metis eval1_LApp_E[OF H] e_complete)
             let ?substll = "shift_L (- 1) 0 (subst_L 0 (shift_L 1 0 (e t2)) (e u))"
                 and ?substll1 = "shift_LE (- 1) 0 (subst_LE 0 (shift_LE 1 0 t2) u)"
-            have L:"is_value_L (e t2) \<and> e u = ll \<and> e t1 = LAbs C ll \<and> e t' = ?substll 
+            have "is_value_L (e t2) \<and> e u = ll \<and> e t1 = LAbs C ll \<and> e t' = ?substll 
                     \<Longrightarrow> eval1_LE (LEApp t1 t2) ?substll1"
               using e_inv(4)[of t1 C "e u"] e_comp_subst[of 0 "shift_LE 1 0 t2" u]
                     value_equiv[of t2]
                     e_comp_shift e_iso  
                     eval1_LEApp_LEAbs
               by fast
-            show ?case
-               proof  (rule conjI, metis LEApp.prems equiv_type, rule disjE[OF f1], auto)
-                  show " is_value_L (e t2) \<Longrightarrow> ll = e u \<Longrightarrow> e t1 = LAbs C (e u) \<Longrightarrow> 
+            with f1 show ?case
+               proof  (auto)
+                  show "eval1_LE (LEApp t1 t2) (shift_LE (- 1) 0 (subst_LE 0 (shift_LE 1 0 t2) u)) \<Longrightarrow> is_value_L (e t2) \<Longrightarrow> ll = e u \<Longrightarrow> e t1 = LAbs C (e u) \<Longrightarrow> 
                         e t' = shift_L (- 1) 0 (subst_L 0 (shift_L 1 0 (e t2)) (e u)) \<Longrightarrow> eval1_LE (LEApp t1 t2) t'"
-                  using e_comp_shift L
+                  using e_comp_shift
                         e_comp_subst[of 0 "shift_LE 1 0 t2" "u"]
                         e_iso[of "t'" "?substll1"]
                   by auto                 
-               qed (metis LEApp.IH eval1_LE.intros(4,5) e.simps(6) LEApp.prems inversion(6) e_iso value_equiv)+
+               qed (metis LEApp.IH eval1_LE.intros(4,5) e.simps(6) LEApp.prems(2) inversion(6) e_iso value_equiv)+
           qed 
     qed
 qed    
