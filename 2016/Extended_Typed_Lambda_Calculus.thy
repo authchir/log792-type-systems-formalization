@@ -8,10 +8,13 @@ imports
 begin
 (*>*)
 
-section {* Extended Typed Lambda Calculi*}
+section {* Derived form*}
 
 text{*    
-    This part will cover different lambda calculi containing some basic type extension
+    This part will cover the classical lambda calculus extended with booleans , unit type, 
+    type variables and sequence in two different ways. The goal is to show that 
+    both implementations are  equivalent up to some isomorphism (e) 
+    with respect to evaluation and typing.
 *}
 
 
@@ -70,7 +73,7 @@ inductive is_value_L :: "ltermI \<Rightarrow> bool" where
   so we will only consider shifted term t2 (always a valid term)
 *)
 
-abbreviation sequence :: "ltermI\<Rightarrow>ltermI\<Rightarrow>ltermI" (infix ";" 200) where
+abbreviation sequence :: "ltermI\<Rightarrow>ltermI\<Rightarrow>ltermI" (infix ";;" 200) where
  "sequence t1 t2 \<equiv> (LApp (LAbs Unit  (shift_L 1 0 t2)) t1)"
 
 primrec FV :: "ltermI \<Rightarrow> nat set" where
@@ -208,7 +211,7 @@ qed (auto simp: nth_append min_def intro: has_type_L.intros)
 *)
 
 theorem eval1_Lseq: 
-  "eval1_L t1 t1' \<Longrightarrow> eval1_L (t1;t2) (t1';t2)"
+  "eval1_L t1 t1' \<Longrightarrow> eval1_L (t1;;t2) (t1';;t2)"
   by (auto intro: eval1_L.intros is_value_L.intros)
 
 lemma subst_free_var_only: "x\<notin>FV t \<Longrightarrow> subst_L x t1 t = t"
@@ -218,9 +221,9 @@ lemma shift_shift_invert: "a>0 \<Longrightarrow> shift_L (-a) b (shift_L a b t) 
 by(induction t arbitrary: a b, auto)
 
 theorem eval1_Lseq_next:
-  " eval1_L (unit ; t2) t2"
+  " eval1_L (unit ;; t2) t2"
 proof -  
-  have A:"eval1_L (unit ; t2) (shift_L (-1) 0 (subst_L 0 (shift_L 1 0 unit) (shift_L 1 0 t2)))"
+  have A:"eval1_L (unit ;; t2) (shift_L (-1) 0 (subst_L 0 (shift_L 1 0 unit) (shift_L 1 0 t2)))"
     using eval1_LApp_LAbs
           "is_value_L.simps"
      by presburger
@@ -237,13 +240,13 @@ qed
 
 lemma eval1_LSeq_E:
   fixes t1 t2 t':: ltermI
-  assumes H:"eval1_L (t1;t2) t'" and 
-          step1: "\<And>t1'. eval1_L t1 t1' \<Longrightarrow> t' = (t1';t2) \<Longrightarrow> P" and
+  assumes H:"eval1_L (t1;;t2) t'" and 
+          step1: "\<And>t1'. eval1_L t1 t1' \<Longrightarrow> t' = (t1';;t2) \<Longrightarrow> P" and
           step2: "t1 = unit \<Longrightarrow> t' = t2 \<Longrightarrow> P" and
           step3: "is_value_L t1 \<Longrightarrow> t' = t2 \<Longrightarrow> P"  
   shows "P"
 using assms
-proof (induction "(t1;t2)" t' rule:eval1_L.induct)
+proof (induction "(t1;;t2)" t' rule:eval1_L.induct)
   case (eval1_LApp_LAbs)
     have "shift_L (- 1) 0 (subst_L 0 (shift_L 1 0 t1) (shift_L 1 0 t2)) = t2"
       using subst_free_var_only[of 0 "shift_L 1 0 t2"  "shift_L 1 0 t1" ]
@@ -258,7 +261,7 @@ qed (auto elim: eval1_L.cases)
  
 
 theorem has_type_LSeq: 
-  "\<Gamma> \<turnstile> t1 |:| Unit \<Longrightarrow> \<Gamma> \<turnstile> t2 |:| A \<Longrightarrow> \<Gamma> \<turnstile> (t1 ; t2) |:| A"
+  "\<Gamma> \<turnstile> t1 |:| Unit \<Longrightarrow> \<Gamma> \<turnstile> t2 |:| A \<Longrightarrow> \<Gamma> \<turnstile> (t1 ;; t2) |:| A"
     by (metis insert_nth.simps(1) less_eq_nat.simps(1) has_type_LAbs has_type_LApp
         weakening)
 
@@ -281,7 +284,8 @@ primrec shift_LE :: "int \<Rightarrow> nat \<Rightarrow> ltermE \<Rightarrow> lt
   "shift_LE d c (LEAbs T' t) = LEAbs T' (shift_LE d (Suc c) t)" |
   "shift_LE d c (LEApp t1 t2) = LEApp (shift_LE d c t1) (shift_LE d c t2)" |
   "shift_LE d c unitE = unitE" |
-  "shift_LE d c (SeqE t1 t2) = SeqE (shift_LE d c t1) (shift_LE d (Suc c) t2)"
+  "shift_LE d c (SeqE t1 t2) = 
+SeqE (shift_LE d c t1) (shift_LE d (Suc c) t2)"
 
 primrec subst_LE :: "nat \<Rightarrow> ltermE \<Rightarrow> ltermE \<Rightarrow> ltermE" where
   "subst_LE j s LETrue = LETrue" |
@@ -407,37 +411,13 @@ fun e::"ltermE \<Rightarrow> ltermI" where
   "e (LEAbs A t1) = LAbs A (e t1)" |
   "e (LEApp t1 t2) = LApp (e t1) (e t2)" |
   "e unitE = unit" |
-  "e (SeqE t1 t2) = (e t1 ; e t2)"
+  "e (SeqE t1 t2) = (e t1 ;; e t2)"
 
 (* 
   This theorem shows that both implementation of sequence are
    equivalent in term of typing and evaluation
 *)
 
-
-lemma shift_L_com: 
-  fixes     a d::int and b c::nat and t::ltermI
-  assumes   no_zero:"a \<ge> 0"  
-  shows "d \<ge> 0 \<Longrightarrow> b > c \<Longrightarrow> shift_L d c (shift_L a b t) = shift_L a b (shift_L d c t)"
-        "d < 0 \<Longrightarrow> b < c \<Longrightarrow> c + (nat d) \<ge> b \<Longrightarrow> shift_L d c (shift_L a b t) = shift_L a b (shift_L d c t)"
-sorry
-
-lemma e_comp_shift: "e (shift_LE d c t) = shift_L d c (e t)"
-proof (induction arbitrary: d c rule: e.induct)
-  case (8 t2 t1)
-    thus ?case
-      using shift_L_com[of d 1 0 "Suc c"]
-        sorry
-qed auto
-
-lemma ssj: "shift_L 1 0 (subst_L d t1 t2) = subst_L (Suc d) (shift_L 1 0 t1) (shift 1 0 t2)"
-sorry
-
-lemma e_comp_subst: "d \<ge> 0 \<Longrightarrow> e (subst_LE d c t) = subst_L d (e c) (e t)"
-by(induction arbitrary: d c rule: e.induct)
-    (auto simp:e_comp_shift, force intro: ssj)
-
-  
 method e_elim uses rule1 = (auto intro: e.elims[OF rule1] is_value_LE.intros) 
 method sym_then_elim = match premises in I: "A = B" for A and B \<Rightarrow>
             \<open>e_elim rule1: HOL.sym[OF I]\<close>
@@ -458,8 +438,10 @@ lemma e_inv:
   "e t = LAbs A t1 \<Longrightarrow> \<exists>t1'. t = LEAbs A t1' \<and> e t1' = t1"
   "e t = LVar x \<Longrightarrow> t = LEVar x"
   "e t = unit \<Longrightarrow> t = unitE"
+  "e t = LApp t1 t2 \<Longrightarrow> \<exists>t1' t2'. e t1' = t1 \<and> e t2' = t2 \<and> t = LEApp t1' t2' 
+                        \<or> (\<exists>t3 t3'. t1 = LAbs Unit (shift_L 1 0 t3) \<and> e t3' = t3 \<and> t = SeqE t2' t3')"  
 by (auto elim: e.elims)
-  
+
 lemma e_iso:
   "e t = e t' \<Longrightarrow> t = t'"
 proof (induction arbitrary: t rule: ltermE.induct)
@@ -488,16 +470,6 @@ theorem e_complete:
 by (induction t)(blast intro:e.simps)+
       
 
-(*
-    proof (induction rule:eval1_LE.induct)
-      case (eval1_LEApp2 v1 t2 t2')
-        thus ?case by (metis e.simps(6) value_equiv eval1_L.intros(5))
-    next
-      case (eval1_LEApp_LEAbs v1 A t)
-        thus ?case
-          by (simp add:e_comp_shift e_comp_subst eval1_LApp_LAbs value_equiv)
-    qed (auto intro: eval1_L.intros eval1_Lseq eval1_Lseq_next)
-*)
 
 theorem equiv_type:
   "\<Gamma> \<turnstile>\<^sup>E t |:| A \<longleftrightarrow> \<Gamma> \<turnstile> (e t) |:| A" (is "?P \<longleftrightarrow> ?Q")
@@ -540,15 +512,14 @@ proof
             let ?substll="shift_LE (- 1) 0 (subst_LE 0 (shift_LE 1 0 t2) ll)"
            
             have "t' = ?substll \<and> is_value_LE t2 \<and> t1 = LEAbs A ll
-                    \<longrightarrow> eval1_L (LApp (e t1) (e t2)) (e ?substll)"
-              using value_equiv
-                    e_comp_shift
-                    e_comp_subst
+                    \<longrightarrow> eval1_L (LApp (e t1) (e t2)) (e ?substll)"  
+              using value_equiv[of t2]
                     "LEApp.IH"
-                    eval1_LApp_LAbs
-              by simp
+                    eval1_LApp_LAbs[of "e t2" A "e ll"]
+              (*by simp*) sorry
             with f1 show ?thesis
-              by(auto)(metis "LEApp.IH" H inversionE(6) eval1_L.intros(4,5) value_equiv)+
+              by(auto)
+                (metis "LEApp.IH" H inversionE(6) eval1_L.intros(4,5) value_equiv)+
           qed
     next
       case (SeqE t1 t2)
@@ -603,11 +574,11 @@ next
     next     
       case (SeqE t1 t2)
         note H=this(3)
-        from H have A:"eval1_L (e t1;e t2) (e t')" by simp
+        from H have A:"eval1_L (e t1;;e t2) (e t')" by simp
         show ?case
           proof -
             obtain ll :: ltermI and u::ltermE where
-              f1: "e u = ll \<and> eval1_L (e t1) ll \<and> e t' = (ll;e t2)  \<or> e t1 = unit \<and> e t' = e t2 \<or>
+              f1: "e u = ll \<and> eval1_L (e t1) ll \<and> e t' = (ll;;e t2)  \<or> e t1 = unit \<and> e t' = e t2 \<or>
                     is_value_L (e t1) \<and> e t' = e t2"
               by (metis eval1_LSeq_E[OF A] e_complete) 
             have 1:"is_value_L (e t1) \<and> e t' = e t2 \<Longrightarrow> eval1_LE (SeqE t1 t2) t'"
@@ -634,19 +605,17 @@ next
                 and ?substll1 = "shift_LE (- 1) 0 (subst_LE 0 (shift_LE 1 0 t2) u)"
             have "is_value_L (e t2) \<and> e u = ll \<and> e t1 = LAbs C ll \<and> e t' = ?substll 
                     \<Longrightarrow> eval1_LE (LEApp t1 t2) ?substll1"
-              using e_inv(4)[of t1 C "e u"] e_comp_subst[of 0 "shift_LE 1 0 t2" u]
+              using e_inv(4)[of t1 C "e u"]
                     value_equiv[of t2]
-                    e_comp_shift e_iso  
+                    e_iso  
                     eval1_LEApp_LEAbs
               by fast
             with f1 show ?case
                proof  (auto)
                   show "eval1_LE (LEApp t1 t2) (shift_LE (- 1) 0 (subst_LE 0 (shift_LE 1 0 t2) u)) \<Longrightarrow> is_value_L (e t2) \<Longrightarrow> ll = e u \<Longrightarrow> e t1 = LAbs C (e u) \<Longrightarrow> 
                         e t' = shift_L (- 1) 0 (subst_L 0 (shift_L 1 0 (e t2)) (e u)) \<Longrightarrow> eval1_LE (LEApp t1 t2) t'"
-                  using e_comp_shift
-                        e_comp_subst[of 0 "shift_LE 1 0 t2" "u"]
-                        e_iso[of "t'" "?substll1"]
-                  by auto                 
+                  using e_iso[of "t'" "?substll1"]
+                  sorry                 
                qed (metis LEApp.IH eval1_LE.intros(4,5) e.simps(6) LEApp.prems(2) inversion(6) e_iso value_equiv)+
           qed 
     qed
