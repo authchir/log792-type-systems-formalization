@@ -97,12 +97,6 @@ primrec subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> lt
   "subst_L j s (Let pattern p := t1 in t2) = (Let pattern p := (subst_L j s t1) in (subst_L j s t2))"
 
 
-
-fun p_instantiate::"(nat \<times> lterm) list \<Rightarrow> Lpattern \<Rightarrow> lterm" where
-"p_instantiate \<Delta> (V k) = (case (find (\<lambda>p. fst p = k) \<Delta>) of None \<Rightarrow> <|V k|> | Some p \<Rightarrow> snd p)"|
-"p_instantiate \<Delta> (RCD L PL) = Record L (map (p_instantiate \<Delta>) PL)"
-
-
 text{*
       We want to restrict the considered pattern matching and filling to coherent cases, which are
       the cases when a pattern variable can only appear once in a given pattern.\\
@@ -184,8 +178,13 @@ text{*
     \end{itemize}
 *}
 
+fun p_instantiate::"(nat \<times> lterm) list \<Rightarrow> Lpattern \<Rightarrow> lterm" where
+"p_instantiate \<Delta> (V k) = (case (find (\<lambda>p. fst p = k) \<Delta>) of None \<Rightarrow> <|V k|> | Some p \<Rightarrow> snd p)"|
+"p_instantiate \<Delta> (RCD L PL) = Record L (map (p_instantiate \<Delta>) PL)"
+
 fun fill::"(nat \<times> lterm) list \<Rightarrow> lterm \<Rightarrow> lterm" where
-"fill \<Delta> (Pattern p)                 = (if(set (Pvars p) \<subseteq> set(fst_extract \<Delta>)) then p_instantiate \<Delta> p else Pattern p)" |
+(*"fill \<Delta> (Pattern p)                 = (if(set (Pvars p) \<subseteq> set(fst_extract \<Delta>)) then p_instantiate \<Delta> p else Pattern p)" |*)
+"fill \<Delta> (Pattern p)                 = p_instantiate \<Delta> p" |
 "fill \<Delta> (LIf c t1 t2)               = LIf (fill \<Delta> c) (fill \<Delta> t1) (fill \<Delta> t2)" |
 "fill \<Delta> (LAbs A t1)                 = LAbs A (fill \<Delta> t1)" |
 "fill \<Delta> (LApp t1 t2)                = LApp (fill \<Delta> t1) (fill \<Delta> t2)" |
@@ -465,7 +464,8 @@ qed auto
 lemma weakening :
   "\<Gamma>' \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<Longrightarrow> (\<exists>P. P@\<Gamma>' = \<Gamma>) \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t|;|(\<delta>@\<delta>1)\<rparr> |:| A" sorry
 
-
+lemma no_pattern_fill:
+ "patterns t = [] \<Longrightarrow> fill \<delta> t = t" sorry 
 
 lemma has_type_filled:
   assumes coherence: "coherent_Subst (\<delta>@\<delta>1)" and
@@ -538,7 +538,7 @@ next
       using has_type_PatternVar
             weakening
       by fastforce
-    have "k \<notin> set (fst_extract \<delta>) \<Longrightarrow> \<Gamma> \<turnstile> \<lparr><|V k|>|;|\<delta>1\<rparr> |:| A"
+    have 2:"k \<notin> set (fst_extract \<delta>) \<Longrightarrow> \<Gamma> \<turnstile> \<lparr><|V k|>|;|\<delta>1\<rparr> |:| A"
       proof -
         assume hyp : "k \<notin> set (fst_extract \<delta>)"
         hence "(k,t) \<notin> set \<delta>"
@@ -553,25 +553,43 @@ next
           using "has_type_L.intros"(18)[OF has_type_PatternVar(1)]
           by blast      
       qed
-    with 1 show ?case by simp 
+    have "k \<notin> set(fst_extract \<delta>) \<Longrightarrow> find (\<lambda>p. fst p = k) \<delta> = None"
+      using find_None_iff[of "\<lambda>p. fst p = k" \<delta>]
+            prod.collapse
+            zip_comp[of \<delta>] set_zip_leftD
+      by metis      
+    with 1 2 show ?case
+      by(cases "k\<in> set(fst_extract \<delta>)", auto)
 next
   case (has_type_PatternRCD L PL TL \<Gamma>)
-    have 1:"(set (list_iter op @ \<emptyset> (map Pvars PL)) \<subseteq> set (fst_extract \<delta>) \<longrightarrow> \<Gamma> \<turnstile> \<lparr>Record L (map (p_instantiate \<delta>) PL)|;|\<delta>1\<rparr> |:| \<lparr>L|:|TL\<rparr>)"
-      using "has_type_PatternRCD"(6)[of _ \<delta> \<delta>1]
-            fill.simps(1)
-            has_type_PatternRCD(7)
-            list_map_incl[of Pvars PL _ _ ]
-      by (force intro!:"has_type_L.intros"(16) has_type_PatternRCD)+
     show ?case
-       apply simp
-       apply (simp add: 1)
-       using "has_type_L.intros"(19)[of L PL TL \<Gamma> \<delta>1,OF has_type_PatternRCD(1,2,3,4)]
-              has_type_PatternRCD
-              list_map_incl[of Pvars PL]
-sorry
+       using nth_map fill.simps(1)
+             "has_type_PatternRCD"(6)[of _ \<delta> \<delta>1]
+             has_type_PatternRCD
+       by (force intro!:"has_type_L.intros"(16))+
 next
-  case (has_type_LetPattern)
-    thus ?case sorry
+  case (has_type_LetPattern \<delta>' p t1 \<Gamma> t2 A)
+    show ?case 
+      apply simp
+      apply (cases "patterns t1 = []")
+      using no_pattern_fill
+      apply auto[1]
+      apply (auto intro!: "has_type_L.intros"(20)[of \<delta>' \<delta>1 p t1 \<Gamma> "fill \<delta> t2"])
+      using has_type_LetPattern(1)
+            fst_extract_app[of \<delta>' "\<delta>@\<delta>1"]
+            fst_extract_app[of \<delta> \<delta>1]
+            fst_extract_app[of \<delta>' \<delta>1]
+            distinct_append[of "fst_extract \<delta>'" "fst_extract \<delta>1"]
+            distinct_append[of "fst_extract \<delta>'" "fst_extract (\<delta>@\<delta>1)"]
+            set_append
+      apply auto[1]
+      using has_type_LetPattern(2,3)
+      apply force+
+      prefer 2      
+      apply (auto intro!: "has_type_L.intros"(20)[of "update_snd (fill \<delta>) \<delta>'" \<delta>1 p "fill \<delta> t1" \<Gamma> "fill \<delta> t2"])
+      using has_type_LetPattern(1)
+      
+sorry
 qed (auto intro!:has_type_L.intros)
 (*
 lemma inversion:
