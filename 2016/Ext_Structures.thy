@@ -135,7 +135,7 @@ fun patterns::"lterm \<Rightarrow> nat list" where
 inductive is_value_L :: "lterm \<Rightarrow> bool" where
   "is_value_L LTrue" |
   "is_value_L LFalse" |
-  "set(patterns t) = {} \<Longrightarrow> is_value_L (LAbs T' t)" |
+  "is_value_L (LAbs T' t)" |
   "is_value_L unit" |
   "is_value_L v1 \<Longrightarrow> is_value_L v2 \<Longrightarrow> is_value_L (\<lbrace>v1,v2\<rbrace>)" |
   "(\<And>i.0\<le>i \<Longrightarrow> i<length L \<Longrightarrow> is_value_L (L!i)) \<Longrightarrow> is_value_L (Tuple L)" |
@@ -180,7 +180,8 @@ text{*
 
 fun p_instantiate::"(nat \<times> lterm) list \<Rightarrow> Lpattern \<Rightarrow> lterm" where
 "p_instantiate \<Delta> (V k) = (case (find (\<lambda>p. fst p = k) \<Delta>) of None \<Rightarrow> <|V k|> | Some p \<Rightarrow> snd p)"|
-"p_instantiate \<Delta> (RCD L PL) = Record L (map (p_instantiate \<Delta>) PL)"
+"p_instantiate \<Delta> (RCD L PL) =  (if (set (Pvars (RCD L PL)) \<inter> set (fst_extract \<Delta>) = {}) then <|RCD L PL|>
+                                 else Record L (map (p_instantiate \<Delta>) PL))"
 
 fun fill::"(nat \<times> lterm) list \<Rightarrow> lterm \<Rightarrow> lterm" where
 (*"fill \<Delta> (Pattern p)                 = (if(set (Pvars p) \<subseteq> set(fst_extract \<Delta>)) then p_instantiate \<Delta> p else Pattern p)" |*)
@@ -300,57 +301,6 @@ text{*  For the typing rule of letbinder, we require to replace the type
     *}
 
 (*
-inductive has_type_L :: "pcontext \<Rightarrow> lcontext \<Rightarrow> lterm \<Rightarrow> ltype \<Rightarrow> bool" ("((_)|;|(_)/ \<turnstile> (_)/ |:| (_))" [150, 150, 150, 150] 150) where
-  -- "Rules relating to the type of Booleans"
-  has_type_LTrue:
-    "\<Delta> |;| \<Gamma> \<turnstile> LTrue |:| Bool" |
-  has_type_LFalse:
-    "\<Delta> |;| \<Gamma> \<turnstile> LFalse |:| Bool" |
-  has_type_LIf:
-    "\<Delta> |;| \<Gamma> \<turnstile> t1 |:| Bool \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> t2 |:| T' \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> t3 |:| T' \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> (LIf t1 t2 t3) |:| T'" |
-
-  -- \<open>Rules relating to the type of the constructs of the $\lambda$-calculus\<close>
-  has_type_LVar:
-    "(x, T') |\<in>| \<Gamma> \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> (LVar x) |:| (T')" |
-  has_type_LAbs:
-    "\<Delta> |;|(\<Gamma> |,| T1) \<turnstile> t2 |:| T2 \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> (LAbs T1 t2) |:| (T1 \<rightarrow> T2)" |
-  has_type_LApp:
-    "\<Delta> |;| \<Gamma> \<turnstile> t1 |:| (T11 \<rightarrow> T12) \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> t2 |:| T11 \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> (LApp t1 t2) |:| T12" |  
-  has_type_LUnit:
-    "\<Delta> |;| \<Gamma> \<turnstile> unit |:| Unit " |  
-  has_type_LSeq:
-    "\<Delta> |;| \<Gamma> \<turnstile> t1 |:| Unit \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> t2 |:| A \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> (Seq t1 t2) |:| A" |
-  has_type_LAscribe:
-    "\<Delta> |;| \<Gamma> \<turnstile> t1 |:| A \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> t1 as A |:| A" |
-  has_type_Let:
-    "\<Delta> |;| \<Gamma> \<turnstile> t1 |:| A \<Longrightarrow> \<Delta> |;| (replace x A \<Gamma>) \<turnstile> t2 |:| B \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> Let var x := t1 in t2 |:| B" |
-  has_type_Pair:
-    "\<Delta> |;| \<Gamma> \<turnstile> t1 |:| A \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> t2 |:| B \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> \<lbrace>t1,t2\<rbrace> |:| A |\<times>| B" |
-  has_type_Proj1:
-    "\<Delta> |;| \<Gamma> \<turnstile> t1 |:| A |\<times>| B \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> \<pi>1 t1 |:| A" |
-  has_type_Proj2:
-    "\<Delta> |;| \<Gamma> \<turnstile> t1 |:| A |\<times>| B \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> \<pi>2 t1 |:| B" |
-  has_type_Tuple:
-    "L\<noteq>[] \<Longrightarrow> length L = length TL \<Longrightarrow> (\<And>i. 0\<le>i \<Longrightarrow> i< length L \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> (L ! i) |:| (TL ! i))
-      \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> Tuple L |:| \<lparr>TL\<rparr>" |
-  has_type_ProjT:
-    "1\<le>i \<Longrightarrow> i\<le> length TL \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> t |:| \<lparr>TL\<rparr> \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> (\<Pi> i t) |:| (TL ! (i-1))" |
-  has_type_RCD:
-    "L\<noteq>[] \<Longrightarrow> distinct L \<Longrightarrow> length LT = length TL \<Longrightarrow> length L = length LT \<Longrightarrow> (\<And>i. i< length LT \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> (LT ! i) |:| (TL ! i))
-      \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> Record L LT |:| \<lparr>L|:|TL\<rparr>" |
-  has_type_ProjR:
-    "distinct L1 \<Longrightarrow> l\<in> set L1  \<Longrightarrow> length L1 = length TL \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> t |:| \<lparr>L1|:|TL\<rparr> \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> (ProjR l t) |:| (TL ! index L1 l)" |
-  has_type_PatternVar:
-    "coherent_Subst \<Delta> \<Longrightarrow> (k,A)\<in> set \<Delta> \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> (<|V k|>) |:| A" |
-  has_type_PatternRCD:
-    "L\<noteq>[] \<Longrightarrow> distinct L \<Longrightarrow> length PL = length TL \<Longrightarrow> length L = length PL \<Longrightarrow> (\<And>i. i< length PL \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> (<|PL ! i|>) |:| (TL ! i))
-      \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> (<|RCD L PL|>) |:| \<lparr>L|:|TL\<rparr>" |
-  has_type_LetNoPattern:
-    "\<Delta> |;| \<Gamma> \<turnstile> t2 |:| A  \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> (Let pattern p := t1 in t2) |:| A" |
-  has_type_LetPattern:
-    "coherent p \<Longrightarrow> Lmatch p t1 \<delta> \<Longrightarrow> length TL = length \<delta> \<Longrightarrow>(\<And>i. i<length TL \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> (snd (\<delta>!i)) |:| (TL!i)) \<Longrightarrow>
-     ((zip (fst_extract \<delta>) TL) @ \<Delta>) |;| \<Gamma> \<turnstile> t2 |:| A \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> (Let pattern p := t1 in t2) |:| A" 
-  
 
 inductive_cases has_type_LetE : "\<Delta> |;| \<Gamma> \<turnstile> Let var x := t1 in t2 |:| B"
 inductive_cases has_type_ProjTE: "\<Delta> |;| \<Gamma> \<turnstile> \<Pi> i t |:| R"
@@ -460,6 +410,10 @@ proof (induction L)
       by fastforce            
 qed auto
 
+lemma pcontext_inversion:
+  "\<Gamma> \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<Longrightarrow> set (patterns t) \<subseteq> set (fst_extract \<delta>)"
+sorry
+
 lemma weakening :
   "\<Gamma>' \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<Longrightarrow> (\<exists>P. P@\<Gamma>' = \<Gamma>) \<Longrightarrow> set \<delta> \<subseteq> set \<delta>1 \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t|;|(\<delta>1)\<rparr> |:| A" sorry
 
@@ -468,27 +422,82 @@ lemma strengthening:
 sorry
 
 lemma fill_only_incl:
-  "set(patterns t) \<inter> set (fst_extract \<delta>) = {} \<Longrightarrow> fill \<delta> t = t" sorry
+  "set(patterns t) \<inter> set (fst_extract \<delta>) = {} \<Longrightarrow> fill \<delta> t = t"
+proof (induction t arbitrary: \<delta>)
+  case (Tuple L)
+    thus ?case by (induction L, auto)                  
+next
+  case (Record L LT)
+    thus ?case by (induction LT, auto)
+next
+  case (Pattern p)
+    from Pattern show ?case 
+      proof (induction p)
+        case (V x)
+          thus ?case
+            using find_None_iff[of "\<lambda>p. fst p = _" \<delta>]
+                  prod.collapse
+                  set_zip_leftD[of _ _ "fst_extract \<delta>" "snd_extract \<delta>"] 
+                  zip_comp[of \<delta>]
+            by force
+      qed force
+qed auto
+
+lemma record_patterns_characterisation:
+  "set (patterns (<|RCD L PL|>)) \<subseteq> S \<Longrightarrow> x \<in> set PL \<Longrightarrow> set(patterns (<|x|>)) \<subseteq> S"
+sorry 
 
 lemma fill_subsumption:
-  "set(patterns t) \<subseteq> set (fst_extract \<delta>) \<Longrightarrow> set \<delta> \<subseteq> set \<delta>1 \<Longrightarrow> fill \<delta>1 t = fill \<delta> t"
-sorry
+  "coherent_Subst \<delta> \<Longrightarrow> coherent_Subst \<delta>1 \<Longrightarrow> set(patterns t) \<subseteq> set (fst_extract \<delta>) \<Longrightarrow> set \<delta> \<subseteq> set \<delta>1 \<Longrightarrow> fill \<delta>1 t = fill \<delta> t"
+proof (induction t)
+ case (Tuple L)
+    thus ?case
+      by (induction L, auto)
+next
+  case (Record L LT)
+    thus ?case by (induction LT, auto)
+next
+  case (Pattern p)
+    thus ?case
+      proof (induction p)
+        case (V k)
+          obtain v where 1:"find (\<lambda>p. fst p = k) \<delta> = Some (k, v)" "(k, v) \<in> set \<delta>"
+            using inset_find_Some[of k \<delta>]
+                  V(3)
+            by auto
+          hence "k \<in> set (fst_extract \<delta>1)"
+            using zip_comp[of \<delta>1]
+                  V(4)
+                  set_zip_leftD[of k v "fst_extract \<delta>1" "snd_extract \<delta>1"]
+            by auto
+          hence "find (\<lambda>p. fst p = k) \<delta>1 = Some (k, v)"
+            using inset_find_Some[of k \<delta>1]
+                  1 V coherent_imp_unique_index subsetCE 
+            by blast
+          with 1 show ?case
+            by auto
+      next
+        case (RCD L PL)
+          have 1:"set (list_iter op @ \<emptyset> (map Pvars PL)) \<inter> set (fst_extract \<delta>1) = {} \<Longrightarrow> set (list_iter op @ \<emptyset> (map Pvars PL)) \<inter> set (fst_extract \<delta>) = {}"
+            using incl_fst RCD(5)
+            by blast  
+          have 21:"set (list_iter op @ \<emptyset> (map Pvars PL)) \<inter> set (fst_extract \<delta>1) \<noteq> {} \<Longrightarrow>
+                  set (list_iter op @ \<emptyset> (map Pvars PL)) \<inter> set (fst_extract \<delta>) \<noteq> {}"
+            using RCD(4,5)
+            by auto
+          have "set (list_iter op @ \<emptyset> (map Pvars PL)) \<inter> set (fst_extract \<delta>1) \<noteq> {} \<Longrightarrow>
+              (set (list_iter op @ \<emptyset> (map Pvars PL)) \<inter> set (fst_extract \<delta>) \<noteq> {} \<longrightarrow> (\<forall>x\<in>set PL. p_instantiate \<delta>1 x = p_instantiate \<delta> x))"
+            using RCD(1)[OF _ RCD(2,3) _ RCD(5)]
+                  record_patterns_characterisation[OF RCD(4) _]
+            by auto                                      
+          with 1 21 show ?case by auto
+      qed 
+qed (auto)
 
-lemma pcontext_inversion:
-  "\<Gamma> \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<Longrightarrow> set (patterns t) \<subseteq> set (fst_extract \<delta>)"
-sorry
-
-lemma patterns_fill:
-  "set (patterns (fill \<delta> t)) = set(patterns t) - set (fst_extract \<delta>)" sorry
 
 lemma fill_keep_value:
   "is_value_L v \<Longrightarrow> is_value_L (fill \<delta> v)"
-proof(induction v rule: is_value_L.induct, auto intro: "is_value_L.intros" )
-  show "\<And>t T'. patterns t = \<emptyset> \<Longrightarrow> is_value_L (LAbs T' (fill \<delta> t))"
-    using patterns_fill[of \<delta>]
-          is_value_L.intros(3)[of "fill \<delta> _"]
-    by simp
-qed
+by(induction v rule: is_value_L.induct, auto intro: "is_value_L.intros" )
 
 lemma match_to_filled_match:
   "Lmatch p t1 \<delta>' \<Longrightarrow> Lmatch p (fill \<delta> t1) (update_snd (fill \<delta>) \<delta>')"
@@ -604,10 +613,8 @@ next
 next
   case (has_type_PatternRCD L PL TL \<Gamma>)
     show ?case
-       using nth_map fill.simps(1)
-             "has_type_PatternRCD"(6)[of _ \<delta> \<delta>1]
-             has_type_PatternRCD
-       by (force intro!:"has_type_L.intros"(16))+
+      using has_type_PatternRCD
+        by (force intro!: "has_type_L.intros"(16))+
 next
   case (has_type_LetPattern \<delta>' p t1 \<Gamma> t2 A)
     have incl_cases:"set (patterns t2) \<subseteq> set (fst_extract \<delta>) \<and> set (patterns t2) \<inter> set (fst_extract (\<delta>'@\<delta>1)) = {} \<or>
