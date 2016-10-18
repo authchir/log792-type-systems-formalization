@@ -109,10 +109,6 @@ fun Pvars :: "Lpattern \<Rightarrow> nat list" where
 "Pvars (V n) = [n]" |
 "Pvars (RCD L PL) = (list_iter (\<lambda>x r. x @ r) [] (map Pvars PL))"
 
-lemma Pvars_nil:
-  "Pvars p = [] \<Longrightarrow>\<exists>L PL. p = RCD L PL \<and> (\<forall>i<length PL. Pvars (PL ! i) = [])"
-sorry
-
 
 fun patterns::"lterm \<Rightarrow> nat list" where
 "patterns (<|p|>) = Pvars p" |
@@ -129,7 +125,7 @@ fun patterns::"lterm \<Rightarrow> nat list" where
 "patterns (\<pi>2 t)                      = patterns t" |
 "patterns (\<Pi> i t)                     = patterns t" |
 "patterns (ProjR l t)                 = patterns t" |
-"patterns (Let pattern p := t1 in t2) = patterns t1 @ (filter (\<lambda>x. x\<notin> set (Pvars p)) (patterns t2))" |
+"patterns (Let pattern p := t1 in t2) = patterns t1 @ patterns t2" |
 "patterns t = []"
 
 inductive is_value_L :: "lterm \<Rightarrow> bool" where
@@ -163,7 +159,22 @@ primrec FV :: "lterm \<Rightarrow> nat set" where
   "FV (Pattern p) = {}" |
   "FV (Let pattern p := t1 in t2) = FV t1 \<union> FV t2"
 
-
+fun bind_pvars :: "lterm \<Rightarrow> nat set" where
+"bind_pvars (Let pattern p:= t1 in t2)      = set(Pvars p) \<union> bind_pvars t1 \<union> bind_pvars t2" |
+"bind_pvars (LIf c t1 t2)               = bind_pvars c \<union> bind_pvars t1 \<union> bind_pvars t2" |
+"bind_pvars (LAbs A t1)                 = bind_pvars t1" |
+"bind_pvars (LApp t1 t2)                = bind_pvars t1 \<union> bind_pvars t2" |
+"bind_pvars (Seq t1 t2)                 = bind_pvars t1 \<union> bind_pvars t2" |
+"bind_pvars (t1 as A)                   = bind_pvars t1" |
+"bind_pvars (\<lbrace>t1,t2\<rbrace>)                   = bind_pvars t1 \<union> bind_pvars t2" |
+"bind_pvars (Tuple L)                   = (UN l : set (map (bind_pvars) L). l)" |
+"bind_pvars (Record L LT)               = (UN l : set (map (bind_pvars) LT). l)" |
+"bind_pvars (\<pi>1 t)                      = bind_pvars t" |
+"bind_pvars (\<pi>2 t)                      = bind_pvars t" |
+"bind_pvars (\<Pi> i t)                     = bind_pvars t" |
+"bind_pvars (ProjR l t)                 = bind_pvars t" |
+"bind_pvars (Let var x := t1 in t2) = bind_pvars t1 \<union> bind_pvars t2" |
+"bind_pvars t                           = {}"
 
 text{*
     We implement pattern matching and replacing with the following function and definition:
@@ -329,8 +340,11 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> (nat\<times>
     "\<Gamma> \<turnstile> \<lparr>t1|;|\<delta>\<rparr> |:| Unit \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t2|;|\<delta>\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Seq t1 t2|;|\<delta>\<rparr> |:| A" |
   has_type_LAscribe:
     "\<Gamma> \<turnstile> \<lparr>t1|;|\<delta>\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t1 as A|;|\<delta>\<rparr> |:| A" |
-  has_type_Let:
+  (*has_type_Let:
     "\<Gamma> \<turnstile> \<lparr>t1|;|\<delta>\<rparr> |:| A \<Longrightarrow> (replace x A \<Gamma>) \<turnstile> \<lparr>t2|;|update_snd (subst_L x t1) \<delta>\<rparr> |:| B \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Let var x := t1 in t2|;|\<delta>\<rparr> |:| B" |
+*)  
+  has_type_Let:
+    "\<Gamma> \<turnstile> \<lparr>t1|;|\<delta>\<rparr> |:| A \<Longrightarrow> (replace x A \<Gamma>) \<turnstile> \<lparr>t2|;| \<delta>\<rparr> |:| B \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Let var x := t1 in t2|;|\<delta>\<rparr> |:| B" |
   has_type_Pair:
     "\<Gamma> \<turnstile> \<lparr>t1|;|\<delta>\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t2|;|\<delta>\<rparr> |:| B \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>\<lbrace>t1,t2\<rbrace>|;|\<delta>\<rparr> |:| A |\<times>| B" |
   has_type_Proj1:
@@ -354,7 +368,8 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> (nat\<times>
       \<Longrightarrow> \<Gamma> \<turnstile> \<lparr><|RCD L PL|>|;|\<delta>\<rparr> |:| \<lparr>L|:|TL\<rparr>" |
   has_type_LetPattern:
     "coherent_Subst (\<delta>@\<delta>1) \<Longrightarrow> coherent p \<Longrightarrow> Lmatch p t1 \<delta>  \<Longrightarrow> set (patterns t1) \<subseteq> set (fst_extract \<delta>1) \<Longrightarrow>
-     \<Gamma> \<turnstile> \<lparr>t2|;|(\<delta>@\<delta>1)\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|\<delta>1\<rparr> |:| A" 
+     \<Gamma> \<turnstile> \<lparr>t2|;|(update_snd (fill \<delta>1) \<delta>@\<delta>1)\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|\<delta>1\<rparr> |:| A" 
+
 
   
 lemma coherent_imp_distinct: "coherent_Subst L \<Longrightarrow> distinct L" 
@@ -416,90 +431,40 @@ by (induction PL arbitrary: S x, auto)
 
 lemma Lmatch_pvars:
   "Lmatch p v \<delta> \<Longrightarrow> set(fst_extract \<delta>) = set(Pvars p)"
-sorry
+proof(induction rule: Lmatch.induct)
+  case (M_Var v n)
+    thus ?case by auto
+next
+  case (M_RCD L LT F PL)
+    show ?case
+      using M_RCD(3,4,6,7)
+      proof (induction PL arbitrary: F LT)
+        case Nil
+          thus ?case by auto
+      next
+        case (Cons p PL1)
+          from Cons(2) obtain f F1 where A:"F = f#F1"
+            using length_Suc_conv
+            by metis
+          from Cons(3) obtain lt LT1 where C:"LT = lt#LT1"
+            using length_Suc_conv
+            by metis
+          have B:"set (fst_extract f) = set (Pvars p)"
+            using Cons(5)[of 0]
+                  A
+            by auto
+          have "set (fst_extract (list_iter op @ \<emptyset> F1)) = set (list_iter op @ \<emptyset> (map Pvars PL1))"
+            using Cons(1)[of F1 LT1]
+                  Cons(2,3) A C
+                  Cons(4,5)[of "Suc _"]
+            by force
+          with B show ?case
+            by (simp add:A)
+      qed
+qed 
 
-lemma pcontext_inversion:
-  "\<Gamma> \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<Longrightarrow> set (patterns t) \<subseteq> set (fst_extract \<delta>)"
-proof (induction rule: has_type_L.induct)
-  case (has_type_Tuple L TL \<Gamma> \<delta>)
-    from has_type_Tuple(4)
-      show ?case 
-        by (auto simp: list_map_incl2[of L patterns "set(fst_extract \<delta>)"])
-next
-  case (has_type_RCD L LT TL \<Gamma> \<delta>)
-    from has_type_RCD(6) 
-      show ?case 
-        by (auto simp: list_map_incl2[of LT patterns "set(fst_extract \<delta>)"])
-next
-  case (has_type_PatternVar \<Gamma> t A k \<delta>)
-    from "has_type_PatternVar"(2)    
-      show ?case
-        using zip_comp[of \<delta>]
-              set_zip_leftD[of k t "fst_extract \<delta>" "snd_extract \<delta>"]
-        by auto
-next
-  case (has_type_PatternRCD L PL TL \<Gamma> \<delta>)
-    from has_type_PatternRCD(6)
-      show ?case        
-        by (auto simp:list_map_incl2[of PL Pvars "set(fst_extract \<delta>)"])        
-next
-  case (has_type_LetPattern \<delta> \<delta>1 p t1 \<Gamma> t2 A)
-    show ?case
-      using has_type_LetPattern
-            Lmatch_pvars[OF has_type_LetPattern(3)]
-      by auto
-qed auto
-
-lemma weakening :
-  "\<Gamma>' \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<Longrightarrow> (\<exists>P. \<Gamma>'@P = \<Gamma>) \<Longrightarrow> coherent_Subst \<delta>1 \<Longrightarrow> set \<delta> \<subseteq> set \<delta>1 \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t|;|(\<delta>1)\<rparr> |:| A"
-proof(induction arbitrary: \<delta>1 \<Gamma> rule:has_type_L.induct)
-  case (has_type_LVar x A \<Gamma>1 \<delta>)
-    show ?case
-      using has_type_LVar(1,2)
-            nth_append[of \<Gamma>1 _ x]
-      by (auto intro: has_type_L.intros)
-next
-  case (has_type_ProjT i TL \<Gamma>1 t \<delta>)
-    show ?case 
-      using has_type_ProjT
-            "has_type_L.intros"(15)[OF has_type_ProjT(1,2)]
-      by auto
-next
-  case (has_type_LApp \<Gamma>1 t1 \<delta> A B t2)
-    show ?case
-      using has_type_LApp(3,4,5,6,7)
-            has_type_L.intros(6)[of \<Gamma> t1 \<delta>1 A B]
-      by auto
-next
-  case (has_type_Let \<Gamma>1 t1 \<delta> A x t2 B)
-    have 1: " set (update_snd (subst_L x t1) \<delta>) \<subseteq> set (update_snd (subst_L x t1) \<delta>1)"
-      using update_snd_subset[OF has_type_Let(7)]
-      by blast
-    show ?case 
-      using has_type_Let(3)[OF has_type_Let(5,6,7)]
-            has_type_Let(5,6)
-            has_type_Let(4)[of "replace x A \<Gamma>",OF _ _ 1]
-            fst_updt_snd_is_fst
-      by (auto intro: "has_type_L.intros")
-next
-  case (has_type_PatternVar \<Gamma>1 t A k \<delta>)
-    show ?case
-      using has_type_PatternVar(3)[OF has_type_PatternVar(4), of \<emptyset>]
-            has_type_PatternVar(2,6)
-      by (auto intro: has_type_L.intros)      
-next
-  case (has_type_LetPattern \<delta> \<delta>2 p t1 \<Gamma>1 t2 A)
-    have 1:"coherent_Subst (\<delta> @ \<delta>1)" sorry
-    show ?case
-      using has_type_LetPattern(2,3,4)
-            incl_fst[OF has_type_LetPattern(9)]
-            has_type_LetPattern(6)[OF has_type_LetPattern(7),of "\<delta>@\<delta>1"]
-            has_type_LetPattern(9) 1            
-      by (auto intro!:has_type_L.intros(20)[of \<delta> \<delta>1 p t1 \<Gamma> t2 A])  
-qed (auto intro: has_type_L.intros)
-
-lemma strengthening:
-  "\<Gamma> \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<Longrightarrow> set \<delta>1 \<subseteq> set \<delta> \<Longrightarrow> set (patterns t) \<subseteq> set(fst_extract \<delta>1) \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t|;|\<delta>1\<rparr> |:| A"
+lemma lmatch_patterns:
+  "Lmatch p t \<delta> \<Longrightarrow> \<forall>i<length \<delta>. set(patterns(snd(\<delta>!i))) \<subseteq> set(patterns t)"
 sorry
 
 lemma fill_only_incl:
@@ -571,6 +536,206 @@ next
       qed 
 qed (auto)
 
+lemma weakening :
+  "\<Gamma>' \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<Longrightarrow> (\<exists>P. \<Gamma>'@P = \<Gamma>) \<Longrightarrow> coherent_Subst \<delta>1 \<Longrightarrow> (\<exists>L. \<delta>1 = \<delta>@L \<and> bind_pvars t \<inter> set (fst_extract L) = {}) \<Longrightarrow> 
+     \<Gamma> \<turnstile> \<lparr>t|;|(\<delta>1)\<rparr> |:| A"
+proof(induction arbitrary: \<delta>1 \<Gamma> rule:has_type_L.induct)
+  case (has_type_LVar x A \<Gamma>1 \<delta>)
+    show ?case
+      using has_type_LVar(1,2)
+            nth_append[of \<Gamma>1 _ x]
+      by (auto intro: has_type_L.intros)
+next
+  case (has_type_LIf \<Gamma>1 t1 \<delta> t2 A t3)
+    obtain L where P:"\<delta>1 = \<delta> @ L" "bind_pvars (LIf t1 t2 t3) \<inter> set (fst_extract L) = {}"
+      using has_type_LIf(9)
+      by blast
+    show ?case
+      using "has_type_L.intros"(3)[of \<Gamma> t1 \<delta>1 t2 A t3]
+            has_type_LIf(4,5,6)[OF has_type_LIf(7-8)]
+            P
+      by auto            
+next
+  case (has_type_ProjT i TL \<Gamma>1 t \<delta>)
+    show ?case 
+      using has_type_ProjT
+            "has_type_L.intros"(15)[OF has_type_ProjT(1,2)]
+      by auto
+next
+  case (has_type_LApp \<Gamma>1 t1 \<delta> A B t2)
+    show ?case
+      using has_type_LApp(3)[OF has_type_LApp(5,6)]
+            has_type_L.intros(6)[of \<Gamma> t1 \<delta>1 A B t2]
+            has_type_LApp(4)[OF has_type_LApp(5,6)]
+            has_type_LApp(7)
+      by auto
+next
+  case(has_type_Tuple L TL \<Gamma>1 \<delta>)
+    show ?case
+      using has_type_Tuple(4)[OF _ _ has_type_Tuple(5,6)]
+            has_type_Tuple(7)
+            "has_type_L.intros"(14)[OF has_type_Tuple(1,2), of \<Gamma> \<delta>1]
+      by fastforce
+next
+  case (has_type_RCD L LT TL \<Gamma>1 \<delta>)
+      show ?case
+      using has_type_RCD(6)[OF _ has_type_RCD(7,8)]
+            has_type_RCD(9)
+            "has_type_L.intros"(16)[OF has_type_RCD(1-4), of \<Gamma> \<delta>1]
+      by fastforce
+next
+  case (has_type_PatternVar \<Gamma>1 t A k \<delta>)
+    show ?case
+      using has_type_PatternVar(3)[OF has_type_PatternVar(4), of \<emptyset>]
+            has_type_PatternVar(2,6)
+      by (auto intro: has_type_L.intros)      
+next
+  case (has_type_Let \<Gamma>1 t1 \<delta> A x t2 B)
+    (*have 1: " set (update_snd (subst_L x t1) \<delta>) \<subseteq> set (update_snd (subst_L x t1) \<delta>1)"
+      using update_snd_subset[OF has_type_Let(7)]
+      by blast
+    show ?case 
+      using has_type_Let(3)[OF has_type_Let(5,6,7)]
+            has_type_Let(5,6)
+            has_type_Let(4)[of "replace x A \<Gamma>",OF _ _ 1]
+            fst_updt_snd_is_fst
+      by (auto intro: "has_type_L.intros")*)
+   have 1:"\<exists>P. replace x A \<Gamma>1 @ P = replace x A \<Gamma>"
+     using has_type_Let(5)
+     by (cases "x<length \<Gamma>1", auto)                    
+   show ?case 
+     using has_type_Let(3)[OF has_type_Let(5,6)]
+           has_type_Let(4)[OF 1 has_type_Let(6)]
+           has_type_Let(7)
+           "has_type_L.intros"(10)[of \<Gamma> t1 \<delta>1 A x t2 B]
+     by fastforce
+next
+  case (has_type_LetPattern \<delta> \<delta>2 p t1 \<Gamma>1 t2 A)
+    have 1:"coherent_Subst (\<delta> @ \<delta>1)" 
+      proof -
+        obtain L where A:"\<delta>1 = \<delta>2 @ L" "bind_pvars (Let pattern p := t1 in t2) \<inter> set (fst_extract L) = {}"
+          using has_type_LetPattern(9)
+          by blast
+        have "set(fst_extract \<delta>) \<inter> (set(fst_extract \<delta>2) \<union> set(fst_extract L)) = {}"
+          using A has_type_LetPattern(1)
+                Lmatch_pvars[OF has_type_LetPattern(3)]
+          by auto
+        thus ?thesis
+          using A(1) has_type_LetPattern(1,8)
+          by auto
+      qed      
+    hence 2:"\<exists>L. update_snd (fill \<delta>1) \<delta> @ \<delta>1 = (update_snd (fill \<delta>2) \<delta> @ \<delta>2) @ L \<and> bind_pvars t2 \<inter> set (fst_extract L) = {}"
+      proof -
+        obtain L where A:"\<delta>1 = \<delta>2 @ L" "bind_pvars (Let pattern p:=t1 in t2) \<inter> set (fst_extract L) = {}"
+          using has_type_LetPattern(9)
+          by blast
+        hence C:"\<forall>i<length \<delta>. fill \<delta>1 (snd (\<delta> ! i)) = fill \<delta>2 (snd (\<delta> ! i))"
+          using lmatch_patterns[OF has_type_LetPattern(3)]
+                fill_subsumption[of \<delta>2 "\<delta>2@L" "snd(\<delta>!_)"]
+                A has_type_LetPattern(8)
+                has_type_LetPattern(4)
+          by fastforce
+        show ?thesis
+          using update_snd_rewrite_fun[OF C]
+                A 
+          by auto
+      qed
+    have 3: "set (patterns t1) \<subseteq> set (fst_extract \<delta>1)"
+      using has_type_LetPattern(4,9)
+            incl_fst[of \<delta>2 \<delta>1]
+      by force
+    show ?case
+      using has_type_LetPattern(6)[OF has_type_LetPattern(7), of "update_snd (fill \<delta>1) \<delta> @ \<delta>1"]
+            2 has_type_L.intros(20)[OF 1 has_type_LetPattern(2-3) 3,of \<Gamma> t2 A] 
+            1
+      by auto
+qed (auto intro: has_type_L.intros)
+
+lemma strengthening:
+  "\<Gamma> \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<Longrightarrow> coherent_Subst \<delta> \<Longrightarrow> \<exists>L. \<delta> = \<delta>1 @ L \<Longrightarrow> set (patterns t) \<subseteq> set(fst_extract \<delta>1) \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t|;|\<delta>1\<rparr> |:| A"
+proof(induction arbitrary: \<delta>1 rule:has_type_L.induct)
+  case (has_type_Tuple L LT \<Gamma> \<delta>)
+    show ?case
+      using has_type_Tuple(4)[OF _ _ has_type_Tuple(5,6)]
+            has_type_Tuple(7)
+            "has_type_L.intros"(14)[OF has_type_Tuple(1,2), of \<Gamma> \<delta>1]
+      by fastforce
+next
+  case (has_type_ProjT i TL \<Gamma> t \<delta>)
+    show ?case
+      using "has_type_L.intros"(15)[OF has_type_ProjT(1,2),of \<Gamma> t \<delta>1 ]
+            has_type_ProjT(4)[OF has_type_ProjT(5,6)]
+            has_type_ProjT(7)
+      by fastforce
+next
+  case (has_type_RCD L LT TL \<Gamma> \<delta>)
+    show ?case 
+      using has_type_L.intros(16)[OF has_type_RCD(1-4), of \<Gamma> \<delta>1]
+            has_type_RCD(6)[OF _ has_type_RCD(7,8)]
+            has_type_RCD(9)
+      by fastforce
+next
+  case (has_type_PatternVar \<Gamma> t A k \<delta>)
+    have 1:"(k, t) \<in> set \<delta>1"
+      proof -
+        obtain t' where H1:"(k,t') \<in> set \<delta>1"
+          using has_type_PatternVar(6)
+                inset_find_Some
+          by fastforce
+        have "t\<noteq>t' \<Longrightarrow> False"
+          using coherent_Subst_char[OF has_type_PatternVar(4,2), of "(k,t')"]
+                has_type_PatternVar(5) H1
+          by auto
+        thus ?thesis
+          using H1
+          by (cases "t=t'", auto)
+      qed    
+    show ?case
+      using has_type_PatternVar(1) 1
+      by (auto intro: has_type_L.intros)  
+next
+  case (has_type_PatternRCD L PL TL \<Gamma> \<delta>)
+    show ?case 
+      using has_type_PatternRCD(6)[OF _ has_type_PatternRCD(7,8)]
+            has_type_PatternRCD(9)
+            has_type_L.intros(19)[OF has_type_PatternRCD(1-4), of \<Gamma> \<delta>1]
+      by fastforce
+next
+  case (has_type_Let \<Gamma> t1 \<delta> A x t2 B)
+    show ?case 
+      using has_type_Let(3)[OF has_type_Let(5,6)]
+            has_type_Let(7)
+            has_type_Let(4)[OF has_type_Let(5,6)]
+      by (auto intro: "has_type_L.intros")
+next
+  case (has_type_LetPattern \<delta> \<delta>2 p t1 \<Gamma> t2 A)
+    have 1:"\<exists>L. update_snd (fill \<delta>2) \<delta> @ \<delta>2 = (update_snd (fill \<delta>1) \<delta> @ \<delta>1) @ L"
+      proof -
+        obtain L where A:"\<delta>2 = \<delta>1 @ L"
+          using has_type_LetPattern(8)
+          by blast
+        have "set(patterns t1) \<subseteq> set (fst_extract \<delta>1)"
+          using has_type_LetPattern(9)
+          by auto
+        hence C:"\<forall>i<length \<delta>. fill \<delta>2 (snd (\<delta> ! i)) = fill \<delta>1 (snd (\<delta> ! i))"
+          using lmatch_patterns[OF has_type_LetPattern(3)]
+                fill_subsumption[of \<delta>1 "\<delta>1@L" "snd(\<delta>!_)"]
+                A has_type_LetPattern(7)
+          by fastforce
+        show ?thesis
+          using update_snd_rewrite_fun[OF C]
+                A 
+          by auto
+      qed
+    show ?case
+      using has_type_LetPattern(1-4,8,9)
+            incl_fst[of \<delta>1 \<delta>2]
+            has_type_LetPattern(6)[of "update_snd (fill \<delta>1) \<delta> @ \<delta>1"]
+            1
+            has_type_L.intros(20)[of \<delta> \<delta>1 p t1 \<Gamma> t2 A]
+      by force      
+qed (auto intro: has_type_L.intros)
+
 
 lemma fill_keep_value:
   "is_value_L v \<Longrightarrow> is_value_L (fill \<delta> v)"
@@ -587,7 +752,7 @@ proof (induction p t1 \<delta>' rule: "Lmatch.induct")
 next
   case (M_RCD L LT F PL)
     thus ?case
-      using M_RCD(2,3,4,5,7)
+      using M_RCD(2-7)
             "Lmatch.intros"(2)[OF M_RCD(1),of "map (fill \<delta>) LT" "map (update_snd (fill \<delta>)) F" PL]
             fill_keep_value
             list_it_map_app_map[of "fill \<delta>" F]
@@ -606,23 +771,15 @@ proof (induction \<Gamma> t "\<delta>@\<delta>1" A arbitrary: \<delta> \<delta>1
             weakening[of \<Gamma> _ _ _"\<Gamma>|,|A"] "has_type_L.intros"
       by force
 next  
-  case (has_type_Let x \<Gamma> t1 A t2 B)
-    have "\<forall>i<length \<delta>1. x \<notin> FV (snd_extract \<delta>1 ! i)" 
-      proof (rule allI, rule impI)
-        fix i
-        assume H: "i<length \<delta>1"
-        hence "x \<notin> FV (snd_extract (\<delta> @ \<delta>1) ! (length \<delta>+i))"
-          using has_type_Let(1)
-          by force
-        thus "x \<notin> FV (snd_extract \<delta>1 ! i)"
-          using nth_append[of "snd_extract \<delta>" "snd_extract \<delta>1"]
-                snd_extract_app[of \<delta> \<delta>1]
-                H
-          by fastforce
-      qed
-    thus ?case
+  case (has_type_Let \<Gamma> t1 A x t2 B \<delta>)
+    show ?case
+      apply simp
+      apply rule
+      using has_type_Let(2)[of \<delta> \<delta>1]
+            has_type_Let(5)
+      apply simp
       using has_type_Let
-      by (fastforce intro!:has_type_L.intros)     
+      sorry
 next
   case (has_type_ProjT i TL \<Gamma> t)
     show ?case
