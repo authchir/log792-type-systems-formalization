@@ -570,6 +570,28 @@ next
             has_type_LApp(7)
       by auto
 next
+  case (has_type_LSeq \<Gamma>1 t1 \<delta> t2 A)
+    from this(7) 
+      obtain L where H:" \<delta>1 = \<delta> @ L"
+                       "bind_pvars t1 \<inter> set (fst_extract L) = {}"
+                       "bind_pvars t2 \<inter> set (fst_extract L) = {}"
+      by auto
+    thus ?case
+      using "has_type_L.intros"(8)
+            has_type_LSeq(3,4)[OF has_type_LSeq(5-6)]
+      by blast
+next
+  case (has_type_Pair \<Gamma>1 t1 \<delta> A t2 B)
+    from this(7) 
+      obtain L where H:" \<delta>1 = \<delta> @ L"
+                       "bind_pvars t1 \<inter> set (fst_extract L) = {}"
+                       "bind_pvars t2 \<inter> set (fst_extract L) = {}"
+      by auto
+    thus ?case
+      using "has_type_L.intros"(11)
+            has_type_Pair(3,4)[OF has_type_Pair(5-6)]
+      by blast
+next
   case(has_type_Tuple L TL \<Gamma>1 \<delta>)
     show ?case
       using has_type_Tuple(4)[OF _ _ has_type_Tuple(5,6)]
