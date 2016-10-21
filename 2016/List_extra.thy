@@ -296,4 +296,12 @@ lemma update_snd_rewrite_fun:
   "(\<forall>i<length L. f (snd (L!i)) = g (snd (L!i))) \<Longrightarrow> update_snd f L = update_snd g L"
 sorry
 
+lemma update_snd_comp:
+  "(update_snd F) \<circ> (update_snd G) = update_snd (F \<circ> G)"
+sorry
+
+lemma fst_map:
+  "fst_extract L = map fst L" sorry
+
+
 end
