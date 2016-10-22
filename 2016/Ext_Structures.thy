@@ -824,13 +824,19 @@ lemma fill_to_type:
   "\<Gamma>\<turnstile> \<lparr>fill \<delta> t|;| \<delta>1\<rparr> |:| A \<Longrightarrow> \<Gamma>\<turnstile> \<lparr>t|;|(update_snd (fill \<delta>1) \<delta>@\<delta>1) \<rparr> |:| A"
 sorry
 
+lemma coherence_order_independent:
+  "coherent_Subst \<delta> \<Longrightarrow> (\<forall>x\<in>set \<delta>1. count_list \<delta>1 x = count_list \<delta> x) \<Longrightarrow> coherent_Subst \<delta>1"
+sorry
 
 lemma has_type_filled:
   assumes coherence: "coherent_Subst (\<delta>@\<delta>1)" and
-          well_typed: "\<Gamma>\<turnstile> \<lparr>t|;|(update_snd (fill \<delta>1) \<delta>@\<delta>1)\<rparr> |:| A"
+          conform_pattern: "\<forall>x\<in>set \<Delta>. count_list \<Delta> x = count_list (update_snd (fill \<delta>1) \<delta>@\<delta>1) x"
+                           "set \<Delta> = set (update_snd (fill \<delta>1) \<delta>@\<delta>1)"
+          and
+          well_typed: "\<Gamma>\<turnstile> \<lparr>t|;|\<Delta>\<rparr> |:| A"
   shows "\<Gamma> \<turnstile> \<lparr>fill \<delta> t|;|\<delta>1\<rparr> |:| A"
-using assms(2,1) 
-proof (induction \<Gamma> t "update_snd (fill \<delta>1) \<delta>@\<delta>1" A arbitrary: \<delta> \<delta>1 rule: has_type_L.induct)
+using assms(4,1,2,3) 
+proof (induction \<Gamma> t \<Delta> A arbitrary: \<delta> \<delta>1 rule: has_type_L.induct)
   case (has_type_LAbs \<Gamma> A t2 B)
     show ?case
       using has_type_LAbs
@@ -840,10 +846,10 @@ next
   case (has_type_ProjT i TL \<Gamma> t)
     show ?case
       using has_type_L.intros(15)[OF has_type_ProjT(1,2), of \<Gamma> "fill \<delta> t" \<delta>1]
-            has_type_ProjT(4,5)
+            has_type_ProjT(4-7)
       by simp
 next
-  case (has_type_PatternVar \<Gamma> t A k)
+  case (has_type_PatternVar \<Gamma> t A k \<delta>')
     
     have 1:"k \<in> set (fst_extract \<delta>) \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>(case find (\<lambda>p. fst p = k) \<delta> of None \<Rightarrow> <|V k|> | Some x \<Rightarrow> snd x)|;|\<delta>1\<rparr> |:| A"
       proof -
@@ -870,8 +876,9 @@ next
                     in_set_conv_nth[of t2 "map (fill \<delta>1) (snd_extract \<delta>)"]
               by (smt fst_conv len_fst_extract len_snd_extract length_map map_fst_zip map_snd_zip nth_map snd_conv zip_comp)
             thus ?thesis
-              using H1 has_type_PatternVar(4,5)
-                    coherent_Subst_char[OF _ has_type_PatternVar(4),of "(k,t2)"] A
+              using H1 has_type_PatternVar(4,5,7)
+                    coherent_Subst_char[OF _ has_type_PatternVar(3),of "(k,t2)"] A
+                    coherence_order_independent[OF _ has_type_PatternVar(6)]
               by (cases "t\<noteq>t2", auto)
           qed
         thus ?thesis
@@ -888,10 +895,10 @@ next
                 set_zip_leftD
           by metis
         hence "(k,t)\<in> set \<delta>1"
-          using has_type_PatternVar(4) hyp set_zip_leftD
-          by(cases "(k,t) \<in> set (update_snd (fill \<delta>1) \<delta>)", fastforce+)            
+          using has_type_PatternVar(3,7) hyp set_zip_leftD
+          by(cases "(k,t) \<in> set  \<delta>'", fastforce+)            
         thus ?thesis
-          using "has_type_L.intros"(18)[OF has_type_PatternVar(1,3)]
+          using "has_type_L.intros"(18)[OF has_type_PatternVar(1,2)]
           by blast      
       qed
     have "k \<notin> set(fst_extract \<delta>) \<Longrightarrow> find (\<lambda>p. fst p = k) \<delta> = None"
@@ -902,7 +909,7 @@ next
     with 1 2 show ?case
       by(cases "k\<in> set(fst_extract \<delta>)", auto)
 next
-  case (has_type_PatternRCD L PL TL \<Gamma>)
+  case (has_type_PatternRCD L PL TL \<Gamma> \<delta>')
     have 1:"\<And>i. (\<Union>a\<in>set PL. set (Pvars a)) \<inter> set (fst_extract \<delta>) = {} \<Longrightarrow> i < length PL \<Longrightarrow> \<Gamma> \<turnstile> \<lparr><|PL ! i|>|;|\<delta>1\<rparr> |:| (TL ! i)"
       proof -
         fix i
@@ -913,21 +920,22 @@ next
               using hyp(1) in_set_conv_nth[of "PL!i" PL]
               by blast
             thus ?thesis
-              using hyp(2)
+              using hyp(2) has_type_PatternRCD(9) incl_fst[of \<delta>'"update_snd (fill \<delta>1) \<delta> @ \<delta>1"]
                     pcontext_inversion[OF has_type_PatternRCD(5)[OF hyp(1)]]
               by fastforce           
           qed
         then show "\<Gamma> \<turnstile> \<lparr><|PL ! i|>|;|\<delta>1\<rparr> |:| (TL ! i)"
-          using has_type_PatternRCD(7)
+          using has_type_PatternRCD(7,9)
                 strengthening[OF has_type_PatternRCD(5)[OF hyp(1)],of \<delta>1]
-          by simp      
+                coherence_order_independent[OF _ has_type_PatternRCD(8)]      
+          by auto
       qed
     have 2:"(\<Union>a\<in>set PL. set (Pvars a)) \<inter> set (fst_extract \<delta>) \<noteq> {} \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Record L (map (p_instantiate \<delta>) PL)|;|\<delta>1\<rparr> |:| \<lparr>L|:|TL\<rparr>"
       proof -
         assume hyp:  "(\<Union>a\<in>set PL. set (Pvars a)) \<inter> set (fst_extract \<delta>) \<noteq> {}"
         show ?thesis
           using has_type_PatternRCD(1-4)
-                has_type_PatternRCD(6)[OF _ _ has_type_PatternRCD(7)]
+                has_type_PatternRCD(6)[OF _ has_type_PatternRCD(7-9)]
           by (force intro!: "has_type_L.intros")
       qed
     show ?case
@@ -936,6 +944,7 @@ next
       by (auto intro: "has_type_L.intros")
 next
   case (has_type_LetPattern \<delta>' p t1 \<Gamma> t2 A)
+    (*
     have 1:"update_snd (fill (update_snd (fill \<delta>1) \<delta> @ \<delta>1)) \<delta>' @ update_snd (fill \<delta>1) \<delta> @ \<delta>1 =
             update_snd (fill (update_snd (fill \<delta>1) (update_snd (fill \<delta>) \<delta>') @ \<delta>1)) \<delta> @ update_snd (fill \<delta>1) (update_snd (fill \<delta>) \<delta>') @ \<delta>1"
       proof -
@@ -996,9 +1005,10 @@ next
                      update_snd (fill (update_snd (fill \<delta>1 \<circ> fill \<delta>) \<delta>' @ \<delta>1)) \<delta> @ update_snd (fill \<delta>1 \<circ> fill \<delta>) \<delta>'"
                by (simp add: A1 del: fst_updt_snd_is_fst)
                (*update_snd (fill (update_snd (fill \<delta>1) \<delta> @ \<delta>1)) \<delta>' @ update_snd (fill \<delta>1) \<delta>  *)
-             hence "... = update_snd (fill (update_snd (fill \<delta>1 \<circ> fill \<delta>) \<delta>' @ \<delta>1)) \<delta> @ update_snd (fill \<delta>1 \<circ> fill \<delta>) \<delta>'"
-           sorry
-      qed
+             show ?thesis
+             sorry
+           qed
+      qed*)
     have 2:"coherent_Subst (\<delta> @ update_snd (fill \<delta>1) (update_snd (fill \<delta>) \<delta>') @ \<delta>1)" 
       using has_type_LetPattern(1,7) fst_updt_snd_is_fst
             fst_extract_app
@@ -1019,7 +1029,8 @@ next
       apply auto[1]
       using has_type_LetPattern(1)
       apply force
-      using has_type_LetPattern(6)[of \<delta>] 1 2
+      using has_type_LetPattern(6)[of ] 1 2
+            
       by simp
 qed (auto intro!:has_type_L.intros)
 (*

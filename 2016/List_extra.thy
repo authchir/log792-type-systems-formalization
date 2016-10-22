@@ -302,6 +302,102 @@ sorry
 
 lemma fst_map:
   "fst_extract L = map fst L" sorry
+ 
+lemma count_rem1:
+  "x \<in> set L \<Longrightarrow> count_list L x = count_list (remove1 x L) x + 1"
+by(induction L arbitrary: x, auto)
 
+lemma count_Suc:
+  "count_list L x = Suc n \<Longrightarrow> x \<in> set L"
+proof(induction L arbitrary: n x)
+  case (Cons a L1)
+    have "x \<notin> set L1 \<Longrightarrow> x = a"
+      using count_notin[of x L1]
+            Cons(2)
+      by (cases "a=x",auto)
+    then show ?case
+      by (cases "x \<in> set L1", auto)      
+qed auto
+
+lemma count_inset:
+  " x \<in> set L \<Longrightarrow> \<exists>n. count_list L x = Suc n"
+proof(induction L arbitrary: x)
+  case (Cons a L1)
+    then show ?case
+      by (cases "x \<in> set L1", auto)      
+qed auto
+
+lemma same_count_eq:
+  "(\<forall>x\<in>set L. count_list L x = count_list L1 x) \<Longrightarrow> length L = length L1 \<Longrightarrow> (x\<in>set L1 \<longleftrightarrow> x\<in>set L)"
+proof -
+  assume count:"\<forall>x\<in>set L. count_list L x = count_list L1 x"
+         and len:"length L = length L1"
+  have 1:"x\<in> set L \<Longrightarrow> x \<in> set L1"
+    proof -
+      assume H: "x\<in>set L"
+      have H1: "count_list L x = count_list L1 x"
+        using count H
+        by auto
+      with len H show ?thesis       
+        proof (induction L arbitrary: L1 x)
+          case (Cons a L')
+            obtain b L1' where H:"L1 = b#L1'"
+              using Cons(2) length_Suc_conv
+              by metis
+            have C: "x = a \<or> x = b \<or> (x\<noteq>a \<and> x \<noteq> b)"
+              by auto
+            have  " x\<noteq>a \<Longrightarrow> x\<noteq>b \<Longrightarrow> x\<in> set L1"
+              using Cons(2-4) H
+                    Cons(1)[of L1' x]
+              by fastforce
+            with C show "x\<in> set L1" 
+              using Cons(3,4) count_Suc H
+              by fastforce+  
+        qed auto
+    qed
+  have "x \<in> set L1 \<Longrightarrow> x \<in> set L"
+    proof -
+      assume H: "x\<in>set L1"
+      with len count show ?thesis       
+        proof (induction L1 arbitrary: L x)
+          case (Cons b L1')
+            obtain a L' where H:"L = a#L'"
+              using Cons(2) length_Suc_conv
+              by metis
+            have C: "x = a \<or> x = b \<or> (x\<noteq>a \<and> x \<noteq> b)"
+              by auto
+            have A: "(\<forall>y\<in>set L'. count_list L' y = count_list L1' y)"
+              proof (rule)
+                fix y
+                assume hyps:  "y\<in>set L'"
+                have H1:"count_list L y = count_list (b#L1') y"
+                  using Cons(3) hyps H
+                  by auto
+                hence 1:"b=a \<Longrightarrow> count_list L' y = count_list L1' y"
+                  using H
+                  by (cases "y=a", auto)
+                have "b\<noteq>a \<Longrightarrow> count_list L' y = count_list L1' y"
+                  
+                  sorry
+                with 1 show "count_list L' y = count_list L1' y"
+                  by auto
+             qed
+            have "x \<noteq> a \<Longrightarrow> b \<noteq> a \<Longrightarrow> x \<in> set L'"
+              using Cons(4)
+              apply auto
+              prefer 2
+              using Cons(2,3) H Cons(1)[OF _ A,of x]
+              apply fastforce
+              using Cons 
+              sorry
+                    (* count_list L' a + 1 = count_list (b # L1') a *)
+            with A C show "x\<in> set L"
+              using Cons(2,4) Cons(1)[of L' x]  H 
+              by fastforce+
+        qed auto
+    qed
+  with 1 show ?thesis
+    by auto
+qed
 
 end
