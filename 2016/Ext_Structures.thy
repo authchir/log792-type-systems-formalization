@@ -826,6 +826,7 @@ sorry
 
 lemma coherence_order_independent:
   "coherent_Subst \<delta> \<Longrightarrow> (\<forall>x\<in>set \<delta>1. count_list \<delta>1 x = count_list \<delta> x) \<Longrightarrow> coherent_Subst \<delta>1"
+
 sorry
 
 lemma has_type_filled:
