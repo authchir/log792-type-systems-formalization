@@ -808,6 +808,10 @@ proof (rule)
     qed auto
 qed
 
+lemma same_set_fill:
+  "coherent_Subst \<delta> \<Longrightarrow> coherent_Subst \<delta>1 \<Longrightarrow> set \<delta> = set \<delta>1 \<Longrightarrow> fill \<delta> = fill \<delta>1"
+sorry
+  
 lemma fill_patterns_def:
   "set(patterns (fill \<delta> t)) = set (patterns t) - set (fst_extract \<delta>)"
 sorry
@@ -826,7 +830,10 @@ sorry
 
 lemma coherence_order_independent:
   "coherent_Subst \<delta> \<Longrightarrow> (\<forall>x\<in>set \<delta>1. count_list \<delta>1 x = count_list \<delta> x) \<Longrightarrow> coherent_Subst \<delta>1"
+sorry
 
+lemma has_type_L_order_irr:
+  "\<Gamma> \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<Longrightarrow> (\<forall>x\<in>set \<delta>1. count_list \<delta>1 x = count_list \<delta> x) \<Longrightarrow> set \<delta> = set \<delta>1 \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t|;|\<delta>1\<rparr> |:| A"
 sorry
 
 lemma has_type_filled:
@@ -944,16 +951,9 @@ next
             1 2
       by (auto intro: "has_type_L.intros")
 next
-  case (has_type_LetPattern \<delta>' p t1 \<Gamma> t2 A)
+  case (has_type_LetPattern \<delta>' \<Delta> p t1 \<Gamma> t2 A)
+    
     (*
-    have 1:"update_snd (fill (update_snd (fill \<delta>1) \<delta> @ \<delta>1)) \<delta>' @ update_snd (fill \<delta>1) \<delta> @ \<delta>1 =
-            update_snd (fill (update_snd (fill \<delta>1) (update_snd (fill \<delta>) \<delta>') @ \<delta>1)) \<delta> @ update_snd (fill \<delta>1) (update_snd (fill \<delta>) \<delta>') @ \<delta>1"
-      proof -
-        have A:"update_snd (fill (update_snd (fill \<delta>1) \<delta> @ \<delta>1)) \<delta>' @ update_snd (fill \<delta>1) \<delta> = 
-              update_snd (fill \<delta>1 \<circ> fill \<delta>) \<delta>' @ update_snd (fill \<delta>1) \<delta>"
-          using fill_fill_to_update[of \<delta>1 \<delta>]
-                has_type_LetPattern(7)
-          by fastforce
         have B:"\<forall>i<length \<delta>. set (patterns (snd (\<delta> ! i))) \<subseteq> set (fst_extract \<delta>1)"
           proof (rule, rule)
             fix i
@@ -976,6 +976,95 @@ next
               using fill_patterns_def[of \<delta>1 "snd(\<delta>!i)"]
               by auto
           qed
+        
+        *)
+    have 1:"coherent_Subst (update_snd (fill \<delta>) \<delta>' @ \<delta>1)"
+      proof-
+        have "coherent_Subst \<delta>' \<and> coherent_Subst \<delta>1"
+          using  has_type_LetPattern(1,8,9)
+                 coherence_order_independent[of \<Delta> "update_snd (fill \<delta>1) \<delta> @ \<delta>1"]
+                 fst_updt_snd_is_fst[of \<delta> "fill \<delta>1"]
+          by simp
+        then show ?thesis  
+          using has_type_LetPattern(1,9)
+                incl_fst[of \<Delta> "update_snd (fill \<delta>1) \<delta> @ \<delta>1"]
+                incl_fst[of "update_snd (fill \<delta>1) \<delta> @ \<delta>1" \<Delta>]
+          by auto
+      qed 
+    have 4:"coherent_Subst (\<delta> @ update_snd (fill \<delta>1) (update_snd (fill \<delta>) \<delta>') @ \<delta>1)"
+      proof -
+        have H1:"distinct (fst_extract \<delta>) \<and> distinct(fst_extract \<delta>') \<and> distinct (fst_extract \<delta>1)" 
+          using 1 has_type_LetPattern(7)
+          by simp
+        have "set (fst_extract \<delta>') \<inter> set (fst_extract \<delta>1) = {} \<and> set (fst_extract \<delta>) \<inter> (set (fst_extract \<delta>') \<union> set (fst_extract \<delta>1)) = {}"
+          using has_type_LetPattern(1,7,9)
+                incl_fst[of \<Delta> "update_snd (fill \<delta>1) \<delta> @ \<delta>1"]
+                incl_fst[of "update_snd (fill \<delta>1) \<delta> @ \<delta>1" \<Delta>]
+          by auto      
+        with H1 show ?thesis
+          using HOL.sym[OF Fun.comp_apply[of "update_snd (fill \<delta>1)" "update_snd (fill \<delta>)" \<delta>']]
+          by (simp add: update_snd_comp)
+      qed
+    
+    have 3: "\<forall>x\<in>set (update_snd (fill \<Delta>) \<delta>' @ \<Delta>).
+       count_list (update_snd (fill \<Delta>) \<delta>' @ \<Delta>) x =
+       count_list (update_snd (fill (update_snd (fill \<delta>1) (update_snd (fill \<delta>) \<delta>') @ \<delta>1)) \<delta> @ update_snd (fill \<delta>1) (update_snd (fill \<delta>) \<delta>') @ \<delta>1) x"
+       sorry 
+  
+    have 2:"set (update_snd (fill \<Delta>) \<delta>' @ \<Delta>) =
+     set (update_snd (fill (update_snd (fill \<delta>1) (update_snd (fill \<delta>) \<delta>') @ \<delta>1)) \<delta> @ update_snd (fill \<delta>1) (update_snd (fill \<delta>) \<delta>') @ \<delta>1)"
+      proof -
+        have A0: "update_snd (fill \<delta>1) (update_snd (fill \<delta>) \<delta>') = update_snd (fill \<delta>1 \<circ> fill \<delta>) \<delta>'"
+          using HOL.sym[OF Fun.comp_apply[of "update_snd (fill \<delta>1)" "update_snd (fill \<delta>)" \<delta>']]
+          by (simp add:update_snd_comp[of "fill \<delta>1" "fill \<delta>"] del: fst_updt_snd_is_fst)
+        have A: "set(update_snd (fill \<Delta>) \<delta>') = set (update_snd  (fill \<delta>1 \<circ> fill \<delta>) \<delta>')" 
+          using has_type_LetPattern(1,9)
+                fill_fill_to_update[of \<delta>1 \<delta>]
+                4 subset_coherent same_set_fill[of \<Delta> "update_snd (fill \<delta>1) \<delta> @ \<delta>1"]
+          by force
+        have B:"\<forall>i<length \<delta>. set (patterns (snd (\<delta> ! i))) \<subseteq> set (fst_extract \<delta>1)" 
+          proof (rule, rule)
+            fix i
+            assume hyp: "i<length \<delta>"
+            obtain sL where H:"sL = length (update_snd (fill (update_snd (fill \<delta>1) \<delta> @ \<delta>1)) \<delta>')"
+              by fastforce
+            
+            have "\<forall>x\<in>set (update_snd (fill (update_snd (fill \<delta>1) \<delta> @ \<delta>1)) \<delta>' @ update_snd (fill \<delta>1) \<delta> @ \<delta>1).
+                  count_list (update_snd (fill (update_snd (fill \<delta>1) \<delta> @ \<delta>1)) \<delta>' @ update_snd (fill \<delta>1) \<delta> @ \<delta>1) x = 
+                  count_list (update_snd (fill \<Delta>) \<delta>' @ \<Delta>) x"
+              proof (rule)
+                fix x
+                let ?goal ="count_list (update_snd (fill (update_snd (fill \<delta>1) \<delta> @ \<delta>1)) \<delta>' @ update_snd (fill \<delta>1) \<delta> @ \<delta>1) x = 
+                                        count_list (update_snd (fill \<Delta>) \<delta>' @ \<Delta>) x"
+                assume hyp1:"x \<in> set (update_snd (fill (update_snd (fill \<delta>1) \<delta> @ \<delta>1)) \<delta>' @ update_snd (fill \<delta>1) \<delta> @ \<delta>1)"
+                have TT:"x \<in> set (update_snd (fill \<Delta>) \<delta>' @ \<Delta>)" sorry
+                have TT2:"fill \<delta>1 \<circ> fill \<delta> = fill (update_snd (fill \<delta>1) \<delta> @ \<delta>1)" sorry
+                show ?goal
+                  apply (simp add: HOL.sym[OF TT2])
+                  using has_type_LetPattern(1,8) 4 HOL.sym[OF TT2] TT
+                        same_set_fill[OF _ _ has_type_LetPattern(9)]
+                  
+                  sorry
+              qed
+            hence T1:"i + sL < length (update_snd (fill (update_snd (fill \<delta>1) \<delta> @ \<delta>1)) \<delta>' @ update_snd (fill \<delta>1) \<delta> @ \<delta>1) \<Longrightarrow>
+                  patterns (snd ((update_snd (fill (update_snd (fill \<delta>1) \<delta> @ \<delta>1)) \<delta>' @ update_snd (fill \<delta>1) \<delta> @ \<delta>1) ! (i + sL))) = \<emptyset>"
+              using pcontext_inversion[of \<Gamma> t2 "update_snd (fill (update_snd (fill \<delta>1) \<delta> @ \<delta>1)) \<delta>' @ update_snd (fill \<delta>1) \<delta> @ \<delta>1" A "i+sL"]
+                    has_type_L_order_irr[OF has_type_LetPattern(5)]
+                    has_type_LetPattern(7,9) 
+                    A fill_fill_to_update[of \<delta>1 \<delta>]
+              by force   
+            have T:"i+sL < length (update_snd (fill (update_snd (fill \<delta>1) \<delta> @ \<delta>1)) \<delta>' @ update_snd (fill \<delta>1) \<delta> @ \<delta>1)"
+              using hyp H
+              by auto              
+            have "patterns (fill \<delta>1 (snd (\<delta> ! i))) = []"
+              using hyp H T1[OF T]
+                    nth_append[of "(update_snd (fill (update_snd (fill \<delta>1) \<delta> @ \<delta>1)) \<delta>')" "update_snd (fill \<delta>1) \<delta> @ \<delta>1" "i+sL"]
+                    nth_append[of "update_snd (fill \<delta>1) \<delta>" \<delta>1 i]
+              by fastforce
+            then show "set (patterns (snd (\<delta> ! i))) \<subseteq> set (fst_extract \<delta>1)"
+              using fill_patterns_def[of \<delta>1 "snd(\<delta>!i)"]
+              by auto
+          qed
         have "\<forall>x\<in>set (snd_extract \<delta>). fill (update_snd (fill \<delta>1 \<circ> fill \<delta>) \<delta>' @ \<delta>1) x = fill \<delta>1 x"
           proof(rule)
             fix x
@@ -985,54 +1074,32 @@ next
               by (metis last_index_less_size_conv len_snd_extract nth_last_index snd_extract_snd_index)
             show "fill (update_snd (fill \<delta>1 \<circ> fill \<delta>) \<delta>' @ \<delta>1) x = fill \<delta>1 x"
               using H1 fill_subsumption[of \<delta>1 "update_snd (fill \<delta>1 \<circ> fill \<delta>) \<delta>' @ \<delta>1" "snd (\<delta>!j)"]
-                    has_type_LetPattern(1,7)
+                    has_type_LetPattern(7) 1
                     mp[OF spec[OF B] H1(2)]
               by auto
           qed
-        hence FF:"update_snd (fill \<delta>1) \<delta> = update_snd (fill (update_snd (fill \<delta>1) (update_snd (fill \<delta>) \<delta>') @ \<delta>1)) \<delta>"
-          using HOL.sym[OF Fun.comp_apply[of "update_snd (fill \<delta>1)" "update_snd (fill \<delta>)" \<delta>']]
-          apply (simp add: update_snd_comp)
-          using zip_eq_conv[of "fst_extract \<delta>" "map (fill \<delta>1) (snd_extract \<delta>)" "zip (fst_extract \<delta>) (map _ (snd_extract \<delta>))"]
-                fst_updt_snd_is_fst[of \<delta>]
-                fst_map[of "update_snd _ \<delta>"]
-          by simp                          
-         show ?thesis
-           proof -
-             have A1:"update_snd (fill \<delta>1) (update_snd (fill \<delta>) \<delta>') = update_snd (fill \<delta>1 \<circ> fill \<delta>) \<delta>'"
-               using HOL.sym[OF Fun.comp_apply[of "update_snd (fill \<delta>1)" "update_snd (fill \<delta>)" \<delta>']]
-                    update_snd_comp
-               by metis
-             have " update_snd (fill (update_snd (fill \<delta>1) (update_snd (fill \<delta>) \<delta>') @ \<delta>1)) \<delta> @ update_snd (fill \<delta>1) (update_snd (fill \<delta>) \<delta>')=
-                     update_snd (fill (update_snd (fill \<delta>1 \<circ> fill \<delta>) \<delta>' @ \<delta>1)) \<delta> @ update_snd (fill \<delta>1 \<circ> fill \<delta>) \<delta>'"
-               by (simp add: A1 del: fst_updt_snd_is_fst)
-               (*update_snd (fill (update_snd (fill \<delta>1) \<delta> @ \<delta>1)) \<delta>' @ update_snd (fill \<delta>1) \<delta>  *)
-             show ?thesis
-             sorry
-           qed
-      qed*)
-    have 2:"coherent_Subst (\<delta> @ update_snd (fill \<delta>1) (update_snd (fill \<delta>) \<delta>') @ \<delta>1)" 
-      using has_type_LetPattern(1,7) fst_updt_snd_is_fst
-            fst_extract_app
-      by (smt "1")
-    show ?case 
-      apply simp
-      apply rule
-      prefer 4
+        hence "set (update_snd (fill (update_snd (fill \<delta>1 \<circ> fill \<delta>) \<delta>' @ \<delta>1)) \<delta>) = set (update_snd (fill \<delta>1) \<delta>)"
+          using update_snd_rewrite_fun[of \<delta> "fill (update_snd (fill \<delta>1 \<circ> fill \<delta>) \<delta>' @ \<delta>1)" "fill \<delta>1"]
+                zip_comp[of \<delta>] set_conv_nth[of "snd_extract \<delta>"] snd_extract_snd_index[of _ \<delta>]
+          by fastforce
+        then show ?thesis
+          using A has_type_LetPattern(9) 
+          by (simp add: A0 del: fst_updt_snd_is_fst, blast)
+      qed  
+   
+    have 5: "set (patterns (fill \<delta> t1)) \<subseteq> set (fst_extract \<delta>1)"
       using has_type_LetPattern(4)
+            has_type_LetPattern(9)
+            incl_fst[of \<Delta> "update_snd (fill \<delta>1) \<delta> @ \<delta>1"]
             fill_patterns_def[of \<delta> t1]
-      apply force
-      using has_type_LetPattern(2-7)
-      prefer 2
-      apply simp
-      prefer 2
-      using match_to_filled_match[OF has_type_LetPattern(3), of \<delta>]
-           
-      apply auto[1]
-      using has_type_LetPattern(1)
-      apply force
-      using has_type_LetPattern(6)[of ] 1 2
-            
-      by simp
+      by force
+    show ?case
+      using has_type_LetPattern(6)[OF 4 3 2]
+            has_type_L.intros(20)[OF 1
+                                     has_type_LetPattern(2) 
+                                     match_to_filled_match[OF has_type_LetPattern(3), of \<delta>]
+                                     5 ]
+      by (auto)      
 qed (auto intro!:has_type_L.intros)
 (*
 lemma inversion:

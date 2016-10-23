@@ -328,17 +328,18 @@ proof(induction L arbitrary: x)
 qed auto
 
 lemma same_count_eq:
-  "(\<forall>x\<in>set L. count_list L x = count_list L1 x) \<Longrightarrow> length L = length L1 \<Longrightarrow> (x\<in>set L1 \<longleftrightarrow> x\<in>set L)"
+  "(\<forall>x\<in>set L \<union> set L1. count_list L x = count_list L1 x) \<Longrightarrow> length L1 = length L \<Longrightarrow> (set L1 = set L)"
 proof -
-  assume count:"\<forall>x\<in>set L. count_list L x = count_list L1 x"
-         and len:"length L = length L1"
-  have 1:"x\<in> set L \<Longrightarrow> x \<in> set L1"
+  assume count:"\<forall>x\<in>set L \<union> set L1. count_list L x = count_list L1 x"    
+         and len : "length L1 = length L"
+  have 1:"\<And>x. x\<in> set L \<Longrightarrow> x \<in> set L1"
     proof -
+      fix x
       assume H: "x\<in>set L"
       have H1: "count_list L x = count_list L1 x"
         using count H
         by auto
-      with len H show ?thesis       
+      with len H show "x\<in> set L1"       
         proof (induction L arbitrary: L1 x)
           case (Cons a L')
             obtain b L1' where H:"L1 = b#L1'"
@@ -355,10 +356,14 @@ proof -
               by fastforce+  
         qed auto
     qed
-  have "x \<in> set L1 \<Longrightarrow> x \<in> set L"
+  have "\<And>x. x \<in> set L1 \<Longrightarrow> x \<in> set L"
     proof -
+      fix x
       assume H: "x\<in>set L1"
-      with len count show ?thesis       
+      have H1: "count_list L x = count_list L1 x"
+        using count H
+        by auto
+      with len H show "x \<in> set L"       
         proof (induction L1 arbitrary: L x)
           case (Cons b L1')
             obtain a L' where H:"L = a#L'"
@@ -366,38 +371,21 @@ proof -
               by metis
             have C: "x = a \<or> x = b \<or> (x\<noteq>a \<and> x \<noteq> b)"
               by auto
-            have A: "(\<forall>y\<in>set L'. count_list L' y = count_list L1' y)"
-              proof (rule)
-                fix y
-                assume hyps:  "y\<in>set L'"
-                have H1:"count_list L y = count_list (b#L1') y"
-                  using Cons(3) hyps H
-                  by auto
-                hence 1:"b=a \<Longrightarrow> count_list L' y = count_list L1' y"
-                  using H
-                  by (cases "y=a", auto)
-                have "b\<noteq>a \<Longrightarrow> count_list L' y = count_list L1' y"
-                  
-                  sorry
-                with 1 show "count_list L' y = count_list L1' y"
-                  by auto
-             qed
-            have "x \<noteq> a \<Longrightarrow> b \<noteq> a \<Longrightarrow> x \<in> set L'"
-              using Cons(4)
-              apply auto
-              prefer 2
-              using Cons(2,3) H Cons(1)[OF _ A,of x]
-              apply fastforce
-              using Cons 
-              sorry
-                    (* count_list L' a + 1 = count_list (b # L1') a *)
-            with A C show "x\<in> set L"
-              using Cons(2,4) Cons(1)[of L' x]  H 
-              by fastforce+
+            have  " x\<noteq>a \<Longrightarrow> x\<noteq>b \<Longrightarrow> x\<in> set L"
+              using Cons(2-4) H
+                    Cons(1)[of L' x]
+              by fastforce
+            with C show "x\<in> set L" 
+              using Cons(3,4) count_Suc H
+              by fastforce+  
         qed auto
     qed
   with 1 show ?thesis
     by auto
 qed
+
+lemma count_list_app[simp]:
+  "count_list (L@L1) x = count_list L x + count_list L1 x"
+sorry
 
 end
