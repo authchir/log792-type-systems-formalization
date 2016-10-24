@@ -384,8 +384,16 @@ proof -
     by auto
 qed
 
+lemma same_count_set_length:
+  "(\<forall>x\<in>set L. count_list L x = count_list L1 x) \<Longrightarrow> set L = set L1 \<Longrightarrow> length L = length L1"
+sorry
+
 lemma count_list_app[simp]:
   "count_list (L@L1) x = count_list L x + count_list L1 x"
+sorry
+
+lemma same_count_set_ex_commun_index:
+  "(\<forall>x\<in>set L. count_list L x = count_list L1 x) \<Longrightarrow> set L = set L1 \<Longrightarrow> i<length L \<Longrightarrow> \<exists>j. L1!j = L!i \<and> j < length L1"
 sorry
 
 end
