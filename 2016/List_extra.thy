@@ -102,6 +102,12 @@ using zip_comp[of L1]
       set_zip_leftD[of _ _ "fst_extract L1" "snd_extract L1"]
 by (induction L arbitrary: L1, auto)
 
+lemma incl_snd:
+  "set L \<subseteq> set L1 \<Longrightarrow> set (snd_extract L) \<subseteq> set (snd_extract L1)"
+using zip_comp[of L1]
+      set_zip_rightD[of _ _ "fst_extract L1" "snd_extract L1"]
+by (induction L arbitrary: L1, auto)
+
 lemma find_zip1:
   "distinct L \<Longrightarrow> length L = length L1 \<Longrightarrow> length L1  = length L2 \<Longrightarrow> j< length L \<Longrightarrow> find (\<lambda>p. fst p = k) (zip L L1) = Some ((zip L L1) ! j) 
    \<Longrightarrow> find (\<lambda>p. fst p = k) (zip L L2) =  Some ((zip L L2) ! j)"  
@@ -384,6 +390,10 @@ proof -
     by auto
 qed
 
+lemma count_conv_length:
+  "(\<forall>x\<in>set L. count_list L x = count_list L1 x) \<Longrightarrow> set L \<subseteq> set L1 \<Longrightarrow> length L \<le> length L1"
+sorry
+
 lemma same_count_set_length:
   "(\<forall>x\<in>set L. count_list L x = count_list L1 x) \<Longrightarrow> set L = set L1 \<Longrightarrow> length L = length L1"
 sorry
@@ -393,7 +403,28 @@ lemma count_list_app[simp]:
 sorry
 
 lemma same_count_set_ex_commun_index:
-  "(\<forall>x\<in>set L. count_list L x = count_list L1 x) \<Longrightarrow> set L = set L1 \<Longrightarrow> i<length L \<Longrightarrow> \<exists>j. L1!j = L!i \<and> j < length L1"
+  "(\<forall>x\<in>set L. count_list L x = count_list L1 x) \<Longrightarrow> set L \<subseteq> set L1 \<Longrightarrow> i<length L \<Longrightarrow> \<exists>j. L1!j = L!i \<and> j < length L1"
 sorry
+
+lemma distinct_fst_imp_count_1:
+  "distinct (fst_extract L) \<Longrightarrow> (\<forall>x\<in>set L. count_list L x = 1)"
+proof(induction L)
+  case (Cons a L')
+    thus ?case 
+      using in_set_zip[of a "fst_extract L'" "snd_extract L'"]
+            set_conv_nth[of "fst_extract L'"]
+            count_notin set_ConsD set_zip_leftD zip_comp
+            length_pos_if_in_set nth_zip
+      by (smt One_nat_def add.right_neutral add_Suc_right count_list.simps(2) distinct.simps(2) list_iter.simps(2) prod.collapse)
+qed auto
+
+lemma same_count_swap:
+  "\<forall>x\<in>set L. count_list L x = count_list L1 x \<Longrightarrow> set L1 \<subseteq> set L \<Longrightarrow> \<forall>x\<in>set L1. count_list L x = count_list L1 x"
+proof (rule+)
+  fix x
+  assume hyp: "\<forall>y\<in>set L. count_list L y = count_list L1 y" "set L1 \<subseteq> set L" "x\<in>set L1"
+  thus "count_list L x = count_list L1 x"
+    by auto
+qed
 
 end
