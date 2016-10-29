@@ -109,9 +109,9 @@ using zip_comp[of L1]
 by (induction L arbitrary: L1, auto)
 
 lemma find_zip1:
-  "distinct L \<Longrightarrow> length L = length L1 \<Longrightarrow> length L1  = length L2 \<Longrightarrow> j< length L \<Longrightarrow> find (\<lambda>p. fst p = k) (zip L L1) = Some ((zip L L1) ! j) 
-   \<Longrightarrow> find (\<lambda>p. fst p = k) (zip L L2) =  Some ((zip L L2) ! j)"  
-proof (induction L arbitrary: k j L1 L2)    
+  "distinct L \<Longrightarrow> length L = length L1 \<Longrightarrow> length (L@L3)  = length L2 \<Longrightarrow> j< length L \<Longrightarrow> find (\<lambda>p. fst p = k) (zip L L1) = Some ((zip L L1) ! j) 
+   \<Longrightarrow> find (\<lambda>p. fst p = k) (zip (L@L3) L2) =  Some ((zip (L@L3) L2) ! j)"  
+proof (induction L arbitrary: k j L1 L2 L3)    
   case (Cons a L')
    from this(3,6) 
      have "j=0 \<Longrightarrow> a = k"
@@ -120,18 +120,19 @@ proof (induction L arbitrary: k j L1 L2)
              fst_conv length_greater_0_conv list.simps(3) nth_Cons_0 
        by fastforce
    with Cons(3,4)
-     have H:"j=0 \<Longrightarrow> find (\<lambda>p. fst p = k) (zip (a#L') L2) =  Some (a,L2 ! j)"
-       using find_Some_iff[of "\<lambda>p. fst p = k" "zip (a#L') L2" "(a,L2!j)"]
-             nth_zip[of 0 "a#L'" L2]
+     have H:"j=0 \<Longrightarrow> find (\<lambda>p. fst p = k) (zip (a#L'@L3) L2) =  Some (a,L2 ! j)"
+       using find_Some_iff[of "\<lambda>p. fst p = k" "zip (a#L'@L3) L2" "(a,L2!j)"]
+             nth_zip[of 0 "a#L'@L3" L2]
              fst_conv length_greater_0_conv list.simps(3) nth_Cons_0 
      by fastforce
    obtain b L2' where 1:"L2 = b#L2'"
-     using Cons(3,4) length_Suc_conv
-     by metis
+     using Cons(3,4) length_Suc_conv[of L2 "length L' + length L3"]
+           length_append[of "a#L'" L3]
+     by auto
    obtain b1 L1' where 2:"L1 = b1#L1'"
      using Cons(2,3) length_Suc_conv
      by metis
-   have H2:"j>0 \<Longrightarrow> find (\<lambda>p. fst p = k) (zip (a#L') L2) =  Some (zip (a # L') L2 ! j)"
+   have H2:"j>0 \<Longrightarrow> find (\<lambda>p. fst p = k) (zip (a#L'@L3) L2) =  Some (zip (a # L'@L3) L2 ! j)"
      proof -
        let ?f = "\<lambda>p. fst p = k"
        assume C:"j>0"
@@ -162,19 +163,21 @@ proof (induction L arbitrary: k j L1 L2)
        }
        thus ?thesis
          using C C' C1 Cons(2,3,4) 1 2 nth_zip[of "Suc p"]
-               Cons(1)[of L1' L2' p]
+               Cons(1)[of L1' L3  L2' p]
          by auto     
      qed 
    show ?case
      proof (cases "j=0")
        case True
          with H show ?thesis 
-           using nth_Cons_0 Cons(3,4)
-           by (metis length_greater_0_conv list.simps(3) nth_zip)
+           using nth_Cons_0[of a "L'@L3"] Cons(3,4)
+                 length_greater_0_conv[of L2] length_append 
+                 list.simps(3)[of a "L'@L3"] nth_zip[of 0 "a#L'@L3" L2]
+           by fastforce      
      next
        case False
          with H2 show ?thesis        
-           by blast
+           by fastforce
      qed       
 qed auto
 
@@ -426,5 +429,10 @@ proof (rule+)
   thus "count_list L x = count_list L1 x"
     by auto
 qed
+
+
+lemma UN_int_empty:
+  "(UN l: set P. f l) \<inter> set S = {} \<Longrightarrow> \<forall>l\<in>set P. f l \<inter> set S = {}"
+sorry
 
 end
