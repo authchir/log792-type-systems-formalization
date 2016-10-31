@@ -231,6 +231,10 @@ fun fill::"(nat \<times> lterm) list \<Rightarrow> lterm \<Rightarrow> lterm" wh
 "fill \<Delta> (Let pattern p := t1 in t2) = (Let pattern p := (fill \<Delta> t1) in (fill \<Delta> t2))" |
 "fill \<Delta> t = t"
 
+inductive_set filled_index::"lterm \<Rightarrow> (nat\<times>lterm) list \<Rightarrow> nat set" 
+  for t::lterm and \<delta>::"(nat\<times>lterm) list" where
+"k<length \<delta> \<Longrightarrow> fst (\<delta>!k) \<in> set (patterns t) \<inter> set(fst_extract \<delta>) \<Longrightarrow> k \<in> filled_index t \<delta>"
+
 inductive Lmatch ::"Lpattern \<Rightarrow> lterm \<Rightarrow> (nat\<times>lterm) list \<Rightarrow> bool" where
   M_Var:
     "is_value_L v \<Longrightarrow> Lmatch (V n) v [(n,v)]" |
@@ -377,7 +381,7 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> (nat\<times>
   has_type_ProjR:
     "distinct L1 \<Longrightarrow> l\<in> set L1  \<Longrightarrow> length L1 = length TL \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| \<lparr>L1|:|TL\<rparr> \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>ProjR l t|;|\<delta>\<rparr> |:| (TL ! index L1 l)" |
   has_type_PatternVar:
-    "\<Gamma> \<turnstile> \<lparr>t|;|\<emptyset>\<rparr> |:| A \<Longrightarrow> bind_pvars t = {} \<Longrightarrow> (k,t)\<in> set \<delta> \<Longrightarrow> \<Gamma> \<turnstile> \<lparr><|V k|>|;|\<delta>\<rparr> |:| A" |
+    "\<Gamma> \<turnstile> \<lparr>t|;|remove1 (k,t) \<delta>\<rparr> |:| A \<Longrightarrow> bind_pvars t = {} \<Longrightarrow> (k,t)\<in> set \<delta> \<Longrightarrow> \<Gamma> \<turnstile> \<lparr><|V k|>|;|\<delta>\<rparr> |:| A" |
   has_type_PatternRCD:
     "L\<noteq>[] \<Longrightarrow> distinct L \<Longrightarrow> length PL = length TL \<Longrightarrow> length L = length PL \<Longrightarrow> (\<And>i. i< length PL \<Longrightarrow> \<Gamma> \<turnstile> \<lparr><|PL ! i|>|;|\<delta>\<rparr> |:| (TL ! i))
       \<Longrightarrow> \<Gamma> \<turnstile> \<lparr><|RCD L PL|>|;|\<delta>\<rparr> |:| \<lparr>L|:|TL\<rparr>" |
@@ -438,6 +442,18 @@ proof (induction L)
     }
     thus ?case
       by fastforce            
+qed auto
+
+lemma coherent_remove1:
+  "coherent_Subst \<delta> \<Longrightarrow>x\<in> set \<delta> \<Longrightarrow> coherent_Subst (remove1 x \<delta>)"
+proof(induction \<delta> arbitrary: x)
+  case (Cons x1 L)
+    have 1:"coherent_Subst L"
+      using Cons(2)
+      by auto
+    show ?case
+      using Cons(2-3) Cons(1)[of x] inset_rem1[of x L]
+      by force      
 qed auto
 
 lemma subset_coherent:
@@ -595,6 +611,39 @@ next
     thus ?case sorry
 qed auto
 
+
+lemma pcontext_inversion:
+  "\<Gamma> \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<Longrightarrow> set(patterns t) \<subseteq> set (fst_extract \<delta>)"(* \<and> (i<length \<delta> \<longrightarrow> patterns(snd (\<delta>!i)) = [])*)
+proof (induction rule: has_type_L.induct)
+  case (has_type_Tuple L TL \<Gamma> \<delta>)
+    show ?case
+      using has_type_Tuple(4) set_conv_nth[of L]
+      by auto
+next
+  case (has_type_RCD L LT TL \<Gamma> \<delta>)
+    show ?case 
+      using has_type_RCD(6) set_conv_nth[of LT]
+      by auto
+next
+  case (has_type_PatternVar \<Gamma> t k \<delta> A)
+    show ?case
+      using has_type_PatternVar(3)
+            zip_comp[of \<delta>]
+            set_zip_leftD[of k t "fst_extract \<delta>" "snd_extract \<delta>"]
+      by auto
+next
+  case (has_type_PatternRCD L PL TL \<Gamma> \<delta>)
+    show ?case
+      using has_type_PatternRCD(6) set_conv_nth[of PL]
+      by auto
+next
+  case (has_type_LetPattern \<delta> \<delta>1 p t1 \<Gamma> t2 A)
+    show ?case
+      using has_type_LetPattern(4,6)
+            Lmatch_pvars[OF has_type_LetPattern(3)]
+      by auto
+qed auto
+
 lemma weakening :
   "\<Gamma>' \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<Longrightarrow> (\<exists>P. \<Gamma>'@P = \<Gamma>) \<Longrightarrow> coherent_Subst \<delta>1 \<Longrightarrow> (\<exists>L. \<delta>1 = \<delta>@L \<and> bind_pvars t \<inter> set (fst_extract L) = {}) \<Longrightarrow> 
      \<Gamma> \<turnstile> \<lparr>t|;|(\<delta>1)\<rparr> |:| A"
@@ -665,11 +714,17 @@ next
             "has_type_L.intros"(16)[OF has_type_RCD(1-4), of \<Gamma> \<delta>1]
       by fastforce
 next
-  case (has_type_PatternVar \<Gamma>1 t A k \<delta>)
-    show ?case
-      using has_type_PatternVar(4)[OF has_type_PatternVar(5), of \<emptyset>]
-            has_type_PatternVar(2,3,7)
-      by (auto intro: "has_type_L.intros")
+  case (has_type_PatternVar \<Gamma>1 t k \<delta> A)
+    have "\<Gamma> \<turnstile> \<lparr>t|;|remove1 (k, t) \<delta>1\<rparr> |:| A"
+      using  has_type_PatternVar(4)[OF has_type_PatternVar(5), of "remove1 (k,t) \<delta>1"]
+             coherent_remove1[OF has_type_PatternVar(6), of "(k,t)"]
+             remove1_append[of "(k,t)" \<delta>]
+             has_type_PatternVar(2,3,6,7)
+      by force
+    then show ?case
+      using has_type_PatternVar(3,7)
+            "has_type_L.intros"(18)[OF _ has_type_PatternVar(2),of \<Gamma> k \<delta>1 A]
+      by auto     
 next
   case (has_type_Let \<Gamma>1 t1 \<delta> A x t2 B)
     have 1:"\<exists>P. replace x A \<Gamma>1 @ P = replace x A \<Gamma>"
@@ -755,7 +810,7 @@ next
             has_type_RCD(9,10)
       by fastforce
 next
-  case (has_type_PatternVar \<Gamma> t A k \<delta>)
+  case (has_type_PatternVar \<Gamma> t k \<delta> A)
     have 1:"(k, t) \<in> set \<delta>1"
       proof -
         obtain t' where H1:"(k,t') \<in> set \<delta>1"
@@ -769,9 +824,30 @@ next
         thus ?thesis
           using H1
           by (cases "t=t'", auto)
-      qed    
-    show ?case
-      using has_type_PatternVar(1,2) 1
+      qed
+    have A:"set (patterns t) \<subseteq> set (fst_extract (remove1 (k, t) \<delta>1))" 
+      using pcontext_inversion[OF has_type_PatternVar(1)]
+      sorry
+    have B: "\<forall>x\<in>set (remove1 (k, t) \<delta>1). count_list (remove1 (k, t) \<delta>1) x = count_list (remove1 (k, t) \<delta>) x"
+      proof (rule)
+        fix x
+        assume hyp:"x \<in> set (remove1 (k, t) \<delta>1)"
+        hence "x\<in> set \<delta>1 \<and> x \<noteq> (k,t)"
+          using hyp set_remove1_eq[OF coherent_imp_distinct[OF subset_coherent[OF has_type_PatternVar(6,7,5)]], of "(k,t)"]
+          by simp
+        then show "count_list (remove1 (k, t) \<delta>1) x = count_list (remove1 (k, t) \<delta>) x"
+          using inset_rem1[OF 1] inset_rem1[OF has_type_PatternVar(3)]
+                has_type_PatternVar(6)
+          by fastforce
+      qed
+    have "\<Gamma> \<turnstile> \<lparr>t|;|remove1 (k, t) \<delta>1\<rparr> |:| A" 
+      using has_type_PatternVar(7)
+            has_type_PatternVar(4)[OF coherent_remove1[OF has_type_PatternVar(5,3)] B _ A]
+            set_remove1_eq[OF coherent_imp_distinct[OF has_type_PatternVar(5)], of "(k,t)"]
+            set_remove1_eq[OF coherent_imp_distinct[OF subset_coherent[OF has_type_PatternVar(6,7,5)]], of "(k,t)"]
+      by blast  
+    then show ?case
+      using has_type_PatternVar(2) 1
       by (auto intro: has_type_L.intros)  
 next
   case (has_type_PatternRCD L PL TL \<Gamma> \<delta>)
@@ -879,50 +955,100 @@ proof (rule)
     qed auto
 qed
 
-
 lemma coherent_imp_disjoint:
   "coherent_Subst (\<delta>@\<delta>1) \<Longrightarrow> set \<delta> \<inter> set \<delta>1 = {}"
 by (metis coherent_imp_distinct distinct_append)
 
-lemma fill_patterns_def:
-  "(\<forall>i<length \<delta>. patterns(snd(\<delta>!i)) = []) \<Longrightarrow> set(patterns (fill \<delta> t)) = set (patterns t) - set (fst_extract \<delta>)"
-proof(induction t arbitrary: \<delta>)
+lemma filled_index_UN:
+  assumes hyps:"set (patterns t) = (UN ti : S. set (patterns ti))" 
+  shows  "filled_index t L = (UN ti : S. filled_index ti L)"
+proof (rule; rule) 
+  fix x
+  let ?goal ="x \<in> (\<Union>ti\<in>S. filled_index ti L)"
+  assume H: "x \<in> filled_index t L"
+  show ?goal
+    using "filled_index.cases"[OF H, of ?goal] hyps
+          "filled_index.intros"[of x L] 
+    by blast
+next
+  fix x
+  let ?goal ="x \<in> filled_index t L"
+  assume H:"x \<in> (\<Union>ti\<in>S. filled_index ti L)"
+  show ?goal
+    using H Un_def "filled_index.cases"[of x _ L ?goal]
+          "filled_index.intros"[of x L t]
+          hyps
+    by fast
+qed
+
+lemma fill_patterns_def: 
+  " coherent_Subst \<delta> \<Longrightarrow> set(patterns (fill \<delta> t)) = set (patterns t) - set (fst_extract \<delta>) \<union> (UN i : filled_index t \<delta> . set(patterns (snd(\<delta>!i))))"
+proof(induction t )
+  case (LIf c t1 t2)
+    thus ?case
+      using filled_index_UN[of "LIf c t1 t2" "{c,t1,t2}" \<delta>]
+      by force
+next
   case (Pattern p)
-    show ?case
+    then show ?case
       proof(induction p)
         case (V x)
           have A:"find (\<lambda>p. fst p = x) \<delta> = None \<Longrightarrow> x \<notin>set(fst_extract \<delta>)"
-            proof (rule)
+            proof (rule+)
               assume H:"find (\<lambda>p. fst p = x) \<delta> = None" "x \<in> set (fst_extract \<delta>)"
               show "False"
                 using inset_find_Some[OF H(2)]
                       H(1)
                 by auto
             qed
-          have B: "find (\<lambda>p. fst p = x) \<delta> \<noteq> None \<Longrightarrow>(\<exists>i<length \<delta>. patterns (snd(\<delta>!i)) = [] \<and> find (\<lambda>p. fst p = x) \<delta> = Some (\<delta>!i)) \<and> x \<in> set (fst_extract \<delta>)"
+          have B: "find (\<lambda>p. fst p = x) \<delta> \<noteq> None \<Longrightarrow>(\<exists>i<length \<delta>. find (\<lambda>p. fst p = x) \<delta> = Some (\<delta>!i) \<and> fst(\<delta>!i) = x \<and> filled_index (<|V x|>) \<delta> = {i}) 
+                    \<and> x \<in> set (fst_extract \<delta>) "
             proof -
               assume H:"find (\<lambda>p. fst p = x) \<delta> \<noteq> None"
               obtain p where H1:"find (\<lambda>p. fst p = x) \<delta> = Some p"
                 using H "option.distinct"
                 by fast
-              hence "\<exists>i<length \<delta>. p = \<delta>!i \<and> x\<in>set(fst_extract \<delta>)"
-                using find_Some_iff[of "\<lambda>p. fst p = x" \<delta> p]
-                      in_set_conv_nth[of x "fst_extract \<delta>"]
-                by auto
+              have "\<exists>i<length \<delta>. p = \<delta>!i \<and> x\<in>set(fst_extract \<delta>) \<and> fst p = x \<and> filled_index (<|V x|>) \<delta> = {i}"
+                proof -
+                  from H1 obtain i where P:"i<length \<delta>" "fst (\<delta> ! i) = x" " p = \<delta> ! i" "(\<forall>j<i. fst (\<delta> ! j) \<noteq> x)"
+                    using find_Some_iff[of "\<lambda>p. fst p = x" \<delta> p]
+                    by auto
+                  hence in\<delta>:"x \<in> set (fst_extract \<delta>)" using in_set_conv_nth[of x "fst_extract \<delta>"] by auto
+                  have "filled_index (<|V x|>) \<delta> = {i}"
+                    proof (rule)
+                      show "{i} \<subseteq> filled_index (<|V x|>) \<delta>"
+                        using filled_index.intros[OF P(1)] P(2) in\<delta>
+                        by auto
+                    next
+                      have "\<And>x1. x1 \<in>filled_index (<|V x|>) \<delta> \<Longrightarrow> x1 \<in> {i}"
+                        proof -
+                          fix x1
+                          assume hyp: "x1 \<in>filled_index (<|V x|>) \<delta>"
+                          show "x1\<in> {i}"
+                            using "filled_index.cases"[OF hyp] V P(1,2)
+                                  in\<delta> distinct_conv_nth[of "fst_extract \<delta>"]
+                            by (simp, cases "x1 = i", force)
+                        qed
+                      thus "filled_index (<|V x|>) \<delta> \<subseteq> {i}" by blast
+                    qed
+                  with in\<delta> P show ?thesis by blast
+                qed
               with H1 show ?thesis
-                using Pattern
                 by auto
             qed
-          show ?case 
-            using A Diff_eq[of "{x}" "set (fst_extract \<delta>)"] B 
-            by (cases "find (\<lambda>p. fst p = x) \<delta> = None", auto)   
+          show ?case
+            using A Diff_eq[of "{x}" "set (fst_extract \<delta>)"]
+                  "filled_index.cases"[of _ "<|V x|>" \<delta>]
+                  B
+            by (cases "find (\<lambda>p. fst p = x) \<delta> = None")
+                (force, fastforce)      
       next
         case (RCD L PL)
           thus ?case        
             using Diff_eq[of "(\<Union>a\<in>set PL. set (Pvars a))" "set(fst_extract \<delta>)"]
-            by (simp, blast)
+            (*by (simp, blast)*) sorry
       qed
-qed auto
+qed (force intro: "filled_index.intros" elim: "filled_index.cases")+
 
 
 lemma same_set_fill:
@@ -933,14 +1059,8 @@ proof (rule)
  have 1:"\<not> set (patterns x) \<subseteq> set (fst_extract \<delta>) \<Longrightarrow> fill \<delta> x = fill \<delta>1 x"
    proof -
      assume H1: "\<not> set (patterns x) \<subseteq> set (fst_extract \<delta>)"
-     then obtain S1 S2 where set_props:"set (patterns x) = S1 \<union> S2" "S1 \<subseteq> set (fst_extract \<delta>)" 
-                             "S2 \<inter> set (fst_extract \<delta>) = {}"
-       using Un_Diff[of "set (patterns x) \<inter> set (fst_extract \<delta>)" "set (patterns x)" "set (patterns x) \<inter> set (fst_extract \<delta>)"]
-       by (cases "set (patterns x) \<inter> set (fst_extract \<delta>) = {}", blast+)
-     thus ?thesis
-       using incl_fst[of \<delta> \<delta>1] incl_fst[of \<delta>1 \<delta>] H(3)
-                   
-      sorry
+     with H show ?thesis
+      sorry 
    qed
  show "fill \<delta> x = fill \<delta>1 x" 
    using fill_subsumption[OF H(1,2), of x] H(3)
@@ -1017,8 +1137,9 @@ proof (rule)
               have "set (Pvars (RCD L PL)) \<inter> set (fst_extract \<delta>1) \<noteq> {} \<Longrightarrow> ?case"
                 proof (induction PL)
                   case (Cons p PL')
-                    thus ?case
-                      sorry
+                    then show ?case
+                      
+                    sorry
                 qed simp                
               with 1 show ?case
                 by auto              
@@ -1026,52 +1147,88 @@ proof (rule)
     qed auto
 qed 
 
-lemma pcontext_inversion:
-  "\<Gamma> \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<Longrightarrow> set(patterns t) \<subseteq> set (fst_extract \<delta>)"(* \<and> (i<length \<delta> \<longrightarrow> patterns(snd (\<delta>!i)) = [])*)
-proof (induction rule: has_type_L.induct)
-  case (has_type_Tuple L TL \<Gamma> \<delta>)
-    show ?case
-      using has_type_Tuple(4) set_conv_nth[of L]
-      by auto
-next
-  case (has_type_RCD L LT TL \<Gamma> \<delta>)
-    show ?case 
-      using has_type_RCD(6) set_conv_nth[of LT]
-      by auto
-next
-  case (has_type_PatternVar \<Gamma> t A k \<delta>)
-    show ?case
-      using has_type_PatternVar(3)
-            zip_comp[of \<delta>]
-            set_zip_leftD[of k t "fst_extract \<delta>" "snd_extract \<delta>"]
-      by auto
-next
-  case (has_type_PatternRCD L PL TL \<Gamma> \<delta>)
-    show ?case
-      using has_type_PatternRCD(6) set_conv_nth[of PL]
-      by auto
-next
-  case (has_type_LetPattern \<delta> \<delta>1 p t1 \<Gamma> t2 A)
-    show ?case
-      using has_type_LetPattern(4,6)
-            Lmatch_pvars[OF has_type_LetPattern(3)]
-      by auto
-qed auto
-
 lemma fill_to_type:
   "\<Gamma>\<turnstile> \<lparr>fill \<delta> t|;| \<delta>1\<rparr> |:| A \<Longrightarrow> \<Gamma>\<turnstile> \<lparr>t|;|(update_snd (fill \<delta>1) \<delta>@\<delta>1) \<rparr> |:| A"
 (*proof (induction rule: fill.induct)
   use inversions
 qed (auto intro: "has_type_L.intros")
-*)
+*)sorry
 
 lemma coherence_order_independent:
   "coherent_Subst \<delta> \<Longrightarrow> (\<forall>x\<in>set \<delta>1. count_list \<delta>1 x = count_list \<delta> x) \<Longrightarrow> coherent_Subst \<delta>1"
-sorry
+proof -
+  assume hyps:"coherent_Subst \<delta>" "\<forall>x\<in>set \<delta>1. count_list \<delta>1 x = count_list \<delta> x"
+  have "set \<delta>1 \<subseteq> set \<delta>"
+    proof(rule)
+      fix x
+      assume in1:"x\<in> set \<delta>1"
+      show "x\<in> set \<delta>"
+        using count_inset[OF in1]
+              hyps(2) in1 count_Suc[of \<delta> x]
+      by auto
+    qed
+  thus ?thesis
+    using subset_coherent[OF hyps(2) _ hyps(1)]
+    by blast
+qed
 
 lemma has_type_L_order_irr:
   "\<Gamma> \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<Longrightarrow> (\<forall>x\<in>set \<delta>1. count_list \<delta>1 x = count_list \<delta> x) \<Longrightarrow> set \<delta> = set \<delta>1 \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t|;|\<delta>1\<rparr> |:| A"
-sorry
+proof (induction arbitrary: \<delta>1 rule: "has_type_L.induct")
+  case (has_type_ProjT i TL \<Gamma> t \<delta>)
+    show ?case
+      using "has_type_L.intros"(15)[OF has_type_ProjT(1,2)]
+            has_type_ProjT(4)[OF has_type_ProjT(5,6)]
+      by fast
+next
+  case (has_type_PatternVar \<Gamma> t k \<delta> A)
+    
+    have B: "\<forall>x\<in>set (remove1 (k, t) \<delta>1). count_list (remove1 (k, t) \<delta>1) x = count_list (remove1 (k, t) \<delta>) x"
+      proof (rule)
+        fix x
+        assume in1: "x\<in> set (remove1 (k,t) \<delta>1)"
+        obtain L1 L2 where H1:"\<delta> = L1 @ [(k, t)] @ L2" "remove1 (k, t) \<delta> = L1 @ L2"
+          using inset_rem1[OF has_type_PatternVar(3)]
+          by auto
+        obtain L3 L4  where H2:"\<delta>1 = L3 @ [(k, t)] @ L4" "remove1 (k, t) \<delta>1 = L3 @ L4"
+          using inset_rem1[of "(k,t)" \<delta>1] has_type_PatternVar(3,6)
+          by auto
+        have "x = (k,t) \<Longrightarrow> count_list (remove1 (k, t) \<delta>1) x = count_list (remove1 (k, t) \<delta>) x"
+          using H1 H2
+                has_type_PatternVar(5)
+          by auto      
+        then show "count_list (remove1 (k, t) \<delta>1) x = count_list (remove1 (k, t) \<delta>) x"
+          using has_type_PatternVar(5) in1 in_set_remove1[of x "(k,t)" \<delta>1] 
+                H1 H2
+          by fastforce
+      qed
+    hence A: "set (remove1 (k, t) \<delta>) = set (remove1 (k, t) \<delta>1)" 
+      using has_type_PatternVar(3,5,6)
+            same_count_swap[of "remove1 (k,t) \<delta>" "remove1 (k,t) \<delta>1"]
+            same_count_eq[of "remove1 (k,t) \<delta>" "remove1 (k,t) \<delta>1"]
+            count_rem1[of "(k,t)"] 
+            same_count_set_length[OF has_type_PatternVar(5)]
+      by (metis (no_types, lifting) Un_iff add_right_cancel in_set_remove1 length_remove1)
+    show ?case 
+      using has_type_PatternVar(3,6)
+            has_type_PatternVar(4)[OF B A]
+            "has_type_L.intros"(18)[OF _ has_type_PatternVar(2), of \<Gamma> k \<delta>1 A]
+      by auto
+next
+  case (has_type_Let \<Gamma> t1 \<delta> A x t2 B)
+    show ?case 
+      using has_type_Let(3)[OF has_type_Let(5,6)]
+            has_type_Let(4)[OF has_type_Let(5,6)]
+      by (auto intro: "has_type_L.intros")
+next
+  case (has_type_LetPattern \<delta> \<delta>2 p t1 \<Gamma> t2 A)
+    show ?case
+      using subset_coherent[OF _ _ has_type_LetPattern(1), of "\<delta>@\<delta>1"]
+            has_type_LetPattern(1-4,7,8)  incl_fst[of \<delta>2 \<delta>1]
+            has_type_LetPattern(6)[of "update_snd (fill \<delta>1) \<delta> @ \<delta>1"] same_set_fill[OF _ _ has_type_LetPattern(8)] 
+            subset_coherent[OF has_type_LetPattern(7)] update_snd_rewrite_fun[of \<delta> "fill \<delta>2" "fill \<delta>1"]
+      by (force intro!: "has_type_L.intros"(20)) 
+qed (auto intro: "has_type_L.intros")
 
 lemma has_type_filled:
   assumes coherence: "coherent_Subst (\<delta>@\<delta>1)" and

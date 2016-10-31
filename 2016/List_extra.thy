@@ -430,6 +430,23 @@ proof (rule+)
     by auto
 qed
 
+lemma inset_rem1:
+  "x\<in> set L \<Longrightarrow> \<exists>L1 L2. L = L1@[x]@L2 \<and> remove1 x L = L1@L2"
+proof(induction L arbitrary: x)
+  case (Cons x1 L')
+    have "x \<in> set L' \<Longrightarrow> x\<noteq>x1 \<Longrightarrow> ?case"
+      proof -
+        assume H:"x\<in> set L'" "x\<noteq>x1"
+        obtain L1 L2 where H1:"L' = L1 @ [x] @ L2 \<and> remove1 x L' = L1 @ L2"
+          using Cons(1)[OF H(1)]
+          by auto
+        have "x1 # L' = (x1#L1) @ [x] @ L2 \<and> remove1 x (x1 # L') = (x1#L1) @ L2"
+         using remove1_append H(2) H1
+         by auto
+        thus ?case by blast
+      qed
+    thus ?case using Cons(2) by auto
+qed auto
 
 lemma UN_int_empty:
   "(UN l: set P. f l) \<inter> set S = {} \<Longrightarrow> \<forall>l\<in>set P. f l \<inter> set S = {}"
