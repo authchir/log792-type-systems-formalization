@@ -194,6 +194,23 @@ fun intern_patterns:: "lterm \<Rightarrow> nat list" where
 "intern_patterns t = []"
 
 
+fun sub_terms :: "lterm \<Rightarrow> lterm set" where
+  "sub_terms (LIf c t1 t2)               = {c,t1,t2}" |
+"sub_terms (LAbs A t1)                   = {t1}" |
+"sub_terms (LApp t1 t2)                = {t1,t2}" |
+"sub_terms (Seq t1 t2)                 = {t1, t2}" |
+"sub_terms (t1 as A)                   = {t1}" |
+"sub_terms (Let var x := t1 in t2)     = {t1 , t2}" |
+"sub_terms (\<lbrace>t1,t2\<rbrace>)                   = {t1 , t2}" |
+"sub_terms (Tuple L)                   =  set L" |
+"sub_terms (Record L LT)               =  set  LT" |
+"sub_terms (\<pi>1 t)                      =  {t}" |
+"sub_terms (\<pi>2 t)                      =  {t}" |
+"sub_terms (\<Pi> i t)                     =  {t}" |
+"sub_terms (ProjR l t)                 =  {t}" |
+"sub_terms (Let pattern p := t1 in t2) = {t1, t2}" |
+"sub_terms t = {}"
+
 text{*
     We implement pattern matching and replacing with the following function and definition:
     
@@ -228,12 +245,12 @@ fun fill::"(nat \<times> lterm) list \<Rightarrow> lterm \<Rightarrow> lterm" wh
 "fill \<Delta> (\<pi>2 t)                      = \<pi>2 (fill \<Delta> t)" |
 "fill \<Delta> (\<Pi> i t)                     = \<Pi> i (fill \<Delta> t)" |
 "fill \<Delta> (ProjR l t)                 = ProjR l (fill \<Delta> t)" |
-"fill \<Delta> (Let pattern p := t1 in t2) = (Let pattern p := (fill \<Delta> t1) in (fill \<Delta> t2))" |
+"fill \<Delta> (Let pattern p := t1 in t2) = (Let pattern p := (fill \<Delta> t1) in (fill (filter (\<lambda>p1. fst p1 \<notin> set(Pvars p)) \<Delta>) t2))" |
 "fill \<Delta> t = t"
 
-inductive_set filled_index::"lterm \<Rightarrow> (nat\<times>lterm) list \<Rightarrow> nat set" 
-  for t::lterm and \<delta>::"(nat\<times>lterm) list" where
-"k<length \<delta> \<Longrightarrow> fst (\<delta>!k) \<in> set (patterns t) \<inter> set(fst_extract \<delta>) \<Longrightarrow> k \<in> filled_index t \<delta>"
+inductive_set filled_index::"nat set \<Rightarrow> (nat\<times>lterm) list \<Rightarrow> nat set" 
+  for P::"nat set" and \<delta>::"(nat\<times>lterm) list" where
+"k<length \<delta> \<Longrightarrow> fst (\<delta>!k) \<in> P \<inter> set(fst_extract \<delta>) \<Longrightarrow> k \<in> filled_index P \<delta>"
 
 inductive Lmatch ::"Lpattern \<Rightarrow> lterm \<Rightarrow> (nat\<times>lterm) list \<Rightarrow> bool" where
   M_Var:
@@ -557,7 +574,10 @@ next
                   set_zip_leftD[of _ _ "fst_extract \<delta>" "snd_extract \<delta>"] 
                   zip_comp[of \<delta>]
             by force
-      qed force     
+      qed force
+next
+  case (LetP p t1 t2)
+    thus ?case sorry  
 qed auto
 
 lemma fill_subsumption:
@@ -959,36 +979,67 @@ lemma coherent_imp_disjoint:
   "coherent_Subst (\<delta>@\<delta>1) \<Longrightarrow> set \<delta> \<inter> set \<delta>1 = {}"
 by (metis coherent_imp_distinct distinct_append)
 
+lemma filled_index_Diff:
+  "filled_index S L - filled_index S1 L = filled_index (S-S1) L"
+proof (rule; rule)
+  fix x
+  let ?goal = "x \<in> filled_index (S-S1) L"
+  assume H:"x \<in> filled_index S L - filled_index S1 L"
+  show ?goal
+    using "filled_index.cases"[of x S  L ?goal]
+          "filled_index.intros"[of x L "S-S1"] H
+          DiffD1 DiffD2 DiffI IntD1 IntD2 IntI filled_index.cases filled_index.intros 
+    by fastforce 
+next
+  fix x
+  let ?goal = "x \<in> filled_index S L - filled_index S1 L"
+  assume H:"x \<in> filled_index (S-S1) L"
+  show ?goal
+    using "filled_index.cases"[OF H,of ?goal]
+          "filled_index.intros"[of x L S]
+          Diff_eq[of S S1]
+    by (metis DiffD2 DiffI IntD1 IntI filled_index.cases inf_commute)
+qed 
+
+    
 lemma filled_index_UN:
-  assumes hyps:"set (patterns t) = (UN ti : S. set (patterns ti))" 
-  shows  "filled_index t L = (UN ti : S. filled_index ti L)"
+  assumes hyps:"set (patterns t) = (UN ti : S. set (patterns ti)) - S1" 
+  shows  "filled_index (set (patterns t)) L = (UN ti : S. filled_index (set (patterns ti)) L) - filled_index S1 L"
 proof (rule; rule) 
   fix x
-  let ?goal ="x \<in> (\<Union>ti\<in>S. filled_index ti L)"
-  assume H: "x \<in> filled_index t L"
+  let ?goal ="x \<in> (\<Union>ti\<in>S. filled_index (set (patterns ti)) L) - filled_index S1 L"
+  assume H: "x \<in> filled_index (set (patterns t)) L"
   show ?goal
     using "filled_index.cases"[OF H, of ?goal] hyps
-          "filled_index.intros"[of x L] 
-    by blast
+          "filled_index.intros"[of x L "set(patterns _) - S1"] 
+          filled_index_Diff[of "set(patterns _)" L S1]
+    by blast       
 next
   fix x
-  let ?goal ="x \<in> filled_index t L"
-  assume H:"x \<in> (\<Union>ti\<in>S. filled_index ti L)"
+  let ?goal ="x \<in> filled_index (set (patterns t)) L"
+  assume H:"x \<in> (\<Union>ti\<in>S. filled_index (set (patterns ti)) L) - filled_index S1 L"
   show ?goal
-    using H Un_def "filled_index.cases"[of x _ L ?goal]
-          "filled_index.intros"[of x L t]
-          hyps
-    by fast
+    using H Un_def DiffD1 "filled_index.cases"[of x "set(patterns _) - S1" L ?goal]
+          "filled_index.intros"[of x L "set(patterns t)"]
+          hyps filled_index_Diff[of "set(patterns _)" L S1]
+    by fastforce
 qed
 
+lemma filled_index_empty[simp]:
+  "filled_index {} L = {}"
+using "filled_index.cases"
+by auto
+
+(*find out how to simplify with filled_index_empty first*)
+
+method FI_derivation = (match conclusion in "set(patterns (fill \<delta> t)) = ?B" for \<delta> t\<Rightarrow> 
+                          \<open>force simp: filled_index_UN[of t "sub_terms t" "{}" \<delta>] Diff_empty filled_index_empty\<close>) 
+
+
 lemma fill_patterns_def: 
-  " coherent_Subst \<delta> \<Longrightarrow> set(patterns (fill \<delta> t)) = set (patterns t) - set (fst_extract \<delta>) \<union> (UN i : filled_index t \<delta> . set(patterns (snd(\<delta>!i))))"
+  " coherent_Subst \<delta> \<Longrightarrow> set(patterns (fill \<delta> t)) = set (patterns t) - set (fst_extract \<delta>) 
+                          \<union> (UN i : filled_index (set(patterns t)) \<delta> . set(patterns (snd(\<delta>!i))))"
 proof(induction t )
-  case (LIf c t1 t2)
-    thus ?case
-      using filled_index_UN[of "LIf c t1 t2" "{c,t1,t2}" \<delta>]
-      by force
-next
   case (Pattern p)
     then show ?case
       proof(induction p)
@@ -1001,35 +1052,36 @@ next
                       H(1)
                 by auto
             qed
-          have B: "find (\<lambda>p. fst p = x) \<delta> \<noteq> None \<Longrightarrow>(\<exists>i<length \<delta>. find (\<lambda>p. fst p = x) \<delta> = Some (\<delta>!i) \<and> fst(\<delta>!i) = x \<and> filled_index (<|V x|>) \<delta> = {i}) 
+          have B: "find (\<lambda>p. fst p = x) \<delta> \<noteq> None \<Longrightarrow>(\<exists>i<length \<delta>. find (\<lambda>p. fst p = x) \<delta> = Some (\<delta>!i) \<and> fst(\<delta>!i) = x \<and> 
+                    filled_index (set (patterns (<|V x|>))) \<delta> = {i}) 
                     \<and> x \<in> set (fst_extract \<delta>) "
             proof -
               assume H:"find (\<lambda>p. fst p = x) \<delta> \<noteq> None"
               obtain p where H1:"find (\<lambda>p. fst p = x) \<delta> = Some p"
                 using H "option.distinct"
                 by fast
-              have "\<exists>i<length \<delta>. p = \<delta>!i \<and> x\<in>set(fst_extract \<delta>) \<and> fst p = x \<and> filled_index (<|V x|>) \<delta> = {i}"
+              have "\<exists>i<length \<delta>. p = \<delta>!i \<and> x\<in>set(fst_extract \<delta>) \<and> fst p = x \<and> filled_index (set (patterns (<|V x|>))) \<delta> = {i}"
                 proof -
                   from H1 obtain i where P:"i<length \<delta>" "fst (\<delta> ! i) = x" " p = \<delta> ! i" "(\<forall>j<i. fst (\<delta> ! j) \<noteq> x)"
                     using find_Some_iff[of "\<lambda>p. fst p = x" \<delta> p]
                     by auto
                   hence in\<delta>:"x \<in> set (fst_extract \<delta>)" using in_set_conv_nth[of x "fst_extract \<delta>"] by auto
-                  have "filled_index (<|V x|>) \<delta> = {i}"
-                    proof (rule)
-                      show "{i} \<subseteq> filled_index (<|V x|>) \<delta>"
+                  have "filled_index (set (patterns (<|V x|>))) \<delta> = {i}"
+                    proof (simp, rule)
+                      show "{i} \<subseteq> filled_index {x} \<delta>"
                         using filled_index.intros[OF P(1)] P(2) in\<delta>
                         by auto
                     next
-                      have "\<And>x1. x1 \<in>filled_index (<|V x|>) \<delta> \<Longrightarrow> x1 \<in> {i}"
+                      have "\<And>x1. x1 \<in>filled_index {x} \<delta> \<Longrightarrow> x1 \<in> {i}"
                         proof -
                           fix x1
-                          assume hyp: "x1 \<in>filled_index (<|V x|>) \<delta>"
+                          assume hyp: "x1 \<in>filled_index {x} \<delta>"
                           show "x1\<in> {i}"
                             using "filled_index.cases"[OF hyp] V P(1,2)
                                   in\<delta> distinct_conv_nth[of "fst_extract \<delta>"]
                             by (simp, cases "x1 = i", force)
                         qed
-                      thus "filled_index (<|V x|>) \<delta> \<subseteq> {i}" by blast
+                      thus "filled_index {x} \<delta> \<subseteq> {i}" by blast
                     qed
                   with in\<delta> P show ?thesis by blast
                 qed
@@ -1038,7 +1090,7 @@ next
             qed
           show ?case
             using A Diff_eq[of "{x}" "set (fst_extract \<delta>)"]
-                  "filled_index.cases"[of _ "<|V x|>" \<delta>]
+                  "filled_index.cases"[of _ "{x}" \<delta>]
                   B
             by (cases "find (\<lambda>p. fst p = x) \<delta> = None")
                 (force, fastforce)      
@@ -1048,7 +1100,14 @@ next
             using Diff_eq[of "(\<Union>a\<in>set PL. set (Pvars a))" "set(fst_extract \<delta>)"]
             (*by (simp, blast)*) sorry
       qed
-qed (force intro: "filled_index.intros" elim: "filled_index.cases")+
+next
+  case (LetP p t1 t2)
+    show ?case
+      apply simp
+      using LetP(1,2)[OF LetP(3)] filled_index_UN[of "Let pattern p := t1 in t2" "{t1, fill [p1\<leftarrow>\<delta> . fst p1 \<notin> set (Pvars p)] t2}" _ \<delta>]
+            set_filter
+      sorry
+qed (FI_derivation+)
 
 
 lemma same_set_fill:

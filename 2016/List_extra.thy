@@ -31,6 +31,10 @@ abbreviation snd_extract::"('a\<times>'b) list \<Rightarrow> 'b list" where
 abbreviation update_snd::"('b \<Rightarrow> 'c) \<Rightarrow> ('a\<times>'b) list \<Rightarrow> ('a\<times>'c) list" where
 "update_snd f L \<equiv> zip (fst_extract L) (map f (snd_extract L))"
 
+fun BigCirc::"('a\<Rightarrow>'a) list \<Rightarrow> ('a\<Rightarrow>'a)" ("\<Odot> (_)" [75] 55) where
+"\<Odot> [] = id" |
+"\<Odot> (f#fs) = f \<circ> (\<Odot> fs)"
+
 lemma replace_inv_length[simp]:
   "length (replace n x S) = length S"  
 by(induction S arbitrary: x n, auto)
