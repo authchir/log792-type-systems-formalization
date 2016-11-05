@@ -1,5 +1,5 @@
 (*<*)
-theory Ext_Structures_fun
+theory Ext_Structures
 imports
    Main
    List_extra
@@ -372,22 +372,17 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> pcontext \<R
     "L\<noteq>[] \<Longrightarrow> distinct L \<Longrightarrow> length PL = length TL \<Longrightarrow> length L = length PL \<Longrightarrow> (\<And>i. i< length PL \<Longrightarrow> \<Gamma> \<turnstile> \<lparr><|PL ! i|>|;|\<delta>\<rparr> |:| (TL ! i))
       \<Longrightarrow> \<Gamma> \<turnstile> \<lparr><|RCD L PL|>|;|\<delta>\<rparr> |:| \<lparr>L|:|TL\<rparr>" |
   has_type_LetPattern:
-    "coherent p \<Longrightarrow> Lmatch p t1 \<delta>  \<Longrightarrow>
+    "coherent p \<Longrightarrow> Lmatch p t1 \<delta>  \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t1|;|\<delta>1\<rparr> |:| R \<Longrightarrow>
      \<Gamma> \<turnstile> \<lparr>t2|;|(\<delta>1 \<circ> \<delta>)\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|\<delta>1\<rparr> |:| A" 
 
 inductive_cases has_type_LetE : "\<Gamma> \<turnstile> \<lparr> Let var x := t1 in t2|;|\<delta>1\<rparr>  |:| B"
 inductive_cases has_type_ProjTE: "\<Gamma> \<turnstile> \<lparr> \<Pi> i t|;|\<delta>1\<rparr> |:| R"
 inductive_cases has_type_ProjRE: "\<Gamma> \<turnstile> \<lparr> ProjR l t|;|\<delta>1\<rparr> |:| R"
-inductive_cases has_type_PatternRCDE: "\<Gamma> \<turnstile> \<lparr> <|RCD L PL|>|;|\<delta>1\<rparr> |:| R"
-
+inductive_cases has_type_LetPE: "\<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|\<delta>1\<rparr> |:| A"
 
 lemma record_patterns_characterisation:
   "set (patterns (<|RCD L PL|>)) \<subseteq> S \<Longrightarrow> x \<in> set PL \<Longrightarrow> set(patterns (<|x|>)) \<subseteq> S"
 by (induction PL arbitrary: S x, auto) 
-
-lemma pcontext_inv:
-  "\<Gamma> \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<Longrightarrow> x\<in>set(patterns t) \<Longrightarrow>\<exists>R. \<Gamma> \<turnstile> \<lparr><|V x|>|;|\<delta>\<rparr> |:| R"
-sorry
 
 lemma inversion:
   "\<Gamma> \<turnstile> \<lparr> LTrue |;| \<delta>\<rparr> |:| R \<Longrightarrow> R = Bool"
@@ -407,68 +402,81 @@ lemma inversion:
   "\<Gamma> \<turnstile> \<lparr> (\<Pi> i t)|;| \<delta>\<rparr> |:| R \<Longrightarrow> \<exists>TL. R = (TL ! (i-1)) \<and> \<Gamma> \<turnstile> \<lparr>t|;| \<delta>\<rparr> |:| \<lparr>TL\<rparr> \<and> 1\<le>i \<and> i\<le> length TL"
   "\<Gamma> \<turnstile> \<lparr> (Record L1 LT)|;| \<delta>\<rparr> |:| R \<Longrightarrow> \<exists>TL. R = \<lparr>L1|:|TL\<rparr> \<and> length TL = length LT \<and> length L1 = length LT \<and> distinct L1 \<and> 
                                     (\<forall>i. 0\<le>i \<longrightarrow> i< length LT \<longrightarrow> \<Gamma> \<turnstile> \<lparr> (LT ! i)|;| \<delta>\<rparr> |:| (TL ! i)) " 
-  "\<Gamma> \<turnstile> \<lparr> (ProjR l t)|;| \<delta>\<rparr> |:| R \<Longrightarrow>\<exists>A m L TL. R = A \<and> \<Gamma> \<turnstile> \<lparr>t |;| \<delta>\<rparr> |:| \<lparr>L|:|TL\<rparr> \<and> index L l = m \<and> TL ! m = A \<and> distinct L \<and> length L = length TL
+  "\<Gamma> \<turnstile> \<lparr> (ProjR l t)|;| \<delta>\<rparr> |:| R \<Longrightarrow>\<exists>m L TL. \<Gamma> \<turnstile> \<lparr>t |;| \<delta>\<rparr> |:| \<lparr>L|:|TL\<rparr> \<and> index L l = m \<and> TL ! m = R \<and> distinct L \<and> length L = length TL
                               \<and> l \<in> set L"
-  "\<Gamma> \<turnstile> \<lparr><|V k|>|;|\<delta>\<rparr> |:| R \<Longrightarrow> \<exists>A n. R=A \<and> \<Gamma> \<turnstile> \<lparr>(\<delta>^^n) (<|V k|>)|;| id\<rparr> |:| A \<and>  set(patterns ((\<delta>^^n) (<|V k|>))) = {}"
+  "\<Gamma> \<turnstile> \<lparr><|V k|>|;|\<delta>\<rparr> |:| R \<Longrightarrow> \<exists>n. \<Gamma> \<turnstile> \<lparr>(\<delta>^^n) (<|V k|>)|;| id\<rparr> |:| R \<and>  set(patterns ((\<delta>^^n) (<|V k|>))) = {}"
   "\<Gamma> \<turnstile> \<lparr><|RCD L1 PL|>|;|\<delta>\<rparr> |:| R \<Longrightarrow> \<exists>TL. R = \<lparr>L1|:|TL\<rparr> \<and> L1\<noteq>[] \<and> distinct L1 \<and> length PL = length TL \<and> length L1 = length PL \<and>
                                     (\<forall>i< length PL. \<Gamma> \<turnstile> \<lparr><|PL ! i|>|;|\<delta>\<rparr> |:| (TL ! i))"
+  "\<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|\<delta>1\<rparr> |:| R \<Longrightarrow>\<exists>\<delta> R1. coherent p \<and> Lmatch p t1 \<delta>  \<and> \<Gamma> \<turnstile> \<lparr>t1|;|\<delta>1\<rparr> |:| R1 \<and>
+     \<Gamma> \<turnstile> \<lparr>t2|;|(\<delta>1 \<circ> \<delta>)\<rparr> |:| R" 
 proof (auto elim: has_type_L.cases has_type_ProjTE)
   assume H:"\<Gamma> \<turnstile> \<lparr> Let var x := t in t1|;|\<delta>\<rparr> |:| R"
   show "\<exists>A. (length \<Gamma> \<le> x \<longrightarrow> \<Gamma> \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<and> \<Gamma> \<turnstile> \<lparr>t1|;|\<delta>\<rparr> |:| R) \<and> 
         (\<not> length \<Gamma> \<le> x \<longrightarrow> \<Gamma> \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<and> (take x \<Gamma> @ drop (Suc x) \<Gamma> |,| A) \<turnstile> \<lparr>t1|;|\<delta>\<rparr> |:| R)"
     using H has_type_LetE
     by (cases "x\<ge> length \<Gamma>", fastforce+)
+next
+  assume H1: "\<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|\<delta>1\<rparr> |:| R"
+  show "\<exists>\<delta>. Lmatch p t1 \<delta> \<and> Ex (has_type_L \<Gamma> t1 \<delta>1) \<and> \<Gamma> \<turnstile> \<lparr>t2|;|(\<delta>1 \<circ> \<delta>)\<rparr> |:| R"
+    using has_type_LetPE[OF H1]
+    by meson
 qed (metis has_type_ProjRE)
+
 
 lemma[simp]: "nat (int x + 1) = Suc x" by simp
 lemma[simp]: "nat (1 + int x) = Suc x" by simp
 
-lemma[simp]: "nat (int x - 1) = x - 1" by simp
+lemma[simp]: "nat (int x - 1) = x - 1" by simp 
 
 lemma weakening :
   fixes \<Gamma>::lcontext  and t::lterm and A R S::ltype and \<delta> \<delta>1::"lterm\<Rightarrow>lterm" and x n::nat
   assumes well_typed: "\<Gamma> \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A" and
-          weaker_ctx: " n \<le> length \<Gamma>" and 
-          similar_filling: "x\<in>set(patterns t) \<Longrightarrow> \<Gamma> \<turnstile> \<lparr><|V x|>|;| \<delta>\<rparr> |:| R \<Longrightarrow> insert_nth n S \<Gamma> \<turnstile> \<lparr><|V x|>|;|\<delta>1\<rparr> |:| R"
-  shows "insert_nth n S \<Gamma> \<turnstile> \<lparr>shift_L 1 n t|;|\<delta>1\<rparr> |:| A"
+          weaker_ctx: " n \<le> length \<Gamma>" 
+  shows "insert_nth n S \<Gamma> \<turnstile> \<lparr>shift_L 1 n t|;|\<delta>\<rparr> |:| A"
 using assms
-proof(induction arbitrary: \<delta>1 n x rule:has_type_L.induct)
+proof(induction arbitrary:n rule:has_type_L.induct)
   case (has_type_LAbs \<Gamma>1 T1 t2 \<delta> T2)
     show ?case
-      sorry
-next
-case(has_type_Tuple L TL \<Gamma>1 \<delta>)
+      using has_type_LAbs(2)[of "Suc n"] has_type_LAbs(3)
+      by (auto intro: "has_type_L.intros" simp: nth_append min_def)
+next 
+  case(has_type_Tuple L TL \<Gamma>1 \<delta>)
     show ?case
-      using has_type_Tuple(4)[OF _ _ has_type_Tuple(5,6)]
-            "has_type_L.intros"(14)[OF has_type_Tuple(1,2), of \<Gamma> \<delta>1]
-      sorry
+      using has_type_Tuple(1,2)
+             nth_map[of _ L "shift_L 1 n"] has_type_Tuple(4)[OF _ _ has_type_Tuple(5)]
+      by (force intro!: "has_type_L.intros")+
 next
   case (has_type_ProjT i TL \<Gamma>1 t \<delta>)
-    thus ?case
-      using has_type_ProjT
+    show ?case
+      using has_type_ProjT(4)[OF has_type_ProjT(5)]
             "has_type_L.intros"(15)[OF has_type_ProjT(1,2)]
-      sorry
+      by fastforce
 next
-  case (has_type_RCD)
-    thus ?case
-      using has_type_RCD(6)[OF _ has_type_RCD(7,8)]
-            "has_type_L.intros"(16)[OF has_type_RCD(1-4), of \<Gamma> \<delta>1]
-      sorry
+  case (has_type_RCD L LT TL \<Gamma> \<delta>)
+    show ?case
+      using has_type_RCD(1-4) nth_map[of _ LT "shift_L 1 n"]
+            has_type_RCD(6)[OF _ has_type_RCD(7)]           
+      by (force intro!: "has_type_L.intros"(16))+
 next
   case (has_type_Let \<Gamma>1 t1 \<delta> A x t2 B)
-   (* have 1:"\<exists>P. replace x A \<Gamma>1 @ P = replace x A \<Gamma>"
-      using has_type_Let(5)
-      by (cases "x<length \<Gamma>1", auto)  *)                  
-    show ?case 
-     using has_type_Let(3)[OF has_type_Let(5)]
-           has_type_Let(4)[]
-           has_type_Let(6)
-           "has_type_L.intros"(10)[of \<Gamma> t1 \<delta>1 A x t2 B]
-           (*inversions*)
-     sorry
+    have 1:"n\<le>x \<Longrightarrow> ?case"
+      proof -
+        assume le_x: "n\<le>x"
+        show ?case
+          using  has_type_Let(4) has_type_Let(5) le_x 
+                "has_type_L.intros"(10)[OF has_type_Let(3)[OF has_type_Let(5)], of "Suc x"]
+          by(auto, metis insert_nth_take_drop rep_ins replace_inv_length append_Cons append_Nil2 append_eq_append_conv_if)
+      qed
+    have "n>x \<Longrightarrow> ?case"
+      using has_type_Let(4) has_type_Let(5) rep_ins2[OF _ has_type_Let(5), of x S A]
+            "has_type_L.intros"(10)[OF has_type_Let(3)[OF has_type_Let(5)], of x]
+      by (auto, metis append_Cons append_Nil insert_nth_take_drop replace_inv_length)
+    with 1 show ?case 
+      by auto
 next
-  case (has_type_PatternVar \<Gamma>1 \<delta> k A)
+  case (has_type_PatternVar \<Gamma>1 \<delta> m k A)
     show ?case 
+      apply simp
       apply (rule "has_type_L.intros"(18))
       (*inversions*)
       sorry
@@ -490,42 +498,13 @@ next
             has_type_LetPattern(6)
             "has_type_L.intros"(21)[OF has_type_LetPattern(3)]*)
       sorry
-next
-  case (has_type_filled)
-    thus ?case sorry
 qed (auto intro: has_type_L.intros simp: nth_append min_def)
 
 lemma fill_keep_value:
   "is_value_L v \<Longrightarrow> is_value_L (fill \<delta> v)"
 by(induction v rule: is_value_L.induct, auto intro: "is_value_L.intros" )
-(*
-lemma inversion:
-  "\<Delta> |;| \<Gamma> \<turnstile> LTrue |:| R \<Longrightarrow> R = Bool"
-  "\<Delta> |;| \<Gamma> \<turnstile> LFalse |:| R \<Longrightarrow> R = Bool"
-  "\<Delta> |;| \<Gamma> \<turnstile> LIf t1 t2 t3 |:| R \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> t1 |:| Bool \<and> \<Delta> |;| \<Gamma> \<turnstile> t2 |:| R \<and> \<Delta> |;| \<Gamma> \<turnstile> t3 |:| R"
-  "\<Delta> |;| \<Gamma> \<turnstile> LVar x |:| R \<Longrightarrow> (x, R) |\<in>| \<Gamma>"
-  "\<Delta> |;| \<Gamma> \<turnstile> LAbs T1 t2 |:| R \<Longrightarrow> \<exists>R2. R = T1 \<rightarrow> R2 \<and> \<Delta> |;| \<Gamma> |,| T1 \<turnstile> t2 |:| R2"
-  "\<Delta> |;| \<Gamma> \<turnstile> LApp t1 t2 |:| R \<Longrightarrow> \<exists>T11. \<Delta> |;| \<Gamma> \<turnstile> t1 |:| T11 \<rightarrow> R \<and> \<Delta> |;| \<Gamma> \<turnstile> t2 |:| T11"
-  "\<Delta> |;| \<Gamma> \<turnstile> unit |:| R \<Longrightarrow> R = Unit"
-  "\<Delta> |;| \<Gamma> \<turnstile> Seq t1 t2 |:| R \<Longrightarrow> \<exists>A. R = A \<and> \<Delta> |;| \<Gamma> \<turnstile> t2 |:| A \<and> \<Delta> |;| \<Gamma> \<turnstile> t1 |:| Unit"
-  "\<Delta> |;| \<Gamma> \<turnstile> t as A |:| R \<Longrightarrow> R = A"
-  "\<Delta> |;| \<Gamma> \<turnstile> Let var x := t in t1 |:| R \<Longrightarrow> \<exists>A B. R = B \<and> \<Delta> |;| \<Gamma> \<turnstile> t |:| A \<and> \<Delta> |;| (replace x A \<Gamma>) \<turnstile> t1 |:| B"
-  "\<Delta> |;| \<Gamma> \<turnstile> \<lbrace>t1,t2\<rbrace> |:| R \<Longrightarrow> \<exists>A B. \<Delta> |;| \<Gamma> \<turnstile> t1 |:| A \<and> \<Delta> |;| \<Gamma> \<turnstile> t2 |:| B \<and> R = A |\<times>| B"
-  "\<Delta> |;| \<Gamma> \<turnstile> \<pi>1 t |:| R \<Longrightarrow> \<exists>A B. \<Delta> |;| \<Gamma> \<turnstile> t |:| A |\<times>| B \<and> R = A"
-  "\<Delta> |;| \<Gamma> \<turnstile> \<pi>2 t |:| R \<Longrightarrow> \<exists>A B. \<Delta> |;| \<Gamma> \<turnstile> t |:| A |\<times>| B \<and> R = B"
-  "\<Delta> |;| \<Gamma> \<turnstile> Tuple L |:| R \<Longrightarrow> \<exists>TL. length L = length TL \<and> (\<forall>i. 0\<le>i \<longrightarrow> i< length L \<longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> (L ! i) |:| (TL ! i)) \<and> R = \<lparr>TL\<rparr>"
-  "\<Delta> |;| \<Gamma> \<turnstile> (\<Pi> i t) |:| R \<Longrightarrow> \<exists>TL. R = (TL ! (i-1)) \<and> \<Delta> |;| \<Gamma> \<turnstile> t |:| \<lparr>TL\<rparr> \<and> 1\<le>i \<and> i\<le> length TL"
-  "\<Delta> |;| \<Gamma> \<turnstile> (Record L1 LT) |:| R \<Longrightarrow> \<exists>TL. R = \<lparr>L1|:|TL\<rparr> \<and> length TL = length LT \<and> length L1 = length LT \<and> distinct L1 \<and> 
-                                    (\<forall>i. 0\<le>i \<longrightarrow> i< length LT \<longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> (LT ! i) |:| (TL ! i)) " 
-  "\<Delta> |;| \<Gamma> \<turnstile> (ProjR l t) |:| R \<Longrightarrow>\<exists>A m L TL. R = A \<and> \<Delta> |;| \<Gamma> \<turnstile> t |:| \<lparr>L|:|TL\<rparr> \<and> index L l = m \<and> TL ! m = A \<and> distinct L \<and> length L = length TL
-                              \<and> l \<in> set L"
-proof (auto elim: has_type_L.cases has_type_ProjTE)
-  assume H:"\<Delta> |;| \<Gamma> \<turnstile> Let var x := t in t1 |:| R"
-  show "\<exists>A. (length \<Gamma> \<le> x \<longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> t |:| A \<and> \<Delta> |;| \<Gamma> \<turnstile> t1 |:| R) \<and> (\<not> length \<Gamma> \<le> x \<longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> t |:| A \<and> \<Delta> |;| (take x \<Gamma> @ drop (Suc x) \<Gamma> |,| A) \<turnstile> t1 |:| R)"
-    using H has_type_LetE
-    by (cases "x\<ge> length \<Gamma>", fastforce+)
-qed (metis has_type_ProjRE)
 
+(*
 
 lemma canonical_forms:
   "is_value_L v \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> v |:| Bool \<Longrightarrow> v = LTrue \<or> v = LFalse"
@@ -535,55 +514,7 @@ lemma canonical_forms:
   "is_value_L v \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> v |:| \<lparr>TL\<rparr> \<Longrightarrow> \<exists>L. is_value_L (Tuple L) \<and> v = Tuple L"
   "is_value_L v \<Longrightarrow> \<Delta> |;| \<Gamma> \<turnstile> v |:| \<lparr>L|:|TL\<rparr> \<Longrightarrow> \<exists>L LT. is_value_L (Record L LT) \<and> v = (Record L LT)" 
 by (auto elim: has_type_L.cases is_value_L.cases)
-
-lemma[simp]: "nat (int x + 1) = Suc x" by simp
       
-lemma weakening:
-  "\<Delta> |;| \<Gamma> \<turnstile> t |:| A \<Longrightarrow> n \<le> length \<Gamma> \<Longrightarrow> \<Delta> |;| insert_nth n S \<Gamma> \<turnstile> shift_L 1 n t |:| A"
-proof (induction \<Delta> \<Gamma> t A arbitrary: n rule: has_type_L.induct)
-  case (has_type_LAbs \<Delta> \<Gamma> T1 t2 T2)
-    from has_type_LAbs.prems has_type_LAbs.hyps
-      has_type_LAbs.IH[where n="Suc n"] show ?case
-      by (auto intro: has_type_L.intros(5))
-next
-  case (has_type_Let \<Delta> \<Gamma> t A x t1 B)
-    show ?case 
-      proof (cases "x\<ge> n")
-        assume H:"x\<ge>n"
-        have 1:"\<Delta> |;| insert_nth n S \<Gamma> \<turnstile> shift_L 1 n t |:| A"
-          using has_type_Let(3)[OF has_type_Let(5)]
-          by blast
-   
-        have "\<Delta> |;| (replace (Suc x) A (insert_nth n S \<Gamma>)) \<turnstile> shift_L 1 n t1 |:| B"
-          using has_type_Let(4,5) H 
-                rep_ins[of n x \<Gamma> S A,OF H has_type_Let(5)]
-                replace_inv_length[of x A \<Gamma>]
-          by metis
-        with 1 show "\<Delta> |;| insert_nth n S \<Gamma> \<turnstile> shift_L 1 n (Let var x := t in t1) |:| B"
-          using "has_type_L.intros"(10) H
-          by auto
-      next
-        assume H: "\<not> n \<le> x"
-        have a:"\<Delta> |;| replace x A (take n \<Gamma> @ drop n \<Gamma> |,| S) \<turnstile> shift_L 1 n t1 |:| B"
-          using has_type_Let(4)[of n] has_type_Let(5) H
-                rep_ins2[of x n \<Gamma> S A]
-                replace_inv_length[of n A \<Gamma>]
-          by simp
-        show "\<Delta> |;| insert_nth n S \<Gamma> \<turnstile> shift_L 1 n (Let var x := t in t1) |:| B"
-          using has_type_Let(3,5) 
-          by (simp add: H, auto intro: a  "has_type_L.intros"(10) )
-      qed    
-next
-  case (has_type_ProjT i TL \<Delta> \<Gamma> t)
-    show ?case
-      using "has_type_L.intros"(15)[OF "has_type_ProjT"(1,2)]
-            "has_type_ProjT"(4)[OF "has_type_ProjT"(5)]
-      by force
-next
-  case (has_type_LetPattern p t1 \<delta> TL \<Delta> \<Gamma> t2 A)
-    thus ?case sorry
-qed (auto simp: nth_append min_def intro: has_type_L.intros)
-
 
 *)
 
