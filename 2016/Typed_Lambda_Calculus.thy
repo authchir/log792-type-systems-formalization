@@ -384,7 +384,8 @@ lemma weakening:
 proof (induction \<Gamma> t T arbitrary: n rule: has_type_L.induct)
   case (has_type_LAbs \<Gamma> T1 t2 T2)
   from has_type_LAbs.prems has_type_LAbs.hyps
-    has_type_LAbs.IH[where n="Suc n"] show ?case
+    has_type_LAbs.IH[where n="Suc n"] 
+  show ?case
     by (auto intro: has_type_L.intros)
 qed (auto simp: nth_append min_def intro: has_type_L.intros)
 
