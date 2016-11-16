@@ -22,7 +22,8 @@ datatype ltype =
   Fun (domain: ltype) (codomain: ltype) (infixr "\<rightarrow>" 225)|
   TupleT "ltype list" ( "\<lparr>_\<rparr>" [150]225) |
   RecordT "string list" "ltype list" ( "\<lparr>_|:|_\<rparr>" [150,150] 225) |
-  Sum ltype ltype (infix "|+|" 225)
+  Sum ltype ltype (infix "|+|" 225) |
+  TVariant "string list" "ltype list" ( "<_|,|_>" [150,150] 225)
 
 datatype Lpattern = V nat | RCD "string list" "Lpattern list"
 
@@ -44,11 +45,15 @@ datatype lterm =
   ProjT nat lterm ("\<Pi>/ _/ (_)" [100,150] 250) |
   Record "string list" "lterm list" |
   ProjR string lterm |
-  Pattern Lpattern ("<|_|>" [100] 250)|
-  LetP Lpattern lterm lterm ("Let/ pattern/ (_)/ :=/ (_)/ in/ (_)"[100,120,150]250)|
-  inl lterm ltype ("inl/ (_)/ as/ (_)" [100,100]200)|
-  inr lterm ltype ("inr/ (_)/ as/ (_)" [100,100]200)|
-  CaseSplit lterm nat lterm nat lterm ("Case/ (_)/ of/ Inl/ (_)/ \<Rightarrow>/ (_)/ |/ Inr/ (_)/ \<Rightarrow>/ (_)" [100, 100,100, 100, 100]200)
+  Pattern Lpattern ("<|_|>" [100] 250) |
+  LetP Lpattern lterm lterm ("Let/ pattern/ (_)/ :=/ (_)/ in/ (_)"[100,120,150]250) |
+  inl lterm ltype ("inl/ (_)/ as/ (_)" [100,100]200) |
+  inr lterm ltype ("inr/ (_)/ as/ (_)" [100,100]200) |
+  CaseSum lterm nat lterm nat lterm ("Case/ (_)/ of/ Inl/ (_)/ \<Rightarrow>/ (_)/ |/ Inr/ (_)/ \<Rightarrow>/ (_)" [100, 100,100, 100, 100]200) |
+  Variant string lterm ltype ("<(_):=(_)> as (_)" [100,100]200) |
+  CaseVar lterm "string list" "nat list" "lterm list" ("Case/ (_)/ of/ <(_):=(_)>/ \<Rightarrow>/ (_)" [100,100,100,100]200) 
+    
+
 
 primrec shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lterm" where
   "shift_L d c LTrue = LTrue" |
@@ -78,9 +83,16 @@ primrec shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lter
   "shift_L d c (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = 
     (Case (shift_L d c t) of 
         Inl (if x\<ge> c then (nat (int x + d)) else x) \<Rightarrow> shift_L d c t1 
-      | Inr (if y\<ge> c then (nat (int y + d)) else y) \<Rightarrow> shift_L d c t2)" 
+      | Inr (if y\<ge> c then (nat (int y + d)) else y) \<Rightarrow> shift_L d c t2)" |
+  "shift_L d c (<l:=t> as A) = <l:= shift_L d c t> as A" |
+  "shift_L d c (Case t of <L:=I> \<Rightarrow> LT) = 
+    (Case (shift_L d c t) of <L:= (map (\<lambda>x. if x\<ge> c then (nat (int x + d)) else x) I)> \<Rightarrow> map (shift_L d c) LT)"
 
-primrec subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> lterm" where
+lemma map_to_rep[simp,cong,fundef_cong]:"\<And>i. i<length S \<Longrightarrow> j\<noteq>S!i \<Longrightarrow> map (\<lambda>x. if j=x then id else G) I = replicate (length S) G" sorry
+lemma apply_repl[simp,cong,fundef_cong]: "n>0 \<Longrightarrow> apply_L (replicate n G) TL = map G TL" sorry
+
+
+function (domintros) subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> lterm" where
   "subst_L j s LTrue = LTrue" |
   "subst_L j s LFalse = LFalse" |
   "subst_L j s (LIf t1 t2 t3) = LIf (subst_L j s t1) (subst_L j s t2) (subst_L j s t3)" |
@@ -107,7 +119,15 @@ primrec subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> lt
   "subst_L j s (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = 
     (Case (subst_L j s t) of 
         Inl x \<Rightarrow> (if j=x then t1 else subst_L j s t1)
-      | Inr y \<Rightarrow> (if j=y then t2 else subst_L j s t2))" 
+      | Inr y \<Rightarrow> (if j=y then t2 else subst_L j s t2))" |
+  "subst_L j s (<l:=t> as T') =  <l:=subst_L j s t> as T'" |
+  "subst_L j s (Case t of <L:=I> \<Rightarrow> LT) = 
+    (Case (subst_L j s t) of <L:=I> \<Rightarrow> apply_L (map (\<lambda>x. if j=x then id else subst_L j s) I) LT) "
+by pat_completeness auto
+
+termination apply (relation "measures [(\<lambda>(j,s,t). size t)]", auto)
+            apply (meson lessI not_less size_list_estimation',meson lessI not_less size_list_estimation')
+            sorry
 
 fun nbinder :: "lterm \<Rightarrow> nat" where
 "nbinder (LAbs A t) = Suc (nbinder t)" |
@@ -145,6 +165,8 @@ fun patterns::"lterm \<Rightarrow> nat list" where
 "patterns (inl t as T') =  patterns t" |
 "patterns (inr t as T') =  patterns t" |
 "patterns (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = patterns t @ patterns t1 @ patterns t2" |
+"patterns (<l:=t> as T') =  patterns t" |
+"patterns (Case t of <L:=I> \<Rightarrow> LT) = patterns t @ list_iter (\<lambda>e r. e @ r) [] (map (patterns) LT)" |
 "patterns t = []"
 
 inductive is_value_L :: "lterm \<Rightarrow> bool" where
@@ -181,7 +203,9 @@ primrec FV :: "lterm \<Rightarrow> nat set" where
   "FV (Let pattern p := t1 in t2) = FV t1 \<union> FV t2" |
   "FV (inl t as A) = FV t" |
   "FV (inr t as A) = FV t" |
-  "FV (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = FV t1 \<union> FV t2"
+  "FV (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = FV t1 \<union> FV t2" |
+  "FV (<L:=t> as A) = FV t" |
+  "FV (Case t of <L:=I> \<Rightarrow> LT) = FV t \<union> list_iter (\<lambda>x r. x \<union> r) {} (map FV LT)" 
 
 
 text{*
@@ -225,6 +249,8 @@ fun fill::"(nat \<Rightarrow> lterm) \<Rightarrow> lterm \<Rightarrow> lterm" wh
 "fill \<Delta> (inl t as A) = inl (fill \<Delta> t) as A"|
 "fill \<Delta> (inr t as A) = inr (fill \<Delta> t) as A"|
 "fill \<Delta> (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = (Case (fill \<Delta> t) of Inl x \<Rightarrow> (fill \<Delta> t1) | Inr y \<Rightarrow> (fill \<Delta> t2))"|
+"fill \<Delta> (<l:=t> as A) =  <l:=(fill \<Delta> t)> as A"|
+"fill \<Delta> (Case t of <L:=I> \<Rightarrow> LT) = (Case (fill \<Delta> t) of <L:=I> \<Rightarrow> map (fill \<Delta>) LT)"|
 "fill \<Delta> t = t"
 
 inductive Lmatch ::"Lpattern \<Rightarrow> lterm \<Rightarrow> (lterm \<Rightarrow>lterm) \<Rightarrow> bool" where
@@ -312,12 +338,18 @@ inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
     "is_value_L v \<Longrightarrow> eval1_L (Case (inl v as A) of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) (subst_L x v t1)" |
   eval1_L_CaseInr:
     "is_value_L v \<Longrightarrow> eval1_L (Case (inr v as A) of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) (subst_L y v t2)" |
-  eval1_L_Case:
+  eval1_L_CaseS:
     "eval1_L t t' \<Longrightarrow> eval1_L (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) (Case t' of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2)" |
   eval1_L_Inl:
     "eval1_L t t' \<Longrightarrow> eval1_L (inl t as A) (inl t' as A)" |
   eval1_L_Inr:
-    "eval1_L t t' \<Longrightarrow> eval1_L (inr t as A) (inr t' as A)"
+    "eval1_L t t' \<Longrightarrow> eval1_L (inr t as A) (inr t' as A)" |
+  eval1_L_CaseVar:
+    "l=L!i \<Longrightarrow> eval1_L (Case (<l:=v> as A) of <L:=I> \<Rightarrow> LT) (subst_L (I!i) v (LT!i))" |
+  eval1_L_CaseV:
+    "eval1_L t t' \<Longrightarrow> eval1_L (Case t of <L:=I> \<Rightarrow> LT) (Case t' of <L:=I> \<Rightarrow> LT)" |
+  eval1_L_Variant:
+    "eval1_L t t' \<Longrightarrow> eval1_L (<l:=t> as A) (<l:=t'> as A)"
 
 type_synonym lcontext = "ltype list"
 type_synonym pcontext = "(lterm \<Rightarrow> lterm)"
@@ -386,15 +418,23 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> pcontext \<R
   has_type_Inr:
     "\<Gamma> \<turnstile> \<lparr>t1|;|fill \<delta>1\<rparr> |:| B \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>inr t1 as A|+|B |;|fill \<delta>1\<rparr> |:| A|+|B" |
   has_type_Case:
-    "\<Gamma> \<turnstile> \<lparr>t|;|fill \<delta>1\<rparr> |:| A|+|B \<Longrightarrow> replace x A \<Gamma> \<turnstile> \<lparr>t1|;|fill \<delta>1\<rparr> |:| C \<Longrightarrow>
-     replace y B \<Gamma> \<turnstile> \<lparr>t2|;|fill \<delta>1\<rparr> |:| C \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2 |;|fill \<delta>1\<rparr> |:| C"
+    "\<Gamma> \<turnstile> \<lparr> t|;|fill \<delta>1 \<rparr> |:| A|+|B \<Longrightarrow> replace x A \<Gamma> \<turnstile> \<lparr>t1|;|fill \<delta>1\<rparr> |:| C \<Longrightarrow>
+     replace y B \<Gamma> \<turnstile> \<lparr>t2|;|fill \<delta>1\<rparr> |:| C \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2 |;|fill \<delta>1\<rparr> |:| C" |
+  has_type_Variant:
+    "\<Gamma> \<turnstile> \<lparr> t |;| fill \<delta> \<rparr> |:| (TL!i) \<Longrightarrow> \<Gamma> \<turnstile> \<lparr> <(L!i):=t> as <L|,|TL> |;| fill \<delta> \<rparr> |:| <L|,|TL>" |
+  has_type_CaseV:
+    " L\<noteq>\<emptyset> \<Longrightarrow> length I = length L \<Longrightarrow> length L = length TL \<Longrightarrow> length L = length LT \<Longrightarrow>
+      \<Gamma> \<turnstile> \<lparr> t |;| fill \<delta> \<rparr> |:| <L|,|TL> \<Longrightarrow> (\<forall>i<length L. replace (I!i) (TL!i) \<Gamma> \<turnstile> \<lparr>(LT!i)|;|fill \<delta>\<rparr> |:| A) \<Longrightarrow>
+      \<Gamma> \<turnstile> \<lparr> Case t of <L:=I> \<Rightarrow> LT |;|fill \<delta>\<rparr> |:| A"
 
 inductive_cases has_type_LetE : "\<Gamma> \<turnstile> \<lparr> Let var x := t1 in t2|;|\<delta>1\<rparr>  |:| B"
 inductive_cases has_type_ProjTE: "\<Gamma> \<turnstile> \<lparr> \<Pi> i t|;|\<delta>1\<rparr> |:| R"
 inductive_cases has_type_ProjRE: "\<Gamma> \<turnstile> \<lparr> ProjR l t|;|\<delta>1\<rparr> |:| R"
 inductive_cases has_type_LetPE: "\<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|\<delta>1\<rparr> |:| A"
-inductive_cases has_type_CaseE: "\<Gamma> \<turnstile> \<lparr>Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2|;|\<delta>1\<rparr> |:| R"
+inductive_cases has_type_CaseSE: "\<Gamma> \<turnstile> \<lparr>Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2|;|\<delta>1\<rparr> |:| R"
+inductive_cases has_type_CaseVE: "\<Gamma> \<turnstile> \<lparr>Case t of <L:=I> \<Rightarrow> LT|;|\<delta>1\<rparr> |:| R"
 inductive_cases has_type_LAbsE: "\<Gamma> \<turnstile> \<lparr>LAbs T1 t2|;|fill \<delta>'\<rparr> |:| R"
+inductive_cases has_type_VariantE: "\<Gamma> \<turnstile> \<lparr><l:=t> as R |;|\<delta>1\<rparr> |:| R"
 
 lemma record_patterns_characterisation:
   "set (patterns (<|RCD L PL|>)) \<subseteq> S \<Longrightarrow> x \<in> set PL \<Longrightarrow> set(patterns (<|x|>)) \<subseteq> S"
@@ -429,6 +469,9 @@ lemma inversion:
   "\<Gamma> \<turnstile> \<lparr>inr t as R|;|\<delta>1\<rparr> |:| R \<Longrightarrow>\<exists>A B. R = A|+|B \<and> \<Gamma> \<turnstile> \<lparr>t|;|\<delta>1\<rparr> |:| B"
   "\<Gamma> \<turnstile> \<lparr>Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2|;|\<delta>1\<rparr> |:| R \<Longrightarrow>\<exists>A B C. R = C \<and> \<Gamma> \<turnstile> \<lparr>t|;|\<delta>1\<rparr> |:| A|+|B \<and>
                                                           replace x A \<Gamma> \<turnstile> \<lparr>t1|;|\<delta>1\<rparr> |:| C \<and> replace y B \<Gamma> \<turnstile> \<lparr>t2|;|\<delta>1\<rparr> |:| C"
+   "\<Gamma> \<turnstile> \<lparr> <l:=t> as R |;| \<delta>1 \<rparr> |:| R \<Longrightarrow>\<exists>L TL i. R=<L|,|TL> \<and> \<Gamma> \<turnstile> \<lparr> t |;| \<delta>1 \<rparr> |:| (TL!i) \<and> l = L!i " 
+    " \<Gamma> \<turnstile> \<lparr> Case t of <L1:=I> \<Rightarrow> LT |;| \<delta>1\<rparr> |:| A \<Longrightarrow>\<exists>TL. L1\<noteq>\<emptyset> \<and> length I = length L1 \<and> length L1 = length TL \<and> length L1 = length LT \<and>
+      \<Gamma> \<turnstile> \<lparr> t |;| \<delta>1 \<rparr> |:| <L1|,|TL> \<and> (\<forall>i<length L1. replace (I!i) (TL!i) \<Gamma> \<turnstile> \<lparr>(LT!i)|;| \<delta>1\<rparr> |:| A)"
 proof -
   assume H:"\<Gamma> \<turnstile> \<lparr> Let var x := t in t1|;|\<delta>\<rparr> |:| R"
   show "\<exists>A B. R = B \<and> \<Gamma> \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<and> replace x A \<Gamma> \<turnstile> \<lparr>t1|;|\<delta>\<rparr> |:| B"
@@ -442,12 +485,32 @@ next
 next
   assume H2: "\<Gamma> \<turnstile> \<lparr>Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2|;|\<delta>1\<rparr> |:| R"
   show "\<exists>A B C. R = C \<and> \<Gamma> \<turnstile> \<lparr>t|;|\<delta>1\<rparr> |:| A |+| B \<and> replace x A \<Gamma> \<turnstile> \<lparr>t1|;|\<delta>1\<rparr> |:| C \<and> replace y B \<Gamma> \<turnstile> \<lparr>t2|;|\<delta>1\<rparr> |:| C"
-    by (cases "length \<Gamma> \<le> x"; cases "length \<Gamma> \<le> y"; insert has_type_CaseE[OF H2]; metis replace.simps)
+    by (cases "length \<Gamma> \<le> x"; cases "length \<Gamma> \<le> y"; insert has_type_CaseSE[OF H2]; metis (full_types) replace.simps)
 next
   assume H3:"\<Gamma> \<turnstile> \<lparr>LAbs T1 t2|;|fill \<delta>'\<rparr> |:| R"
   show "\<exists>R2 \<Delta>. R = T1 \<rightarrow> R2 \<and> \<Gamma> |,| T1 \<turnstile> \<lparr>t2|;|fill (shift_L 1 (Suc (nbinder t2)) \<circ> \<Delta>)\<rparr> |:| R2 \<and> fill \<Delta> = fill \<delta>'"
     using has_type_LAbsE[OF H3]
     by metis      
+next
+  assume H4: "\<Gamma> \<turnstile> \<lparr><l:=t> as R|;|\<delta>1\<rparr> |:| R"
+  show  "\<exists>L TL i. R = <L|,|TL> \<and> \<Gamma> \<turnstile> \<lparr>t|;|\<delta>1\<rparr> |:| (TL ! i) \<and> l = L ! i"
+    using has_type_VariantE[OF H4]
+    by metis    
+next
+  assume H5: "\<Gamma> \<turnstile> \<lparr>Case t of <L1:=I> \<Rightarrow> LT|;|\<delta>1\<rparr> |:| A"
+  have "\<And>TL \<delta>. \<delta>1 = fill \<delta> \<Longrightarrow> length L1 = length TL \<Longrightarrow>\<forall>i<length TL. (if length \<Gamma> \<le> I ! i then \<Gamma> else take (I ! i) \<Gamma> @ \<emptyset> |,| (TL ! i) @ drop (Suc (I ! i)) \<Gamma>) \<turnstile> \<lparr>(LT ! i)|;|fill \<delta>\<rparr> |:| A
+         \<Longrightarrow> \<forall>i<length L1. replace (I ! i) (TL ! i) \<Gamma> \<turnstile> \<lparr>(LT ! i)|;|\<delta>1\<rparr> |:| A"
+    proof (rule+)
+      fix TL \<delta> i
+      assume hyps:"\<forall>i<length TL. (if length \<Gamma> \<le> I ! i then \<Gamma> else take (I ! i) \<Gamma> @ \<emptyset> |,| (TL ! i) @ drop (Suc (I ! i)) \<Gamma>) \<turnstile> \<lparr>(LT ! i)|;|fill \<delta>\<rparr> |:| A"
+                  "\<delta>1 = fill \<delta>" "i<length L1" "length L1 = length TL"
+      then show "replace (I ! i) (TL ! i) \<Gamma> \<turnstile> \<lparr>(LT ! i)|;|\<delta>1\<rparr> |:| A"
+        by (cases "length \<Gamma>\<le> I!i", fastforce+)
+    qed      
+  then show "\<exists>TL. L1 \<noteq> \<emptyset> \<and> length I = length L1 \<and> length L1 = length TL \<and> length L1 = length LT \<and> 
+          \<Gamma> \<turnstile> \<lparr>t|;|\<delta>1\<rparr> |:| <L1|,|TL> \<and> (\<forall>i<length L1. replace (I ! i) (TL ! i) \<Gamma> \<turnstile> \<lparr>(LT ! i)|;|\<delta>1\<rparr> |:| A)"
+    using has_type_CaseVE[OF H5]
+    by metis
 qed (auto elim: has_type_L.cases has_type_ProjTE, metis has_type_ProjRE)
 
 
@@ -492,6 +555,9 @@ proof
                 using "same_dom.cases"[of "\<lambda>x. <|V x|>" "list_iter op @ \<emptyset> (map Pvars PL)"]
                 by fastforce      
           qed auto
+    next
+      case (CaseVar t L I LT)
+        thus ?case by (induction LT, auto)
     qed auto
 qed
 
@@ -511,6 +577,8 @@ proof (rule)
                 sorry
           qed auto
     qed auto
+qed
+
 lemma lmatch_gives_fill:
   "Lmatch p t \<delta> \<Longrightarrow> \<exists>\<delta>1. fill \<delta>1 = \<delta>" 
 proof (induction rule: Lmatch.induct)
@@ -680,6 +748,59 @@ next
       by metis+
     show ?case
       by (auto)(insert A B1 B2 B3 B4 "has_type_L.intros"(23), force+)
+next
+  case (has_type_CaseV L I TL LT \<Gamma> t \<delta>1 A)
+    have branches_wtyped:"\<forall>i<length L.
+       replace (map (\<lambda>x. if n \<le> x then nat (int x + 1) else x) I ! i) (TL ! i) (take n \<Gamma> @ drop n \<Gamma> |,| S)
+       \<turnstile> \<lparr>(map (shift_L 1 n) LT ! i)|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| A"
+      proof (rule+)
+        fix i
+        assume H:"i<length L"
+        have " (\<And>x xa. fill \<delta>1 = fill x \<Longrightarrow> xa\<le>length (replace (I ! i) (TL ! i) \<Gamma>) \<Longrightarrow>
+                   insert_nth xa S (replace (I ! i) (TL ! i) \<Gamma>) \<turnstile> \<lparr>shift_L 1 xa (LT ! i)|;|fill (shift_L 1 xa \<circ> x)\<rparr> |:| A)"
+          using has_type_CaseV(7) H
+          by auto
+        then have branches_type:"insert_nth n S (replace (I ! i) (TL ! i) \<Gamma>) \<turnstile> \<lparr>shift_L 1 n (LT ! i)|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| A"
+          using  has_type_CaseV(8,9) 
+                 replace_inv_length[of "I!i" "TL!i" \<Gamma>]
+          by presburger
+        have 1:"n\<le> I!i \<Longrightarrow> replace (map (\<lambda>x. if n \<le> x then nat (int x + 1) else x) I ! i) (TL ! i) (take n \<Gamma> @ drop n \<Gamma> |,| S)
+                \<turnstile> \<lparr>(map (shift_L 1 n) LT ! i)|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| A"
+          using has_type_CaseV(1,2,9) H        
+          proof -
+            
+            assume hyps:"n \<le> I ! i" "L \<noteq> \<emptyset>" "length I = length L" "n \<le> length \<Gamma>" "i < length L"
+            
+            from branches_type
+              have "replace (Suc (I ! i)) (TL ! i) (take n \<Gamma> @ drop n \<Gamma> |,| S) \<turnstile> \<lparr>(map (shift_L 1 n) LT ! i)|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| A"
+              using rep_ins[OF hyps(1,4),of S "TL!i"] H has_type_CaseV(4)
+              by auto
+            
+            then show ?thesis by (simp add: hyps)        
+          qed
+        have  "\<not> n\<le> I!i \<Longrightarrow> replace (map (\<lambda>x. if n \<le> x then nat (int x + 1) else x) I ! i) (TL ! i) (take n \<Gamma> @ drop n \<Gamma> |,| S)
+                \<turnstile> \<lparr>(map (shift_L 1 n) LT ! i)|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| A"
+          using has_type_CaseV(1,2,9) H        
+          proof -
+            
+            assume hyps:"\<not>n \<le> I ! i" "L \<noteq> \<emptyset>" "length I = length L" "n \<le> length \<Gamma>" "i < length L"
+            
+            from branches_type
+              have  "replace (I ! i) (TL ! i) (take n \<Gamma> @ drop n \<Gamma> |,| S) \<turnstile> \<lparr>(map (shift_L 1 n) LT ! i)|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| A"
+              using rep_ins2[OF _ hyps(4),of "I!i" S "TL!i"] H has_type_CaseV(4) hyps(1) not_le[of n "I!i"]
+              by auto
+
+            then show ?thesis by (simp add: hyps)        
+          qed
+
+        with 1 show "replace (map (\<lambda>x. if n \<le> x then nat (int x + 1) else x) I ! i) (TL ! i) (take n \<Gamma> @ drop n \<Gamma> |,| S)
+         \<turnstile> \<lparr>(map (shift_L 1 n) LT ! i)|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| A"
+          by blast
+      qed 
+    show ?case
+      using has_type_CaseV(1-4) has_type_CaseV(6)[OF has_type_CaseV(8,9)]
+            branches_wtyped
+      by (force intro!: "has_type_L.intros"(25))+      
 qed (auto intro!: has_type_L.intros simp: nth_append min_def)
 
 lemma fill_keep_value:
@@ -701,7 +822,5 @@ proof -
     using val typed
     by (induction rule: is_value_L.induct, auto elim: "has_type_L.cases")
 qed (auto elim: "is_value_L.cases" "has_type_L.cases")  
-
-
 
 end

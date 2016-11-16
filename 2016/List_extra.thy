@@ -456,4 +456,29 @@ lemma UN_int_empty:
   "(UN l: set P. f l) \<inter> set S = {} \<Longrightarrow> \<forall>l\<in>set P. f l \<inter> set S = {}"
 sorry
 
+fun apply_L::"('a\<Rightarrow>'b) list \<Rightarrow> 'a list \<Rightarrow> 'b list" where
+"apply_L [] _ = []" |
+"apply_L _ [] = []" |
+"apply_L (f#F) (t#T) = (f t)#apply_L F T"
+
+lemma apply_L_len[simp]:
+  "length(apply_L L1 L2) = min (length L1) (length L2)"
+proof (induction L1 arbitrary: L2)
+  case (Cons f F)
+    thus ?case
+      by (induction L2, auto)
+qed auto
+
+lemma apply_L_app:
+  "length F = length T \<Longrightarrow> length F1 = length T1 \<Longrightarrow> apply_L F T @ apply_L F1 T1 = apply_L (F@F1) (T@T1)"
+proof (induction F arbitrary: T F1 T1)
+  case (Cons f F')
+    obtain t T' where "T= t#T'"
+      using Cons(2) length_Suc_conv
+      by metis
+    with Cons show ?case  by auto
+qed auto 
+
+
+
 end
