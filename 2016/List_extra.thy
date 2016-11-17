@@ -480,5 +480,4 @@ proof (induction F arbitrary: T F1 T1)
 qed auto 
 
 
-
 end

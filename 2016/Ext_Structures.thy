@@ -92,7 +92,7 @@ lemma map_to_rep[simp,cong,fundef_cong]:"\<And>i. i<length S \<Longrightarrow> j
 lemma apply_repl[simp,cong,fundef_cong]: "n>0 \<Longrightarrow> apply_L (replicate n G) TL = map G TL" sorry
 
 
-function (domintros) subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> lterm" where
+function subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> lterm" where
   "subst_L j s LTrue = LTrue" |
   "subst_L j s LFalse = LFalse" |
   "subst_L j s (LIf t1 t2 t3) = LIf (subst_L j s t1) (subst_L j s t2) (subst_L j s t3)" |
@@ -122,13 +122,13 @@ function (domintros) subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<R
       | Inr y \<Rightarrow> (if j=y then t2 else subst_L j s t2))" |
   "subst_L j s (<l:=t> as T') =  <l:=subst_L j s t> as T'" |
   "subst_L j s (Case t of <L:=I> \<Rightarrow> LT) = 
-    (Case (subst_L j s t) of <L:=I> \<Rightarrow> apply_L (map (\<lambda>x. if j=x then id else subst_L j s) I) LT) "
+    (Case (subst_L j s t) of <L:=I> \<Rightarrow> map (\<lambda>p. if j=fst p then snd p else subst_L j s (snd p)) (zip I LT))"
 by pat_completeness auto
 
-termination apply (relation "measures [(\<lambda>(j,s,t). size t)]", auto)
-            apply (meson lessI not_less size_list_estimation',meson lessI not_less size_list_estimation')
-            sorry
-
+termination
+  by (relation "measure (\<lambda>(j,s,t). size t)", auto)
+      (metis less_add_Suc1 size_list_estimation' set_zip_rightD lessI not_less)+
+  
 fun nbinder :: "lterm \<Rightarrow> nat" where
 "nbinder (LAbs A t) = Suc (nbinder t)" |
 "nbinder _ = 0" 
