@@ -21,9 +21,9 @@ lemma emptyTable_well_typed:
  proof -
    
    let ?inner_term = "<''none'':= unit> as (Nat option)"
-   have H:" \<Gamma> |,| Nat \<turnstile> \<lparr> ?inner_term|;| fill (shift_L 1 (Suc (nbinder ?inner_term))\<circ>\<delta>)\<rparr> |:| Nat option"
-     using has_type_Variant[of "\<Gamma>|,|Nat" unit "shift_L 1 (Suc (nbinder ?inner_term))\<circ>\<delta>" "[Unit, Nat]" 0 "[''none'',''some'']"]
-           has_type_LUnit[of "\<Gamma>|,|Nat" "shift_L 1 (Suc (nbinder ?inner_term))\<circ>\<delta>"] fill_id
+   have H:" \<Gamma> |,| Nat \<turnstile> \<lparr> ?inner_term|;| fill \<delta>\<rparr> |:| Nat option"
+     using has_type_Variant[of "\<Gamma>|,|Nat" unit \<delta> "[Unit, Nat]" 0 "[''none'',''some'']"]
+           has_type_LUnit[of "\<Gamma>|,|Nat" \<delta>] fill_id
      by fastforce
    
    then show ?thesis     
@@ -49,10 +49,10 @@ proof -
   have V0:" (0, Nat) |\<in>| (\<Gamma> |,| ltype.Nat |,| ltype.Nat)" by auto
 
   have "\<Gamma> |,| ltype.Nat |,| ltype.Nat  \<turnstile> 
-        \<lparr>IsZero (LPlus (UMinus (LVar 0)) (LVar (Suc 0)))|;|fill (shift_L 1 (Suc 0) \<circ> (shift_L 1 (Suc (Suc 0)) \<circ> \<delta>))\<rparr> |:| Bool" 
+        \<lparr>IsZero (LPlus (UMinus (LVar 0)) (LVar (Suc 0)))|;|fill \<delta>\<rparr> |:| Bool" 
    using has_type_LPlus  has_type_UMinus has_type_IsZero
-         has_type_LVar[OF V0,of "shift_L 1 (Suc 0) \<circ> (shift_L 1 (Suc (Suc 0)) \<circ> \<delta>)"]
-         has_type_LVar[OF V1,of "shift_L 1 (Suc 0) \<circ> (shift_L 1 (Suc (Suc 0)) \<circ> \<delta>)"]         
+         has_type_LVar[OF V0,of \<delta>]
+         has_type_LVar[OF V1,of \<delta>]         
    by blast
   then show "\<Gamma> \<turnstile> \<lparr>Lequal n m |;| fill \<delta> \<rparr> |:| Bool"
     using has_type_LApp[OF has_type_LApp[OF _ args_types(1)] args_types(2)]
@@ -60,34 +60,28 @@ proof -
     by auto
 qed   
 
-lemma shift_cumul[simp]:
-  "(shift_L d c \<circ> shift_L d c) = shift_L (d+d) c"
-sorry
 
 lemma extendTable_well_typed:
   "\<Gamma>\<turnstile> \<lparr> extendTable |;| fill \<delta>\<rparr> |:| Table\<rightarrow>Nat\<rightarrow>Nat\<rightarrow>Table"
 proof-
-  let ?ctx = "\<Gamma> |,| Table |,| ltype.Nat |,| ltype.Nat |,| ltype.Nat" and
-      ?delta = "shift_L 1 (Suc 0) \<circ>
-                         (shift_L 1 (Suc (Suc 0)) \<circ> (shift_L 1 (Suc (Suc (Suc 0))) \<circ> (shift_L 1 (Suc (Suc (Suc (Suc 0)))) \<circ> \<delta>)))"
-  
-  have 1: "?ctx \<turnstile> \<lparr>Lequal (LVar 0) (LVar 2)|;|fill ?delta \<rparr> |:| Bool" 
-    using Lequal_well_typed[of ?ctx _ ?delta]
-          has_type_LVar[of _ Nat ?ctx ?delta]
+  let ?ctx = "\<Gamma> |,| Table |,| ltype.Nat |,| ltype.Nat |,| ltype.Nat"  
+  have 1: "?ctx \<turnstile> \<lparr>Lequal (LVar 0) (LVar 2)|;|fill \<delta> \<rparr> |:| Bool" 
+    using Lequal_well_typed[of ?ctx _ \<delta>]
+          has_type_LVar[of _ Nat ?ctx \<delta>]
     by fastforce
 
-  have 2: "?ctx \<turnstile> \<lparr><''some'':= LVar 1> as Nat option |;|fill ?delta \<rparr> |:| Nat option" 
-    using has_type_Variant[of ?ctx "LVar 1" ?delta "[Unit,Nat]" 1 "[''none'',''some'']"]
-          has_type_LVar[of _ Nat ?ctx ?delta]
+  have 2: "?ctx \<turnstile> \<lparr><''some'':= LVar 1> as Nat option |;|fill \<delta> \<rparr> |:| Nat option" 
+    using has_type_Variant[of ?ctx "LVar 1" \<delta> "[Unit,Nat]" 1 "[''none'',''some'']"]
+          has_type_LVar[of _ Nat ?ctx \<delta>]
     by force
 
-  have "?ctx \<turnstile> \<lparr>LApp (LVar 3) (LVar 0) |;|fill ?delta \<rparr> |:| Nat option"
-    using has_type_LApp[of ?ctx "LVar 3" ?delta Nat "Nat option" "LVar 0"] 
-          has_type_LVar[of _ _ ?ctx ?delta]
+  have "?ctx \<turnstile> \<lparr>LApp (LVar 3) (LVar 0) |;|fill \<delta> \<rparr> |:| Nat option"
+    using has_type_LApp[of ?ctx "LVar 3" \<delta> Nat "Nat option" "LVar 0"] 
+          has_type_LVar[of _ _ ?ctx \<delta>]
     by auto
 
   with 1 2 show ?thesis 
-    using has_type_LAbs has_type_LIf[of ?ctx "Lequal (LVar 0) (LVar 2)" ?delta]
+    using has_type_LAbs has_type_LIf[of ?ctx "Lequal (LVar 0) (LVar 2)" \<delta>]
     by force
 qed
 

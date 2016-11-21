@@ -120,7 +120,11 @@ inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
   eval1_L_CaseV:
     "eval1_L t t' \<Longrightarrow> eval1_L (Case t of <L:=I> \<Rightarrow> LT) (Case t' of <L:=I> \<Rightarrow> LT)" |
   eval1_L_Variant:
-    "eval1_L t t' \<Longrightarrow> eval1_L (<l:=t> as A) (<l:=t'> as A)"
+    "eval1_L t t' \<Longrightarrow> eval1_L (<l:=t> as A) (<l:=t'> as A)" |
+  eval1_L_FixBeta:
+    "eval1_L (fix (LAbs A t)) (shift_L (-1) 0 (subst_L 0 (shift_L 1 0 (fix LAbs A t)) t))"|
+  eval1_LFix_step:
+    "eval1_L t t' \<Longrightarrow> eval1_L (fix t) (fix t')"
 
 type_synonym lcontext = "ltype list"
 type_synonym pcontext = "(lterm \<Rightarrow> lterm)"
@@ -157,7 +161,7 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> pcontext \<R
   has_type_IsZero:
     "\<Gamma> \<turnstile> \<lparr>t|;| fill \<delta>\<rparr> |:| Nat \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>IsZero t|;| fill \<delta>\<rparr> |:| Bool" |
   has_type_LAbs:
-    "(\<Gamma> |,| T1) \<turnstile> \<lparr>t2|;| fill (shift_L 1 (Suc (nbinder t2)) \<circ> \<delta>)\<rparr> |:| T2 \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>LAbs T1 t2|;|fill \<delta>\<rparr> |:| (T1 \<rightarrow> T2)" |
+    "(\<Gamma> |,| T1) \<turnstile> \<lparr>t2|;| fill \<delta>\<rparr> |:| T2 \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>LAbs T1 t2|;|fill \<delta>\<rparr> |:| (T1 \<rightarrow> T2)" |
   has_type_LApp:
     "\<Gamma> \<turnstile> \<lparr>t1|;|fill \<delta>\<rparr> |:| (T11 \<rightarrow> T12) \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t2|;|fill \<delta>\<rparr> |:| T11 \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>LApp t1 t2|;|fill \<delta>\<rparr> |:| T12" |  
   has_type_LUnit:
@@ -204,7 +208,9 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> pcontext \<R
   has_type_CaseV:
     " L\<noteq>\<emptyset> \<Longrightarrow> length I = length L \<Longrightarrow> length L = length TL \<Longrightarrow> length L = length LT \<Longrightarrow>
       \<Gamma> \<turnstile> \<lparr> t |;| fill \<delta> \<rparr> |:| <L|,|TL> \<Longrightarrow> (\<forall>i<length L. replace (I!i) (TL!i) \<Gamma> \<turnstile> \<lparr>(LT!i)|;|fill \<delta>\<rparr> |:| A) \<Longrightarrow>
-      \<Gamma> \<turnstile> \<lparr> Case t of <L:=I> \<Rightarrow> LT |;|fill \<delta>\<rparr> |:| A"
+      \<Gamma> \<turnstile> \<lparr> Case t of <L:=I> \<Rightarrow> LT |;|fill \<delta>\<rparr> |:| A" |
+  has_type_Fix:
+    "\<Gamma> \<turnstile> \<lparr> t |;| fill \<delta> \<rparr> |:| A\<rightarrow>A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr> fix t |;| fill \<delta> \<rparr> |:| A"
 
 inductive_cases has_type_LetE : "\<Gamma> \<turnstile> \<lparr> Let var x := t1 in t2|;|\<delta>1\<rparr>  |:| B"
 inductive_cases has_type_ProjTE: "\<Gamma> \<turnstile> \<lparr> \<Pi> i t|;|\<delta>1\<rparr> |:| R"
@@ -299,21 +305,6 @@ lemma[simp]: "nat (1 + int x) = Suc x" by simp
 lemma[simp]: "nat (int x - 1) = x - 1" by simp 
 
 
-lemma pvars_never_empty:
-  "Pvars p \<noteq> \<emptyset>"
-sorry
-
-
-lemma pattern_shift:
-  "set(patterns (shift_L d c t)) = set(patterns t)"
-by(induction t arbitrary: d c, auto)
-
-lemma pattern_def_fill:
-  assumes "same_dom \<delta> S"
-  shows "set (patterns (fill \<delta> t)) = set(patterns t) - set S \<union> A" 
-sorry
-
-
 lemma fill_id:
   "id = fill (\<lambda>x. <|V x|>)"
 proof 
@@ -394,134 +385,186 @@ proof (induction n)
        sorry
 qed auto
 
+lemma TypingtoPatternsTyping:
+  "\<Gamma> \<turnstile> \<lparr>t|;|fill \<delta>\<rparr> |:| A \<Longrightarrow> (p\<in>set (patterns t) \<Longrightarrow> \<exists>R. \<Gamma> \<turnstile> \<lparr><|V p|>|;|fill \<delta>\<rparr> |:| R)"
+sorry
+
+(*lemma weakening1 :
+  fixes \<Gamma>::lcontext  and t::lterm and A R::ltype and \<delta> \<delta>'::"nat\<Rightarrow>lterm"
+  assumes well_typed: "\<Gamma> \<turnstile> \<lparr>t|;|fill \<delta>\<rparr> |:| A" and
+          shifted_filling:"p\<in>set (patterns t) \<Longrightarrow> \<Gamma> \<turnstile> \<lparr><|V p|>|;|fill \<delta>\<rparr> |:| R \<Longrightarrow> \<Gamma> \<turnstile> \<lparr><|V p|>|;|fill \<delta>'\<rparr> |:| R"
+  shows "\<Gamma> \<turnstile> \<lparr>t |;| fill \<delta>'\<rparr> |:| A"
+sorry*)
+
+lemma P_set_Pat: 
+  "(\<And>x. x\<in>set(patterns t) \<Longrightarrow> P x) \<Longrightarrow> t'\<in> subterms t \<Longrightarrow> (\<And>x. x\<in>set(patterns t') \<Longrightarrow> P x)"
+proof (induction t)
+  case (LIf)
+    show ?case using LIf(4,5,6) by (simp; blast)      
+next
+  case (LetP)
+    show ?case using LetP(3,4,5) by (simp; blast)
+next
+  case (CaseSum)
+    show ?case using CaseSum(4,5,6) by (simp; blast)
+qed (simp; blast)+
+
 
 lemma weakening :
-  fixes \<Gamma>::lcontext  and t::lterm and A R S::ltype and \<delta>::"nat\<Rightarrow>lterm" and x n::nat
+  fixes \<Gamma>::lcontext  and t::lterm and A S::ltype and \<delta> \<delta>'::"nat\<Rightarrow>lterm" and n::nat
   assumes well_typed: "\<Gamma> \<turnstile> \<lparr>t|;|fill \<delta>\<rparr> |:| A" and
-          weaker_ctx: " n \<le> length \<Gamma>" 
-  shows "insert_nth n S \<Gamma> \<turnstile> \<lparr>shift_L 1 n t|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| A"
+          weaker_ctx: " n \<le> length \<Gamma>" and
+          shifted_filling:"\<And>p R n. p\<in>set (patterns t) \<Longrightarrow> \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>\<rparr> |:| R \<Longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>'\<rparr> |:| R"
+  shows "insert_nth n S \<Gamma> \<turnstile> \<lparr>shift_L 1 n t|;|fill \<delta>'\<rparr> |:| A"
 using assms 
-proof(induction \<Gamma> t "fill \<delta>" A arbitrary: n \<delta> rule:has_type_L.induct)
-  case (has_type_LAbs \<Gamma>1 T1 t2 \<delta>1 T2)
-    have A:"shift_L 1 (Suc (nbinder (shift_L 1 (Suc n) t2))) = shift_L 1 (Suc (nbinder t2))" sorry
-    have B: "shift_L 1 (Suc (nbinder t2)) \<circ> fill (shift_L 1 (Suc (nbinder t2)) \<circ> \<delta>) = fill (shift_L 2 (Suc (nbinder t2)) \<circ> \<delta>)"
-      sorry
+proof(induction \<Gamma> t "fill \<delta>" A arbitrary: n \<delta>' \<Gamma>' rule:has_type_L.induct)
+  case (has_type_LIf \<Gamma> t1 \<delta>1 t2 A t3)
+    have 1:"\<And>p R n. p \<in> set (patterns t1) \<Longrightarrow> \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>\<rparr> |:| R \<Longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>'\<rparr> |:| R"
+      using  P_set_Pat[where P="\<lambda>x. (\<forall> R n . \<Gamma>' \<turnstile> \<lparr><|V x|>|;|fill \<delta>\<rparr> |:| R \<longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V x|>|;|fill \<delta>'\<rparr> |:| R)"
+                            and t="LIf t1 t2 t3", unfolded "subterms.simps"]
+             has_type_LIf(9)
+      by blast
+
     show ?case
       apply simp
-      apply rule
-      apply (cases "n\<le> Suc (nbinder t2)")
-      apply (simp add:A B max_def)
-      using has_type_LAbs(2)[where n= "Suc n" and \<delta>= "shift_L 1 (Suc (nbinder t2)) \<circ> \<delta>"]
+      apply rule 
+      using has_type_LIf(2,7,8) 1 
+      apply auto[1]      
       
-      sorry
-      (*using has_type_LAbs has_type_LAbs(3)
-      by (auto intro: "has_type_L.intros" simp: nth_append min_def)*)
+next
+  case (has_type_LAbs \<Gamma>1 T1 t2 \<delta>1 T2)
+    have 1:"\<And>p R n. p \<in> set (patterns t2) \<Longrightarrow> \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>\<rparr> |:| R \<Longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>'\<rparr> |:| R"
+      using has_type_LAbs(5) subterms.simps 
+            P_set_Pat[where P="\<lambda>x. (\<forall> R n . \<Gamma>' \<turnstile> \<lparr><|V x|>|;|fill \<delta>\<rparr> |:| R \<longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V x|>|;|fill \<delta>'\<rparr> |:| R)" and
+                            t = "LAbs T1 t2"]
+      by force
+    have 2:"Suc n\<le>length(\<Gamma>1|,|T1)" using has_type_LAbs(4) by auto
+    have "insert_nth (Suc n) S (\<Gamma>1 |,| T1) \<turnstile> \<lparr>shift_L 1 (Suc n) t2|;|fill \<delta>'\<rparr> |:| T2"
+      using has_type_LAbs(2)[OF has_type_LAbs(3) 2, of \<Gamma>' \<delta>'] 1 
+      by fast
+    then show ?case
+      using "has_type_L.intros"(9)[of T1 "insert_nth n S \<Gamma>1" "shift_L 1 n t2" \<delta> T2]
+            has_type_L.has_type_LAbs 
+      by auto              
 next 
   case(has_type_Tuple L TL \<Gamma>1 \<delta>1)
-    show ?case
-      using has_type_Tuple(1,2)
-            nth_map[of _ L "shift_L 1 n"] has_type_Tuple(4)[OF _ _ has_type_Tuple(5,6)]
-      by (force intro: "has_type_L.intros")+
+    have 1:"\<And>i. i<length L \<Longrightarrow> (\<And>p R n. p \<in> set (patterns (L ! i)) \<Longrightarrow> \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>\<rparr> |:| R \<Longrightarrow> 
+                    insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>'\<rparr> |:| R)"
+      using has_type_Tuple(7)[unfolded patterns.simps(12) set_list_it_app set_map]
+            set_conv_nth[of L]
+      by blast      
+    show ?case    
+      using has_type_Tuple(1,2) nth_map[of _ L "shift_L 1 n"] 1
+            has_type_Tuple(4)[OF _ _ has_type_Tuple(5,6), of _ \<Gamma>' \<delta>']
+      by (force intro!: has_type_L.intros(18))+
 next
   case (has_type_ProjT i TL \<Gamma>1 t \<delta>1)
     show ?case
-      using has_type_ProjT(4)[OF has_type_ProjT(5,6)]
+      using has_type_ProjT(4)[OF has_type_ProjT(5,6),of \<Gamma>' \<delta>']
             "has_type_L.intros"(19)[OF has_type_ProjT(1,2)]
+            has_type_ProjT(7)
       by fastforce
 next
   case (has_type_RCD L LT TL \<Gamma> \<delta>1)
-    show ?case
+    have " \<And>i. i < length LT \<Longrightarrow> (\<And>p R n. p \<in> set (patterns (LT ! i)) \<Longrightarrow> 
+            \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>\<rparr> |:| R \<Longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>'\<rparr> |:| R)"
+      using set_conv_nth[of LT]
+            has_type_RCD(9)[unfolded patterns.simps(13) set_list_it_app set_map]
+      by blast
+    then show ?case
       using has_type_RCD(1-4) nth_map[of _ LT "shift_L 1 n"]
             has_type_RCD(6)[OF _ has_type_RCD(7,8)]           
       by (force intro!: "has_type_L.intros"(20))+
 next
   case (has_type_Let \<Gamma>1 t1 \<delta>1 A x t2 B)
+    have H:"\<And>p R n. p \<in> set (patterns t1) \<Longrightarrow> \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>\<rparr> |:| R \<Longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>'\<rparr> |:| R"
+       "\<And>p R n. p \<in> set (patterns t2) \<Longrightarrow> \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>\<rparr> |:| R \<Longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>'\<rparr> |:| R"
+      using has_type_Let(7)[unfolded patterns.simps(10) set_append]
+      by blast+
+
     have 1:"n\<le>x \<Longrightarrow> ?case"
       proof -
         assume le_x: "n\<le>x"
-        show ?case
-          using has_type_Let(4-6) le_x
-                "has_type_L.intros"(14)[OF has_type_Let(2)[OF has_type_Let(5,6)], of "Suc x"]
-          by  (simp add: le_x del: Fun.comp_apply,
-                metis insert_nth_take_drop rep_ins replace_inv_length append_Cons append_Nil2 append_eq_append_conv_if)
+        from H show ?case
+          using has_type_Let(6) has_type_Let(4)[OF has_type_Let(5), of n \<Gamma>' \<delta>'] le_x
+                "has_type_L.intros"(14)[OF has_type_Let(2)[OF has_type_Let(5,6)], of \<Gamma>' \<delta>' "Suc x"]
+          by (simp add: le_x del: Fun.comp_apply insert_nth_take_drop, 
+                metis rep_ins replace_inv_length)
       qed
 
-    have "n>x \<Longrightarrow> ?case"
+    from H have "n>x \<Longrightarrow> ?case"
       using has_type_Let(4-6) rep_ins2[OF _ has_type_Let(6), of x S A]
-            "has_type_L.intros"(14)[OF has_type_Let(2)[OF has_type_Let(5,6)], of x]
-      by (simp del: Fun.comp_apply,
-            metis append_Cons append_Nil insert_nth_take_drop replace_inv_length)
+            "has_type_L.intros"(14)[OF has_type_Let(2)[OF has_type_Let(5,6)], of \<Gamma>' \<delta>' x]
+      by (simp del: Fun.comp_apply insert_nth_take_drop,
+            metis replace_inv_length)
     with 1 show ?case 
       by auto
 next
   case (has_type_PatternVar \<Gamma>1 \<delta>1 m k A)
-    have HB: "shift_L 1 n ((fill \<delta>1 ^^ m) (<|V k|>)) = (fill (shift_L 1 n \<circ> \<delta>) ^^ m) (<|V k|>)" sorry
-    have HC: "(shift_L 1 n \<circ> (\<lambda>x. <|V x|>)) = (\<lambda>x. <|V x|>)" 
-      proof rule
-        fix x
-        show "(shift_L 1 n \<circ> (\<lambda>x. <|V x|>)) x = (\<lambda>x. <|V x|>) x" 
-          using Fun.comp_apply[of "shift_L 1 n" "\<lambda>x. <|V x|>" x]
-                "shift_L.simps"(22)
-          by (metis (full_types))
-      qed
-    have 1:"insert_nth n S \<Gamma>1 \<turnstile> \<lparr>(fill (shift_L 1 n \<circ> \<delta>) ^^ m) (<|V k|>)|;|id\<rparr> |:| A" 
-      using has_type_PatternVar(2)[OF fill_id has_type_PatternVar(5)]
-            HOL.sym[OF fill_id] HB HC
-      by simp
-    have "set (patterns ((fill (shift_L 1 n \<circ> \<delta>) ^^ m) (<|V k|>))) = {}"
+    have 1:"insert_nth n S \<Gamma>1 \<turnstile> \<lparr>(fill \<delta>' ^^ m) (<|V k|>)|;|id\<rparr> |:| A" 
+      using has_type_PatternVar(2)[OF fill_id _, of _ \<Gamma>' "\<lambda>x. <|V x|>",
+                                    unfolded has_type_PatternVar(3,4)]
+            HOL.sym[OF fill_id]
+            has_type_PatternVar(6)[of k]
+      apply (simp del: insert_nth_take_drop)      
+      sorry
+    have "set (patterns ((fill \<delta>' ^^ m) (<|V k|>))) = {}"
       using has_type_PatternVar(3,4) pattern_fill_shift[of m 1 n \<delta> "<|V k|>"]
-      by fastforce  
-    with 1 show ?case by (auto intro:"has_type_L.intros"(22)[where \<delta>="(shift_L 1 n \<circ> \<delta>)"])
+      sorry  
+    with 1 show ?case 
+      by (auto intro:"has_type_L.intros"(22))
 next
-  case (has_type_LetPattern p t1 \<delta>1 \<Gamma>1 \<delta>2 B t2 A)
+  case (has_type_LetPattern p t1 \<delta>1 \<Gamma>1 \<delta>2 B t2 A n \<delta>3 \<Gamma>')
+    have H: "\<And>p' R n. p' \<in> set (patterns t1) \<Longrightarrow> \<Gamma>' \<turnstile> \<lparr><|V p'|>|;|fill \<delta>\<rparr> |:| R \<Longrightarrow> 
+                  insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V p'|>|;|fill \<delta>3\<rparr> |:| R"
+            "\<And>p' R n. p' \<in>  {x \<in> set (patterns t2). x \<notin> set (Pvars p)} \<Longrightarrow> 
+              \<Gamma>' \<turnstile> \<lparr><|V p'|>|;|fill \<delta>\<rparr> |:| R \<Longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V p'|>|;|fill \<delta>3\<rparr> |:| R"
+      using has_type_LetPattern(9)[unfolded patterns.simps set_append set_filter]
+      by blast+
     have 1:"Lmatch p (shift_L 1 n t1) (shift_L 1 n \<circ> \<delta>1)"
       sorry
     obtain \<delta>' where fill_\<delta>1:"\<delta>1 = fill \<delta>'"
       using lmatch_gives_fill[OF has_type_LetPattern(2)]
       by auto
-    have HB:"(fill (shift_L 1 n \<circ> \<delta>) \<circ> (shift_L 1 n \<circ> \<delta>1)) = shift_L 1 n \<circ> (fill \<delta>) \<circ> \<delta>1" sorry
-    have HD:"fill \<delta>2 \<circ> \<delta>1 = fill (fill \<delta> \<circ> \<delta>')" 
-      using fill_\<delta>1 has_type_LetPattern(7)
-      sorry      
-    hence 2: "insert_nth n S \<Gamma>1 \<turnstile> \<lparr>shift_L 1 n t2|;|fill (shift_L 1 n \<circ> (fill \<delta> \<circ> \<delta>'))\<rparr> |:| A"
-      using has_type_LetPattern(6)[OF _ has_type_LetPattern(8), of "fill \<delta> \<circ> \<delta>'"]      
-      by auto
-  show ?case
-    apply simp
-    apply rule
-    using has_type_LetPattern(1)
-          1 has_type_LetPattern(4)[OF has_type_LetPattern(7,8)]
-    apply auto[3]
-    using HD has_type_LetPattern(7)
-          2
-    sorry
-    (*take n \<Gamma>1 @ drop n \<Gamma>1 |,| S) \<turnstile> \<lparr>shift_L 1 n t2|;|(shift_L 1 n \<circ> fill (fill \<delta> \<circ> \<delta>'))\<rparr> |:| A*)
+    hence "insert_nth n S \<Gamma>1 \<turnstile> \<lparr>shift_L 1 n t2|;|(fill \<delta>3 \<circ> (shift_L 1 n \<circ> \<delta>1))\<rparr> |:| A"
+      using H(2)
+      sorry
+    then show ?case
+      using has_type_LetPattern(1)
+            1 has_type_LetPattern(4)[OF has_type_LetPattern(7,8), of \<Gamma>' \<delta>3]
+            H(1)
+      by (auto intro: has_type_L.intros(24))
 next
   case (has_type_Case \<Gamma>1 t \<delta>1 A B x t1 C y t2)
-    have A: "(take n \<Gamma>1 @ drop n \<Gamma>1 |,| S) \<turnstile> \<lparr>shift_L 1 n t|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| A |+| B"
-      using has_type_Case(2)[OF has_type_Case(7,8)]
+    have H:"\<And>p R n. p \<in> set (patterns t) \<Longrightarrow> \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>\<rparr> |:| R \<Longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>'\<rparr> |:| R"
+           "\<And>p R n. p \<in> set (patterns t1) \<Longrightarrow> \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>\<rparr> |:| R \<Longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>'\<rparr> |:| R"
+           "\<And>p R n. p \<in> set (patterns t2) \<Longrightarrow> \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>\<rparr> |:| R \<Longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>'\<rparr> |:| R"
+      using has_type_Case(9)[unfolded patterns.simps set_append]
+      by blast+
+    have A: "insert_nth n S \<Gamma>1 \<turnstile> \<lparr>shift_L 1 n t|;|fill \<delta>'\<rparr> |:| A |+| B"
+      using has_type_Case(2)[OF has_type_Case(7,8)] H(1)
       by auto
-    have B1:"n \<le> x \<Longrightarrow> n \<le> y \<Longrightarrow> replace (Suc x) A (insert_nth n S \<Gamma>1) \<turnstile> \<lparr>shift_L 1 n t1|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| C \<and>
-                                  replace (Suc y) B (insert_nth n S \<Gamma>1) \<turnstile> \<lparr>shift_L 1 n t2|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| C"
+    have B1:"n \<le> x \<Longrightarrow> n \<le> y \<Longrightarrow> replace (Suc x) A (insert_nth n S \<Gamma>1) \<turnstile> \<lparr>shift_L 1 n t1|;|fill \<delta>'\<rparr> |:| C \<and>
+                                  replace (Suc y) B (insert_nth n S \<Gamma>1) \<turnstile> \<lparr>shift_L 1 n t2|;|fill \<delta>'\<rparr> |:| C"
       using  has_type_Case(4)[OF has_type_Case(7)] has_type_Case(8)
-             has_type_Case(6)[OF has_type_Case(7)]
+             has_type_Case(6)[OF has_type_Case(7)] H(2,3)
              rep_ins[of n _ \<Gamma>1 S _] replace_inv_length 
       by metis+
-    have B2: " n \<le> x \<Longrightarrow> \<not> n \<le> y \<Longrightarrow> replace (Suc x) A (insert_nth n S \<Gamma>1) \<turnstile> \<lparr>shift_L 1 n t1|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| C \<and>
-                                      replace y B (insert_nth n S \<Gamma>1) \<turnstile> \<lparr>shift_L 1 n t2|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| C"
-      using  has_type_Case(4)[OF has_type_Case(7)] has_type_Case(8)
+    have B2: " n \<le> x \<Longrightarrow> \<not> n \<le> y \<Longrightarrow> replace (Suc x) A (insert_nth n S \<Gamma>1) \<turnstile> \<lparr>shift_L 1 n t1|;|fill \<delta>'\<rparr> |:| C \<and>
+                                      replace y B (insert_nth n S \<Gamma>1) \<turnstile> \<lparr>shift_L 1 n t2|;|fill \<delta>'\<rparr> |:| C"
+      using  has_type_Case(4)[OF has_type_Case(7)] has_type_Case(8) H(2,3)
              has_type_Case(6)[OF has_type_Case(7)] rep_ins2[of y n \<Gamma>1 S B]
              rep_ins[of n x \<Gamma>1 S A] replace_inv_length not_le
       by metis+
-    have B3: "\<not> n \<le> x \<Longrightarrow>  n \<le> y \<Longrightarrow> replace x A (insert_nth n S \<Gamma>1) \<turnstile> \<lparr>shift_L 1 n t1|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| C \<and>
-                                      replace (Suc y) B (insert_nth n S \<Gamma>1) \<turnstile> \<lparr>shift_L 1 n t2|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| C"
-      using  has_type_Case(4)[OF has_type_Case(7)] has_type_Case(8)
+    have B3: "\<not> n \<le> x \<Longrightarrow>  n \<le> y \<Longrightarrow> replace x A (insert_nth n S \<Gamma>1) \<turnstile> \<lparr>shift_L 1 n t1|;|fill \<delta>'\<rparr> |:| C \<and>
+                                      replace (Suc y) B (insert_nth n S \<Gamma>1) \<turnstile> \<lparr>shift_L 1 n t2|;|fill \<delta>'\<rparr> |:| C"
+      using  has_type_Case(4)[OF has_type_Case(7)] has_type_Case(8) H(2,3)
              has_type_Case(6)[OF has_type_Case(7)] rep_ins2[of x n \<Gamma>1 S A]
              rep_ins[of n y \<Gamma>1 S B] replace_inv_length not_le
       by metis+
-    have B4: "\<not> n \<le> x \<Longrightarrow> \<not> n \<le> y \<Longrightarrow> replace x A (insert_nth n S \<Gamma>1) \<turnstile> \<lparr>shift_L 1 n t1|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| C \<and>
-                                      replace y B (insert_nth n S \<Gamma>1) \<turnstile> \<lparr>shift_L 1 n t2|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| C"
-      using  has_type_Case(4)[OF has_type_Case(7)] has_type_Case(8)
+    have B4: "\<not> n \<le> x \<Longrightarrow> \<not> n \<le> y \<Longrightarrow> replace x A (insert_nth n S \<Gamma>1) \<turnstile> \<lparr>shift_L 1 n t1|;|fill \<delta>'\<rparr> |:| C \<and>
+                                      replace y B (insert_nth n S \<Gamma>1) \<turnstile> \<lparr>shift_L 1 n t2|;|fill \<delta>'\<rparr> |:| C"
+      using  has_type_Case(4)[OF has_type_Case(7)] has_type_Case(8) H(2,3)
              has_type_Case(6)[OF has_type_Case(7)] rep_ins2[of _ n \<Gamma>1 S _]
              replace_inv_length not_le
       by metis+
@@ -529,43 +572,50 @@ next
       by (auto)(insert A B1 B2 B3 B4 "has_type_L.intros"(27), force+)
 next
   case (has_type_CaseV L I TL LT \<Gamma> t \<delta>1 A)
+    have filledH: "\<And>p R n. p \<in> set (patterns t) \<Longrightarrow> \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>\<rparr> |:| R \<Longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>'\<rparr> |:| R"
+            "\<And>i. i<length LT \<Longrightarrow> (\<And>p R n. p \<in> set (patterns (LT!i)) \<Longrightarrow> \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>\<rparr> |:| R \<Longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>'\<rparr> |:| R)"
+      using has_type_CaseV(10)[unfolded patterns.simps set_append set_list_it_app set_map]
+            set_conv_nth[of LT]
+      by blast+
     have branches_wtyped:"\<forall>i<length L.
        replace (map (\<lambda>x. if n \<le> x then nat (int x + 1) else x) I ! i) (TL ! i) (take n \<Gamma> @ drop n \<Gamma> |,| S)
-       \<turnstile> \<lparr>(map (shift_L 1 n) LT ! i)|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| A"
+       \<turnstile> \<lparr>(map (shift_L 1 n) LT ! i)|;|fill \<delta>'\<rparr> |:| A"
       proof (rule+)
         fix i
         assume H:"i<length L"
-        have " (\<And>x xa. fill \<delta>1 = fill x \<Longrightarrow> xa\<le>length (replace (I ! i) (TL ! i) \<Gamma>) \<Longrightarrow>
-                   insert_nth xa S (replace (I ! i) (TL ! i) \<Gamma>) \<turnstile> \<lparr>shift_L 1 xa (LT ! i)|;|fill (shift_L 1 xa \<circ> x)\<rparr> |:| A)"
-          using has_type_CaseV(7) H
+        have "\<And>x. x\<le>length (replace (I ! i) (TL ! i) \<Gamma>) \<Longrightarrow>
+            \<forall>xa xb. (\<forall>x. x \<in> set (patterns (LT ! i)) \<longrightarrow>
+                         (\<forall>xc. xb \<turnstile> \<lparr><|V x|>|;|fill \<delta>\<rparr> |:| xc \<longrightarrow> (\<forall>xd. insert_nth xd S xb \<turnstile> \<lparr><|V x|>|;|fill xa\<rparr> |:| xc))) \<longrightarrow>
+                    insert_nth x S (replace (I ! i) (TL ! i) \<Gamma>) \<turnstile> \<lparr>shift_L 1 x (LT ! i)|;|fill xa\<rparr> |:| A"
+          using has_type_CaseV(7,8) H 
           by auto
-        then have branches_type:"insert_nth n S (replace (I ! i) (TL ! i) \<Gamma>) \<turnstile> \<lparr>shift_L 1 n (LT ! i)|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| A"
-          using  has_type_CaseV(8,9) 
+        then have branches_type:"insert_nth n S (replace (I ! i) (TL ! i) \<Gamma>) \<turnstile> \<lparr>shift_L 1 n (LT ! i)|;|fill \<delta>'\<rparr> |:| A"
+          using  has_type_CaseV(9) filledH(2)[OF H[unfolded has_type_CaseV(4)]]   
                  replace_inv_length[of "I!i" "TL!i" \<Gamma>]
-          by presburger
+          by metis
         have 1:"n\<le> I!i \<Longrightarrow> replace (map (\<lambda>x. if n \<le> x then nat (int x + 1) else x) I ! i) (TL ! i) (take n \<Gamma> @ drop n \<Gamma> |,| S)
-                \<turnstile> \<lparr>(map (shift_L 1 n) LT ! i)|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| A"
+                \<turnstile> \<lparr>(map (shift_L 1 n) LT ! i)|;|fill \<delta>'\<rparr> |:| A"
           using has_type_CaseV(1,2,9) H        
           proof -
             
             assume hyps:"n \<le> I ! i" "L \<noteq> \<emptyset>" "length I = length L" "n \<le> length \<Gamma>" "i < length L"
             
             from branches_type
-              have "replace (Suc (I ! i)) (TL ! i) (take n \<Gamma> @ drop n \<Gamma> |,| S) \<turnstile> \<lparr>(map (shift_L 1 n) LT ! i)|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| A"
+              have "replace (Suc (I ! i)) (TL ! i) (take n \<Gamma> @ drop n \<Gamma> |,| S) \<turnstile> \<lparr>(map (shift_L 1 n) LT ! i)|;|fill \<delta>'\<rparr> |:| A"
               using rep_ins[OF hyps(1,4),of S "TL!i"] H has_type_CaseV(4)
               by auto
             
             then show ?thesis by (simp add: hyps)        
           qed
         have  "\<not> n\<le> I!i \<Longrightarrow> replace (map (\<lambda>x. if n \<le> x then nat (int x + 1) else x) I ! i) (TL ! i) (take n \<Gamma> @ drop n \<Gamma> |,| S)
-                \<turnstile> \<lparr>(map (shift_L 1 n) LT ! i)|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| A"
+                \<turnstile> \<lparr>(map (shift_L 1 n) LT ! i)|;|fill \<delta>'\<rparr> |:| A"
           using has_type_CaseV(1,2,9) H        
           proof -
             
             assume hyps:"\<not>n \<le> I ! i" "L \<noteq> \<emptyset>" "length I = length L" "n \<le> length \<Gamma>" "i < length L"
             
             from branches_type
-              have  "replace (I ! i) (TL ! i) (take n \<Gamma> @ drop n \<Gamma> |,| S) \<turnstile> \<lparr>(map (shift_L 1 n) LT ! i)|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| A"
+              have  "replace (I ! i) (TL ! i) (take n \<Gamma> @ drop n \<Gamma> |,| S) \<turnstile> \<lparr>(map (shift_L 1 n) LT ! i)|;|fill \<delta>'\<rparr> |:| A"
               using rep_ins2[OF _ hyps(4),of "I!i" S "TL!i"] H has_type_CaseV(4) hyps(1) not_le[of n "I!i"]
               by auto
 
@@ -573,12 +623,12 @@ next
           qed
 
         with 1 show "replace (map (\<lambda>x. if n \<le> x then nat (int x + 1) else x) I ! i) (TL ! i) (take n \<Gamma> @ drop n \<Gamma> |,| S)
-         \<turnstile> \<lparr>(map (shift_L 1 n) LT ! i)|;|fill (shift_L 1 n \<circ> \<delta>)\<rparr> |:| A"
+         \<turnstile> \<lparr>(map (shift_L 1 n) LT ! i)|;|fill \<delta>'\<rparr> |:| A"
           by blast
       qed 
     show ?case
       using has_type_CaseV(1-4) has_type_CaseV(6)[OF has_type_CaseV(8,9)]
-            branches_wtyped
+            branches_wtyped filledH(1)
       by (force intro!: "has_type_L.intros"(29))+      
 qed (auto intro!: has_type_L.intros simp: nth_append min_def)
 

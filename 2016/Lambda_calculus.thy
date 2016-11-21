@@ -48,7 +48,9 @@ datatype lterm =
   Variant string lterm ltype ("<(_):=(_)> as (_)" [100,55] 200) |
   CaseVar lterm "string list" "nat list" "lterm list" ("Case/ (_)/ of/ <(_):=(_)>/ \<Rightarrow>/ (_)" [100,100,100,100]200)|
   Fixpoint "lterm"  ("fix (_)" [201]200)
-    
+
+definition letR :: "ltype\<Rightarrow>lterm\<Rightarrow>lterm\<Rightarrow>lterm" ("letrec/ x:(_) =(_)/ in/ (_)" [100,100,100]200) where
+ "letrec x:A = t1 in t2 \<equiv> (let x=fix(LAbs A t1) in t2)"     
 
 primrec shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lterm" where
   "shift_L d c LTrue = LTrue" |
@@ -166,7 +168,8 @@ fun patterns::"lterm \<Rightarrow> nat list" where
 "patterns (\<pi>2 t)                      = patterns t" |
 "patterns (\<Pi> i t)                     = patterns t" |
 "patterns (ProjR l t)                 = patterns t" |
-"patterns (Let pattern p := t1 in t2) = patterns t1 @ filter (\<lambda>x. x\<notin> set(Pvars p))(patterns t2)" |
+(*"patterns (Let pattern p := t1 in t2) = patterns t1 @ filter (\<lambda>x. x\<notin> set(Pvars p))(patterns t2)" |*)
+"patterns (Let pattern p := t1 in t2) = patterns t1 @ patterns t2" |
 "patterns (inl t as T') =  patterns t" |
 "patterns (inr t as T') =  patterns t" |
 "patterns (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = patterns t @ patterns t1 @ patterns t2" |
@@ -202,7 +205,7 @@ primrec FV :: "lterm \<Rightarrow> nat set" where
   "FV unit = {}" |
   "FV (Seq t1 t2) = FV t1 \<union> FV t2" |
   "FV (t as A) = FV t" |
-  "FV (Let var x:= t in t1) = 
+  "FV (Let var x := t in t1) = 
     (if x \<in> FV t1 then (FV t1 - {x}) \<union> FV t else FV t1)" |
   "FV (\<lbrace>t1,t2\<rbrace>) = FV t1 \<union> FV t2" |
   "FV (\<pi>1 t) =  FV t" |
@@ -269,5 +272,32 @@ fun fill::"(nat \<Rightarrow> lterm) \<Rightarrow> lterm \<Rightarrow> lterm" wh
 "fill \<Delta> (Case t of <L:=I> \<Rightarrow> LT) = (Case (fill \<Delta> t) of <L:=I> \<Rightarrow> map (fill \<Delta>) LT)"|
 "fill \<Delta> (Fixpoint t) = Fixpoint (fill \<Delta> t)" |
 "fill \<Delta> t = t"
+
+fun subterms :: "lterm\<Rightarrow>lterm set" where
+"subterms (LIf c t1 t2)               = {c, t1, t2}" |
+"subterms (LAbs A t1)                 = {t1}" |
+"subterms (LApp t1 t2)                = {t1, t2}" |
+"subterms (LPlus t1 t2)               = {t1,t2}" |
+"subterms (UMinus t)                  = {t}" |
+"subterms (IsZero t)                  = {t}" |
+"subterms (Seq t1 t2)                 = {t1, t2}" |
+"subterms (t1 as A)                   = {t1}" |
+"subterms (Let var x := t1 in t2)     = {t1, t2}" |
+"subterms (\<lbrace>t1,t2\<rbrace>)                   = {t1, t2}" |
+"subterms (Tuple L)                   = set L" |
+"subterms (Record L LT)               = set LT" |
+"subterms (\<pi>1 t)                      = {t}" |
+"subterms (\<pi>2 t)                      = {t}" |
+"subterms (\<Pi> i t)                     = {t}" |
+"subterms (ProjR l t)                 = {t}" |
+"subterms (Let pattern p := t1 in t2) = { t1, t2}" |
+"subterms (inl t as A) = {t}"|
+"subterms (inr t as A) = {t}"|
+"subterms (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = {t, t1, t2}"|
+"subterms (<l:=t> as A) =  {t}"|
+"subterms (Case t of <L:=I> \<Rightarrow> LT) = {t} \<union> set LT"|
+"subterms (Fixpoint t) = {t}" |
+"subterms t = {}"
+
 
 end
