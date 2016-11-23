@@ -193,8 +193,11 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> pcontext \<R
   has_type_PatternRCD:
     "L\<noteq>[] \<Longrightarrow> distinct L \<Longrightarrow> length PL = length TL \<Longrightarrow> length L = length PL \<Longrightarrow> (\<And>i. i< length PL \<Longrightarrow> \<Gamma> \<turnstile> \<lparr><|PL ! i|>|;|fill \<delta>\<rparr> |:| (TL ! i))
       \<Longrightarrow> \<Gamma> \<turnstile> \<lparr><|RCD L PL|>|;|fill \<delta>\<rparr> |:| \<lparr>L|:|TL\<rparr>" |
-  has_type_LetPattern:
+ (* has_type_LetPattern:
     "coherent p \<Longrightarrow> Lmatch p t1 \<delta>  \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t1|;|fill \<delta>1\<rparr> |:| R \<Longrightarrow>
+     \<Gamma> \<turnstile> \<lparr>t2|;|((fill \<delta>1) \<circ> \<delta>)\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|fill \<delta>1\<rparr> |:| A" |*)
+  has_type_LetPattern:
+    "coherent p \<Longrightarrow> Lmatch p t1 \<delta>  \<Longrightarrow> 
      \<Gamma> \<turnstile> \<lparr>t2|;|((fill \<delta>1) \<circ> \<delta>)\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|fill \<delta>1\<rparr> |:| A" |
   has_type_Inl:
     "\<Gamma> \<turnstile> \<lparr>t1|;|fill \<delta>1\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>inl t1 as A|+|B |;|fill \<delta>1\<rparr> |:| A|+|B" |
@@ -230,7 +233,7 @@ lemma inversion:
   "\<Gamma> \<turnstile> \<lparr> LFalse |;| \<delta>\<rparr> |:| R \<Longrightarrow> R = Bool"
   "\<Gamma> \<turnstile> \<lparr> LIf t1 t2 t3 |;| \<delta>\<rparr> |:| R \<Longrightarrow>  \<Gamma> \<turnstile> \<lparr>t1|;| \<delta>\<rparr> |:| Bool \<and> \<Gamma> \<turnstile> \<lparr>t2|;| \<delta>\<rparr> |:| R \<and> \<Gamma> \<turnstile> \<lparr>t3|;| \<delta>\<rparr> |:| R"
   "\<Gamma> \<turnstile> \<lparr> LVar x|;| \<delta>\<rparr> |:| R \<Longrightarrow> (x, R) |\<in>| \<Gamma>"
-  "\<Gamma> \<turnstile> \<lparr> LAbs T1 t2 |;| fill \<delta>'\<rparr> |:| R \<Longrightarrow> \<exists>R2 \<Delta>. R = T1 \<rightarrow> R2 \<and>  \<Gamma> |,| T1 \<turnstile> \<lparr>t2|;|fill (shift_L 1 (Suc (nbinder t2)) \<circ> \<Delta>)\<rparr> |:| R2 \<and> fill \<Delta> = fill \<delta>'"
+  "\<Gamma> \<turnstile> \<lparr> LAbs T1 t2 |;| fill \<delta>'\<rparr> |:| R \<Longrightarrow> \<exists>R2. R = T1 \<rightarrow> R2 \<and>  \<Gamma> |,| T1 \<turnstile> \<lparr>t2|;|fill \<delta>'\<rparr> |:| R2 "
   "\<Gamma> \<turnstile> \<lparr> LApp t1 t2 |;| \<delta>\<rparr> |:| R \<Longrightarrow> \<exists>T11. \<Gamma> \<turnstile> \<lparr>t1|;| \<delta>\<rparr> |:| T11 \<rightarrow> R \<and> \<Gamma> \<turnstile> \<lparr>t2|;| \<delta>\<rparr> |:| T11"
   "\<Gamma> \<turnstile> \<lparr> unit|;| \<delta>\<rparr> |:| R \<Longrightarrow> R = Unit"
   "\<Gamma> \<turnstile> \<lparr> Seq t1 t2 |;| \<delta>\<rparr> |:| R \<Longrightarrow> \<exists>A. R = A \<and> \<Gamma> \<turnstile> \<lparr>t2|;| \<delta>\<rparr> |:| A \<and> \<Gamma> \<turnstile> \<lparr>t1|;| \<delta>\<rparr> |:| Unit"
@@ -248,8 +251,7 @@ lemma inversion:
   "\<Gamma> \<turnstile> \<lparr><|V k|>|;|\<delta>\<rparr> |:| R \<Longrightarrow> \<exists>n. \<Gamma> \<turnstile> \<lparr>(\<delta>^^n) (<|V k|>)|;| id\<rparr> |:| R \<and>  set(patterns ((\<delta>^^n) (<|V k|>))) = {}"
   "\<Gamma> \<turnstile> \<lparr><|RCD L1 PL|>|;|\<delta>\<rparr> |:| R \<Longrightarrow> \<exists>TL. R = \<lparr>L1|:|TL\<rparr> \<and> L1\<noteq>[] \<and> distinct L1 \<and> length PL = length TL \<and> length L1 = length PL \<and>
                                     (\<forall>i< length PL. \<Gamma> \<turnstile> \<lparr><|PL ! i|>|;|\<delta>\<rparr> |:| (TL ! i))"
-  "\<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|\<delta>1\<rparr> |:| R \<Longrightarrow>\<exists>\<delta> R1. coherent p \<and> Lmatch p t1 \<delta>  \<and> \<Gamma> \<turnstile> \<lparr>t1|;|\<delta>1\<rparr> |:| R1 \<and>
-     \<Gamma> \<turnstile> \<lparr>t2|;|(\<delta>1 \<circ> \<delta>)\<rparr> |:| R" 
+  "\<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|\<delta>1\<rparr> |:| R \<Longrightarrow>\<exists>\<delta>. coherent p \<and> Lmatch p t1 \<delta>  \<and> \<Gamma> \<turnstile> \<lparr>t2|;|(\<delta>1 \<circ> \<delta>)\<rparr> |:| R" 
   "\<Gamma> \<turnstile> \<lparr>inl t as R|;|\<delta>1\<rparr> |:| R \<Longrightarrow>\<exists>A B. R = A|+|B \<and> \<Gamma> \<turnstile> \<lparr>t|;|\<delta>1\<rparr> |:| A"
   "\<Gamma> \<turnstile> \<lparr>inr t as R|;|\<delta>1\<rparr> |:| R \<Longrightarrow>\<exists>A B. R = A|+|B \<and> \<Gamma> \<turnstile> \<lparr>t|;|\<delta>1\<rparr> |:| B"
   "\<Gamma> \<turnstile> \<lparr>Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2|;|\<delta>1\<rparr> |:| R \<Longrightarrow>\<exists>A B C. R = C \<and> \<Gamma> \<turnstile> \<lparr>t|;|\<delta>1\<rparr> |:| A|+|B \<and>
@@ -264,18 +266,13 @@ proof -
     by (cases "x\<ge> length \<Gamma>", fastforce+)
 next
   assume H1: "\<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|\<delta>1\<rparr> |:| R"
-  show "\<exists>\<delta> R1. coherent p \<and> Lmatch p t1 \<delta> \<and> \<Gamma> \<turnstile> \<lparr>t1|;|\<delta>1\<rparr> |:| R1 \<and> \<Gamma> \<turnstile> \<lparr>t2|;|(\<delta>1 \<circ> \<delta>)\<rparr> |:| R"
+  show "\<exists>\<delta>. coherent p \<and> Lmatch p t1 \<delta>  \<and> \<Gamma> \<turnstile> \<lparr>t2|;|(\<delta>1 \<circ> \<delta>)\<rparr> |:| R"
     using has_type_LetPE[OF H1]
     by metis
 next
   assume H2: "\<Gamma> \<turnstile> \<lparr>Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2|;|\<delta>1\<rparr> |:| R"
   show "\<exists>A B C. R = C \<and> \<Gamma> \<turnstile> \<lparr>t|;|\<delta>1\<rparr> |:| A |+| B \<and> replace x A \<Gamma> \<turnstile> \<lparr>t1|;|\<delta>1\<rparr> |:| C \<and> replace y B \<Gamma> \<turnstile> \<lparr>t2|;|\<delta>1\<rparr> |:| C"
     by (cases "length \<Gamma> \<le> x"; cases "length \<Gamma> \<le> y"; insert has_type_CaseSE[OF H2]; metis (full_types) replace.simps)
-next
-  assume H3:"\<Gamma> \<turnstile> \<lparr>LAbs T1 t2|;|fill \<delta>'\<rparr> |:| R"
-  show "\<exists>R2 \<Delta>. R = T1 \<rightarrow> R2 \<and> \<Gamma> |,| T1 \<turnstile> \<lparr>t2|;|fill (shift_L 1 (Suc (nbinder t2)) \<circ> \<Delta>)\<rparr> |:| R2 \<and> fill \<Delta> = fill \<delta>'"
-    using has_type_LAbsE[OF H3]
-    by metis      
 next
   assume H4: "\<Gamma> \<turnstile> \<lparr><l:=t> as R|;|\<delta>1\<rparr> |:| R"
   show  "\<exists>L TL i. R = <L|,|TL> \<and> \<Gamma> \<turnstile> \<lparr>t|;|\<delta>1\<rparr> |:| (TL ! i) \<and> l = L ! i"
@@ -396,6 +393,18 @@ sorry
   shows "\<Gamma> \<turnstile> \<lparr>t |;| fill \<delta>'\<rparr> |:| A"
 sorry*)
 
+lemma subterms_pat:
+  "subterms t = A \<Longrightarrow> (\<exists>t1. subterms t = {t1})\<or>(\<exists>t1 t2. subterms t = {t1, t2})\<or>(\<exists>t1 t2 t3. subterms t = {t1,t2,t3})\<or>
+    (\<exists>t1 L. subterms t = {t1} \<union> set L) \<or> (\<exists>L. subterms t = set L) \<or> (subterms t = {})"
+proof -
+  assume H: "subterms t = A"
+  
+  show ?thesis
+    using "subterms.elims"[OF H, where P="?thesis"] 
+    by (simp add:H, auto)
+qed    
+
+
 lemma P_set_Pat: 
   "(\<And>x. x\<in>set(patterns t) \<Longrightarrow> P x) \<Longrightarrow> t'\<in> subterms t \<Longrightarrow> (\<And>x. x\<in>set(patterns t') \<Longrightarrow> P x)"
 proof (induction t)
@@ -409,6 +418,8 @@ next
     show ?case using CaseSum(4,5,6) by (simp; blast)
 qed (simp; blast)+
 
+lemma P_list_conv_nth:"(\<And>x. x\<in> A\<union>set L \<Longrightarrow> P x) \<Longrightarrow> (\<And>i. i<length L \<Longrightarrow> P (L!i))"
+using set_conv_nth by auto
 
 lemma weakening :
   fixes \<Gamma>::lcontext  and t::lterm and A S::ltype and \<delta> \<delta>'::"nat\<Rightarrow>lterm" and n::nat
@@ -421,16 +432,19 @@ proof(induction \<Gamma> t "fill \<delta>" A arbitrary: n \<delta>' \<Gamma>' ru
   case (has_type_LIf \<Gamma> t1 \<delta>1 t2 A t3)
     have 1:"\<And>p R n. p \<in> set (patterns t1) \<Longrightarrow> \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>\<rparr> |:| R \<Longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>'\<rparr> |:| R"
       using  P_set_Pat[where P="\<lambda>x. (\<forall> R n . \<Gamma>' \<turnstile> \<lparr><|V x|>|;|fill \<delta>\<rparr> |:| R \<longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V x|>|;|fill \<delta>'\<rparr> |:| R)"
-                            and t="LIf t1 t2 t3", unfolded "subterms.simps"]
+                            and t="LIf t1 t2 t3", unfolded "subterms.simps", rule_format]
              has_type_LIf(9)
       by blast
 
     show ?case
       apply simp
       apply rule 
-      using has_type_LIf(2,7,8) 1 
-      apply auto[1]      
-      
+      using has_type_LIf(2,7,8)
+            P_set_Pat[where P="\<lambda>x. (\<forall> R n . \<Gamma>' \<turnstile> \<lparr><|V x|>|;|fill \<delta>\<rparr> |:| R \<longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V x|>|;|fill \<delta>'\<rparr> |:| R)"
+                            and t="LIf t1 t2 t3", unfolded "subterms.simps", rule_format, OF
+            has_type_LIf(9)]
+          
+      sorry
 next
   case (has_type_LAbs \<Gamma>1 T1 t2 \<delta>1 T2)
     have 1:"\<And>p R n. p \<in> set (patterns t2) \<Longrightarrow> \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>\<rparr> |:| R \<Longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>'\<rparr> |:| R"
@@ -502,9 +516,9 @@ next
 next
   case (has_type_PatternVar \<Gamma>1 \<delta>1 m k A)
     have 1:"insert_nth n S \<Gamma>1 \<turnstile> \<lparr>(fill \<delta>' ^^ m) (<|V k|>)|;|id\<rparr> |:| A" 
-      using has_type_PatternVar(2)[OF fill_id _, of _ \<Gamma>' "\<lambda>x. <|V x|>",
+      using has_type_PatternVar(2)[of _ \<Gamma>' "\<lambda>x. <|V x|>",
                                     unfolded has_type_PatternVar(3,4)]
-            HOL.sym[OF fill_id]
+            fill_id[symmetric]
             has_type_PatternVar(6)[of k]
       apply (simp del: insert_nth_take_drop)      
       sorry
