@@ -1,5 +1,6 @@
 theory Lambda_calculus
-imports Main
+imports Main 
+        Pure
         List_extra
         "$AFP/List-Index/List_Index"
 begin
@@ -17,6 +18,7 @@ begin
   TVariant "string list" "ltype list" ( "<_|,|_>" [150,150] 225) 
   
 datatype Lpattern = V nat | RCD "string list" "Lpattern list"
+
 
 datatype lterm =
   LTrue |
@@ -48,6 +50,9 @@ datatype lterm =
   Variant string lterm ltype ("<(_):=(_)> as (_)" [100,55] 200) |
   CaseVar lterm "string list" "nat list" "lterm list" ("Case/ (_)/ of/ <(_):=(_)>/ \<Rightarrow>/ (_)" [100,100,100,100]200)|
   Fixpoint "lterm"  ("fix (_)" [201]200)
+
+datatype subterm_set = U lterm | Bi lterm lterm | Ter lterm lterm lterm | Comp lterm "lterm list" |UList "lterm list" | Void
+
 
 definition letR :: "ltype\<Rightarrow>lterm\<Rightarrow>lterm\<Rightarrow>lterm" ("letrec/ x:(_) =(_)/ in/ (_)" [100,100,100]200) where
  "letrec x:A = t1 in t2 \<equiv> (let x=fix(LAbs A t1) in t2)"     
@@ -273,31 +278,51 @@ fun fill::"(nat \<Rightarrow> lterm) \<Rightarrow> lterm \<Rightarrow> lterm" wh
 "fill \<Delta> (Fixpoint t) = Fixpoint (fill \<Delta> t)" |
 "fill \<Delta> t = t"
 
-fun subterms :: "lterm\<Rightarrow>lterm set" where
-"subterms (LIf c t1 t2)               = {c, t1, t2}" |
-"subterms (LAbs A t1)                 = {t1}" |
-"subterms (LApp t1 t2)                = {t1, t2}" |
-"subterms (LPlus t1 t2)               = {t1,t2}" |
-"subterms (UMinus t)                  = {t}" |
-"subterms (IsZero t)                  = {t}" |
-"subterms (Seq t1 t2)                 = {t1, t2}" |
-"subterms (t1 as A)                   = {t1}" |
-"subterms (Let var x := t1 in t2)     = {t1, t2}" |
-"subterms (\<lbrace>t1,t2\<rbrace>)                   = {t1, t2}" |
-"subterms (Tuple L)                   = set L" |
-"subterms (Record L LT)               = set LT" |
-"subterms (\<pi>1 t)                      = {t}" |
-"subterms (\<pi>2 t)                      = {t}" |
-"subterms (\<Pi> i t)                     = {t}" |
-"subterms (ProjR l t)                 = {t}" |
-"subterms (Let pattern p := t1 in t2) = { t1, t2}" |
-"subterms (inl t as A) = {t}"|
-"subterms (inr t as A) = {t}"|
-"subterms (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = {t, t1, t2}"|
-"subterms (<l:=t> as A) =  {t}"|
-"subterms (Case t of <L:=I> \<Rightarrow> LT) = {t} \<union> set LT"|
-"subterms (Fixpoint t) = {t}" |
-"subterms t = {}"
+fun subterms :: "lterm\<Rightarrow>subterm_set" where
+"subterms (LIf c t1 t2)               = Ter c t1 t2" |
+"subterms (LAbs A t1)                 = U t1" |
+"subterms (LApp t1 t2)                = Bi t1 t2" |
+"subterms (LPlus t1 t2)               = Bi t1 t2" |
+"subterms (UMinus t)                  = U t" |
+"subterms (IsZero t)                  = U t" |
+"subterms (Seq t1 t2)                 = Bi t1 t2" |
+"subterms (t1 as A)                   = U t1" |
+"subterms (Let var x := t1 in t2)     = Bi t1 t2" |
+"subterms (\<lbrace>t1,t2\<rbrace>)                   = Bi t1 t2" |
+"subterms (Tuple L)                   = UList L" |
+"subterms (Record L LT)               = UList LT" |
+"subterms (\<pi>1 t)                      = U t" |
+"subterms (\<pi>2 t)                      = U t" |
+"subterms (\<Pi> i t)                     = U t" |
+"subterms (ProjR l t)                 = U t" |
+"subterms (Let pattern p := t1 in t2) = Bi t1 t2" |
+"subterms (inl t as A) = U t"|
+"subterms (inr t as A) = U t"|
+"subterms (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = Ter t t1 t2"|
+"subterms (<l:=t> as A) =  U t"|
+"subterms (Case t of <L:=I> \<Rightarrow> LT) = Comp t LT"|
+"subterms (Fixpoint t) = U t" |
+"subterms t = Void"
+
+lemma P_pat_subterm_cases:
+  "P (patterns t) \<longrightarrow> (\<exists>t1. subterms t = U t1 \<and> P (patterns t1)) \<or>
+    (\<exists>t1 t2. subterms t = Bi t1 t2 \<and> P (patterns t1) \<and> P (patterns t2)) \<or>
+    (\<exists>t1 t2 t3. subterms t = Ter t1 t2 t3 \<and> P (patterns t1) \<and> P (patterns t2) \<and> P (patterns t3)) \<or>
+    (\<exists>t1 L. subterms t = Comp t1 L \<and> P (patterns t1) \<and> (\<forall>i<length L. P (patterns (L!i)))) \<or>
+    (\<exists>L. subterms t = UList L \<and> (\<forall>i<length L. P (patterns (L!i))))" 
+sorry
+
+ML \<open>
+      fun rewrite_conj_under_all ctxt thm = 
+        (case ctxt of
+          Context.Theory _ => thm
+          |Context.Proof prf =>
+              thm
+              |> Local_Defs.unfold prf [@{thm atomize_conj[symmetric]}, @{thm atomize_all[symmetric]}, 
+                                          @{thm atomize_imp[symmetric]}]
+        )
+   \<close>
+attribute_setup split_and_rule = \<open>Scan.succeed (Thm.rule_attribute [] rewrite_conj_under_all)\<close>
 
 
 end

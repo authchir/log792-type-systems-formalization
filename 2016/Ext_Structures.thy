@@ -382,9 +382,6 @@ proof (induction n)
        sorry
 qed auto
 
-lemma TypingtoPatternsTyping:
-  "\<Gamma> \<turnstile> \<lparr>t|;|fill \<delta>\<rparr> |:| A \<Longrightarrow> (p\<in>set (patterns t) \<Longrightarrow> \<exists>R. \<Gamma> \<turnstile> \<lparr><|V p|>|;|fill \<delta>\<rparr> |:| R)"
-sorry
 
 (*lemma weakening1 :
   fixes \<Gamma>::lcontext  and t::lterm and A R::ltype and \<delta> \<delta>'::"nat\<Rightarrow>lterm"
@@ -393,19 +390,12 @@ sorry
   shows "\<Gamma> \<turnstile> \<lparr>t |;| fill \<delta>'\<rparr> |:| A"
 sorry*)
 
-lemma subterms_pat:
-  "subterms t = A \<Longrightarrow> (\<exists>t1. subterms t = {t1})\<or>(\<exists>t1 t2. subterms t = {t1, t2})\<or>(\<exists>t1 t2 t3. subterms t = {t1,t2,t3})\<or>
-    (\<exists>t1 L. subterms t = {t1} \<union> set L) \<or> (\<exists>L. subterms t = set L) \<or> (subterms t = {})"
-proof -
-  assume H: "subterms t = A"
-  
-  show ?thesis
-    using "subterms.elims"[OF H, where P="?thesis"] 
-    by (simp add:H, auto)
-qed    
 
 
-lemma P_set_Pat: 
+thm subst_L.cases[of "(j,s,LTrue)", simplified prod.inject "lterm.distinct" HOL.simp_thms HOL.False_implies_equals
+  Pure.triv_forall_equality HOL.True_implies_equals]
+
+(*lemma P_set_Pat: 
   "(\<And>x. x\<in>set(patterns t) \<Longrightarrow> P x) \<Longrightarrow> t'\<in> subterms t \<Longrightarrow> (\<And>x. x\<in>set(patterns t') \<Longrightarrow> P x)"
 proof (induction t)
   case (LIf)
@@ -417,9 +407,11 @@ next
   case (CaseSum)
     show ?case using CaseSum(4,5,6) by (simp; blast)
 qed (simp; blast)+
-
+*)
 lemma P_list_conv_nth:"(\<And>x. x\<in> A\<union>set L \<Longrightarrow> P x) \<Longrightarrow> (\<And>i. i<length L \<Longrightarrow> P (L!i))"
 using set_conv_nth by auto
+
+
 
 lemma weakening :
   fixes \<Gamma>::lcontext  and t::lterm and A S::ltype and \<delta> \<delta>'::"nat\<Rightarrow>lterm" and n::nat
@@ -430,21 +422,15 @@ lemma weakening :
 using assms 
 proof(induction \<Gamma> t "fill \<delta>" A arbitrary: n \<delta>' \<Gamma>' rule:has_type_L.induct)
   case (has_type_LIf \<Gamma> t1 \<delta>1 t2 A t3)
-    have 1:"\<And>p R n. p \<in> set (patterns t1) \<Longrightarrow> \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>\<rparr> |:| R \<Longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>'\<rparr> |:| R"
-      using  P_set_Pat[where P="\<lambda>x. (\<forall> R n . \<Gamma>' \<turnstile> \<lparr><|V x|>|;|fill \<delta>\<rparr> |:| R \<longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V x|>|;|fill \<delta>'\<rparr> |:| R)"
-                            and t="LIf t1 t2 t3", unfolded "subterms.simps", rule_format]
-             has_type_LIf(9)
-      by blast
-
     show ?case
-      apply simp
-      apply rule 
-      using has_type_LIf(2,7,8)
-            P_set_Pat[where P="\<lambda>x. (\<forall> R n . \<Gamma>' \<turnstile> \<lparr><|V x|>|;|fill \<delta>\<rparr> |:| R \<longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V x|>|;|fill \<delta>'\<rparr> |:| R)"
-                            and t="LIf t1 t2 t3", unfolded "subterms.simps", rule_format, OF
-            has_type_LIf(9)]
-          
-      sorry
+      apply (insert P_pat_subterm_cases[where P="\<lambda>pt. (\<forall> x R n. x\<in>set pt \<longrightarrow> \<Gamma>' \<turnstile> \<lparr><|V x|>|;|fill \<delta>\<rparr> |:| R \<longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V x|>|;|fill \<delta>'\<rparr> |:| R)"
+                                and t="LIf t1 t2 t3", unfolded subterms.simps,  
+                                simplified "subterm_set.distinct" HOL.simp_thms , rule_format, OF has_type_LIf(9), simplified,
+                                rule_format,split_and_rule]
+            ) 
+      using has_type_LIf(2,4,6,7,8)
+      apply (fastforce intro!: has_type_L.intros)+
+      done
 next
   case (has_type_LAbs \<Gamma>1 T1 t2 \<delta>1 T2)
     have 1:"\<And>p R n. p \<in> set (patterns t2) \<Longrightarrow> \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>\<rparr> |:| R \<Longrightarrow> insert_nth n S \<Gamma>' \<turnstile> \<lparr><|V p|>|;|fill \<delta>'\<rparr> |:| R"
