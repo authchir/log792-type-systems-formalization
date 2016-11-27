@@ -43,21 +43,21 @@ datatype ltermI =
   unit
 
 
-primrec shift_L :: "int \<Rightarrow> nat \<Rightarrow> ltermI \<Rightarrow> ltermI" where
-  "shift_L d c LTrue = LTrue" |
-  "shift_L d c LFalse = LFalse" |
-  "shift_L d c (LIf t1 t2 t3) = LIf (shift_L d c t1) (shift_L d c t2) (shift_L d c t3)" |
-  "shift_L d c (LVar k) = LVar (if k < c then k else nat (int k + d))" |
-  "shift_L d c (LAbs T' t) = LAbs T' (shift_L d (Suc c) t)" |
-  "shift_L d c (LApp t1 t2) = LApp (shift_L d c t1) (shift_L d c t2)" |
-  "shift_L d c unit = unit"
+primrec shift_L :: "(int \<Rightarrow> int) \<Rightarrow> ltermI \<Rightarrow> ltermI" where
+  "shift_L F LTrue = LTrue" |
+  "shift_L F LFalse = LFalse" |
+  "shift_L F (LIf t1 t2 t3) = LIf (shift_L F t1) (shift_L F t2) (shift_L F t3)" |
+  "shift_L F (LVar k) = LVar (nat (F (int k)))" |
+  "shift_L F (LAbs T' t) = LAbs T' (shift_L (\<lambda>x. F (x-1) + 1) t)" |
+  "shift_L F (LApp t1 t2) = LApp (shift_L F t1) (shift_L F t2)" |
+  "shift_L F unit = unit"
 
 primrec subst_L :: "nat \<Rightarrow> ltermI \<Rightarrow> ltermI \<Rightarrow> ltermI" where
   "subst_L j s LTrue = LTrue" |
   "subst_L j s LFalse = LFalse" |
   "subst_L j s (LIf t1 t2 t3) = LIf (subst_L j s t1) (subst_L j s t2) (subst_L j s t3)" |
   "subst_L j s (LVar k) = (if k = j then s else LVar k)" |
-  "subst_L j s (LAbs T' t) = LAbs T' (subst_L (Suc j) (shift_L 1 0 s) t)" |
+  "subst_L j s (LAbs T' t) = LAbs T' (subst_L (Suc j) (shift_L (\<lambda>x. if x\<ge>0 then x + 1 else x) s) t)" |
   "subst_L j s (LApp t1 t2) = LApp (subst_L j s t1) (subst_L j s t2)" |
   "subst_L j s unit = unit"
 
@@ -74,7 +74,7 @@ inductive is_value_L :: "ltermI \<Rightarrow> bool" where
 *)
 
 abbreviation sequence :: "ltermI\<Rightarrow>ltermI\<Rightarrow>ltermI" (infix ";;" 200) where
- "sequence t1 t2 \<equiv> (LApp (LAbs Unit  (shift_L 1 0 t2)) t1)"
+ "sequence t1 t2 \<equiv> (LApp (LAbs Unit  (shift_L (\<lambda>x. if x\<ge>0 then x + 1 else x) t2)) t1)"
 
 primrec FV :: "ltermI \<Rightarrow> nat set" where
   "FV LTrue = {}" |
@@ -102,7 +102,7 @@ inductive eval1_L :: "ltermI \<Rightarrow> ltermI \<Rightarrow> bool" where
     "is_value_L v1 \<Longrightarrow> eval1_L t2 t2' \<Longrightarrow> eval1_L (LApp v1 t2) (LApp v1 t2')" |
   eval1_LApp_LAbs:
     "is_value_L v2 \<Longrightarrow> eval1_L (LApp (LAbs T' t12) v2)
-      (shift_L (-1) 0 (subst_L 0 (shift_L 1 0 v2) t12))" 
+      (shift_L (\<lambda>x. if x\<ge>0 then x - 1 else x) (subst_L 0 (shift_L (\<lambda>x. if x\<ge>0 then x + 1 else x) v2) t12))" 
 
 
 inductive_cases eval1_LIf_E: "eval1_L (LIf t t1 t2) t'"
@@ -144,21 +144,24 @@ lemma[simp]: "nat (int x - 1) = x - 1" by simp
 lemma gr_Suc_conv: "Suc x \<le> n \<longleftrightarrow> (\<exists>m. n = Suc m \<and> x \<le> m)"
   by (cases n) auto
 
+lemma shift_comp:
+  "shift_L F (shift_L G t) = shift_L (F\<circ>G) t" sorry
 
 lemma FV_shift:
-  "FV (shift_L (int d) c t) = image (\<lambda>x. if x \<ge> c then x + d else x) (FV t)"
+  "FV (shift_L (\<lambda>x. if x \<ge> c then x+d else x) t) = image (\<lambda>x. if int x \<ge> c then  nat (int x + d) else x) (FV t)"
 proof (induction t arbitrary: c rule: ltermI.induct)
   case (LAbs T t)
-  thus ?case by (auto simp: gr_Suc_conv image_iff) force+
+    show ?case 
+  (*by (auto simp: gr_Suc_conv image_iff) force+*) sorry
 qed auto
 
 lemma FV_subst:
   "FV (subst_L n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"
 proof (induction u arbitrary: n t rule: ltermI.induct)
   case (LAbs T u)
-  thus ?case 
-    by (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1],
-        (metis DiffI One_nat_def UnCI diff_Suc_1 empty_iff imageI insert_iff nat.distinct(1))+)
+  thus ?case sorry
+    (*by (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1],
+        (metis DiffI One_nat_def UnCI diff_Suc_1 empty_iff imageI insert_iff nat.distinct(1))+)*)
 qed (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1])
 
 
@@ -188,20 +191,22 @@ by (auto elim: has_type_L.cases is_value_L.cases)
 
 lemma shift_down:
   "insert_nth n U \<Gamma> \<turnstile> t |:| A \<Longrightarrow> n \<le> length \<Gamma> \<Longrightarrow>
-   (\<And>x. x \<in> FV t \<Longrightarrow> x \<noteq> n) \<Longrightarrow> \<Gamma> \<turnstile> shift_L (- 1) n t |:| A"
+   (\<And>x. x \<in> FV t \<Longrightarrow> x \<noteq> n) \<Longrightarrow> \<Gamma> \<turnstile> shift_L (\<lambda>x. if x\<ge>int n then x - 1 else x) t |:| A"
 proof (induction "insert_nth n U \<Gamma>" t A arbitrary: \<Gamma> n rule: has_type_L.induct)
   case (has_type_LAbs V t A)
-  from this(1,3,4) show ?case
-    by (fastforce intro: has_type_L.intros has_type_LAbs.hyps(2)[where n="Suc n"])+
+  from this(1,3,4) show ?case sorry
+   (* by (fastforce intro: has_type_L.intros has_type_LAbs.hyps(2)[where n="Suc n"])+*)
 qed (fastforce intro: has_type_L.intros simp: nth_append min_def)+
 
 lemma weakening:
-  "\<Gamma> \<turnstile> t |:| A \<Longrightarrow> n \<le> length \<Gamma> \<Longrightarrow> insert_nth n S \<Gamma> \<turnstile> shift_L 1 n t |:| A"
+  "\<Gamma> \<turnstile> t |:| A \<Longrightarrow> n \<le> length \<Gamma> \<Longrightarrow> insert_nth n S \<Gamma> \<turnstile> shift_L (\<lambda>x. if x\<ge>int n then x + 1 else x) t |:| A"
 proof (induction \<Gamma> t A arbitrary: n rule: has_type_L.induct)
   case (has_type_LAbs \<Gamma> T1 t2 T2)
-  from has_type_LAbs.prems has_type_LAbs.hyps
-    has_type_LAbs.IH[where n="Suc n"] show ?case
-    by (auto intro: has_type_L.intros)
+    have same_fun:"(\<lambda>x. (if int n < x then x - 1 + 1 else x - 1) + 1) = (\<lambda>x. if int (Suc n) \<le> x then x + 1 else x)"
+      by force
+    show ?case
+      using has_type_LAbs(1,3) has_type_LAbs.IH[where n="Suc n", unfolded same_fun[symmetric]] 
+      by (auto intro: has_type_L.intros)
 qed (auto simp: nth_append min_def intro: has_type_L.intros)
 
 
@@ -217,24 +222,32 @@ theorem eval1_Lseq:
 lemma subst_free_var_only: "x\<notin>FV t \<Longrightarrow> subst_L x t1 t = t"
 by (induction t arbitrary:t1 x, force+)
 
-lemma shift_shift_invert: "a>0 \<Longrightarrow> shift_L (-a) b (shift_L a b t) = t"
-by(induction t arbitrary: a b, auto)
+(*lemma shift_shift_invert: "a>0 \<Longrightarrow> shift_L (-a) b (shift_L a b t) = t"
+by(induction t arbitrary: a b, auto)*)
+
+lemma shift_id:
+  "shift_L id t= id t"
+by (induction t, auto)
 
 theorem eval1_Lseq_next:
   " eval1_L (unit ;; t2) t2"
 proof -  
-  have A:"eval1_L (unit ;; t2) (shift_L (-1) 0 (subst_L 0 (shift_L 1 0 unit) (shift_L 1 0 t2)))"
+  let ?s10="(\<lambda>x. if x\<ge>0 then x + 1 else x)" and
+      ?sm10 = "(\<lambda>x. if x\<ge>0 then x - 1 else x)"
+  have A:"eval1_L (unit ;; t2) (shift_L ?sm10 (subst_L 0 (shift_L ?s10 unit) (shift_L ?s10 t2)))"
     using eval1_LApp_LAbs
           "is_value_L.simps"
      by presburger
 
-  have " subst_L 0 (shift_L 1 0 unit) (shift_L 1 0 t2) = (shift_L 1 0 t2)"
-      using subst_free_var_only[of 0 "shift_L (int 1) 0 t2" "unit"]  
-            FV_shift[of 1 0 t2]
+  have B:" subst_L 0 (shift_L ?s10 unit) (shift_L ?s10 t2) = (shift_L ?s10 t2)"
+      using subst_free_var_only[of 0 "shift_L ?s10 t2" "unit"]  
+            FV_shift[of 0 1 t2]
             image_iff
       by auto
-  with A show ?thesis 
-    using shift_shift_invert
+  have C:"(\<lambda>x. if 0 \<le> x then x - 1 else x) \<circ> (\<lambda>x. if 0 \<le> x then x + 1 else x) = id" sorry
+  show ?thesis 
+    using A[unfolded B]
+          shift_comp[of ?sm10 ?s10 t2, unfolded C shift_id]
     by force        
 qed    
 
@@ -248,11 +261,14 @@ lemma eval1_LSeq_E:
 using assms
 proof (induction "(t1;;t2)" t' rule:eval1_L.induct)
   case (eval1_LApp_LAbs)
-    have "shift_L (- 1) 0 (subst_L 0 (shift_L 1 0 t1) (shift_L 1 0 t2)) = t2"
-      using subst_free_var_only[of 0 "shift_L 1 0 t2"  "shift_L 1 0 t1" ]
-            FV_shift[of 1 0 t2]
+    let ?s10="(\<lambda>x. if x\<ge>0 then x + 1 else x)" and
+        ?sm10 = "(\<lambda>x. if x\<ge>0 then x - 1 else x)"
+    have annul_fun:"(\<lambda>x. if 0 \<le> x then x - 1 else x) \<circ> (\<lambda>x. if 0 \<le> x then x + 1 else x) = id" sorry
+    have "shift_L ?sm10 (subst_L 0 (shift_L ?s10 t1) (shift_L ?s10 t2)) = t2"
+      using subst_free_var_only[of 0 "shift_L ?s10 t2"  "shift_L ?s10 t1" ]
+            FV_shift[of 0 1 t2]
             image_iff
-            shift_shift_invert
+            shift_comp[of ?sm10 ?s10, unfolded annul_fun shift_id] 
       by force
     with "eval1_LApp_LAbs.hyps" "eval1_LApp_LAbs.prems"(3)
       show ?case
@@ -262,9 +278,10 @@ qed (auto elim: eval1_L.cases)
 
 theorem has_type_LSeq: 
   "\<Gamma> \<turnstile> t1 |:| Unit \<Longrightarrow> \<Gamma> \<turnstile> t2 |:| A \<Longrightarrow> \<Gamma> \<turnstile> (t1 ;; t2) |:| A"
-    by (metis insert_nth.simps(1) less_eq_nat.simps(1) has_type_LAbs has_type_LApp
-        weakening)
-
+using has_type_LAbs has_type_LApp
+      weakening[of _ t2 A 0 Unit]
+by fastforce
+  
 (* external language definition with sequence as a term*)
 datatype ltermE =
   LETrue |
@@ -276,23 +293,23 @@ datatype ltermE =
   unitE |
   SeqE (fp: ltermE) (sp: ltermE)
 
-primrec shift_LE :: "int \<Rightarrow> nat \<Rightarrow> ltermE \<Rightarrow> ltermE" where
-  "shift_LE d c LETrue = LETrue" |
-  "shift_LE d c LEFalse = LEFalse" |
-  "shift_LE d c (LEIf t1 t2 t3) = LEIf (shift_LE d c t1) (shift_LE d c t2) (shift_LE d c t3)" |
-  "shift_LE d c (LEVar k) = LEVar (if k < c then k else nat (int k + d))" |
-  "shift_LE d c (LEAbs T' t) = LEAbs T' (shift_LE d (Suc c) t)" |
-  "shift_LE d c (LEApp t1 t2) = LEApp (shift_LE d c t1) (shift_LE d c t2)" |
-  "shift_LE d c unitE = unitE" |
-  "shift_LE d c (SeqE t1 t2) = 
-SeqE (shift_LE d c t1) (shift_LE d (Suc c) t2)"
+primrec shift_LE :: "(int \<Rightarrow> int) \<Rightarrow> ltermE \<Rightarrow> ltermE" where
+  "shift_LE F LETrue = LETrue" |
+  "shift_LE F LEFalse = LEFalse" |
+  "shift_LE F (LEIf t1 t2 t3) = LEIf (shift_LE F t1) (shift_LE F t2) (shift_LE F t3)" |
+  "shift_LE F (LEVar k) = LEVar (nat (F (int k)))" |
+  "shift_LE F (LEAbs T' t) = LEAbs T' (shift_LE (\<lambda>x. F (x-1) + 1) t)" |
+  "shift_LE F (LEApp t1 t2) = LEApp (shift_LE F t1) (shift_LE F t2)" |
+  "shift_LE F unitE = unitE" |
+  "shift_LE F (SeqE t1 t2) = 
+SeqE (shift_LE F t1) (shift_LE F t2)"
 
 primrec subst_LE :: "nat \<Rightarrow> ltermE \<Rightarrow> ltermE \<Rightarrow> ltermE" where
   "subst_LE j s LETrue = LETrue" |
   "subst_LE j s LEFalse = LEFalse" |
   "subst_LE j s (LEIf t1 t2 t3) = LEIf (subst_LE j s t1) (subst_LE j s t2) (subst_LE j s t3)" |
   "subst_LE j s (LEVar k) = (if k = j then s else LEVar k)" |
-  "subst_LE j s (LEAbs T' t) = LEAbs T' (subst_LE (Suc j) (shift_LE 1 0 s) t)" |
+  "subst_LE j s (LEAbs T' t) = LEAbs T' (subst_LE (Suc j) (shift_LE (\<lambda>x. if x\<ge>0 then x + 1 else x) s) t)" |
   "subst_LE j s (LEApp t1 t2) = LEApp (subst_LE j s t1) (subst_LE j s t2)" |
   "subst_LE j s unitE = unitE" |
   "subst_LE j s (SeqE t1 t2) = SeqE (subst_LE j s t1) (subst_LE j s t2)"
@@ -330,7 +347,7 @@ inductive eval1_LE :: "ltermE \<Rightarrow> ltermE \<Rightarrow> bool" where
     "is_value_LE v1 \<Longrightarrow> eval1_LE t2 t2' \<Longrightarrow> eval1_LE (LEApp v1 t2) (LEApp v1 t2')" |
   eval1_LEApp_LEAbs:
     "is_value_LE v2 \<Longrightarrow> eval1_LE (LEApp (LEAbs T' t12) v2)
-      (shift_LE (-1) 0 (subst_LE 0 (shift_LE 1 0 v2) t12))" |
+      (shift_LE (\<lambda>x. if x\<ge>0 then x-1 else x) (subst_LE 0 (shift_LE (\<lambda>x. if x\<ge>0 then x+1 else x) v2) t12))" |
   
   -- "Rules relating to evaluation of sequence"
   
@@ -366,7 +383,7 @@ inductive has_type_LE :: "lcontext \<Rightarrow> ltermE \<Rightarrow> ltype \<Ri
     "\<Gamma> \<turnstile>\<^sup>E unitE |:| Unit " |  
   -- "Rule relating to sequence"
   has_type_LESeqE:
-    "\<Gamma> \<turnstile>\<^sup>E t1 |:| Unit \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E t2 |:| A \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E (SeqE t1 t2) |:| A"
+    "0\<notin>FVE t2 \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E t1 |:| Unit \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E t2 |:| A \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E (SeqE t1 t2) |:| A"
 
 lemma inversionE:
   "\<Gamma> \<turnstile>\<^sup>E LETrue |:| R \<Longrightarrow> R = Bool"
@@ -376,7 +393,7 @@ lemma inversionE:
   "\<Gamma> \<turnstile>\<^sup>E LEAbs T1 t2 |:| R \<Longrightarrow> \<exists>R2. R = T1 \<rightarrow> R2 \<and> \<Gamma> |,| T1 \<turnstile>\<^sup>E t2 |:| R2"
   "\<Gamma> \<turnstile>\<^sup>E LEApp t1 t2 |:| R \<Longrightarrow> \<exists>T11. \<Gamma> \<turnstile>\<^sup>E t1 |:| T11 \<rightarrow> R \<and> \<Gamma> \<turnstile>\<^sup>E t2 |:| T11"
   "\<Gamma> \<turnstile>\<^sup>E unitE |:| R \<Longrightarrow> R = Unit"
-  "\<Gamma> \<turnstile>\<^sup>E SeqE t1 t2 |:| R \<Longrightarrow> \<exists>A. R = A \<and> \<Gamma> \<turnstile>\<^sup>E t2 |:| A \<and> \<Gamma> \<turnstile>\<^sup>E t1 |:| Unit"
+  "\<Gamma> \<turnstile>\<^sup>E SeqE t1 t2 |:| R \<Longrightarrow> \<exists>A. R = A \<and> \<Gamma> \<turnstile>\<^sup>E t2 |:| A \<and> \<Gamma> \<turnstile>\<^sup>E t1 |:| Unit \<and> 0\<notin>FVE t2"
   by (auto elim: has_type_LE.cases)
 
 lemma canonical_formsE:
@@ -386,16 +403,30 @@ lemma canonical_formsE:
 by (auto elim: has_type_LE.cases is_value_LE.cases)
   
 
+lemma FVE_shift:
+  "FVE (shift_LE (\<lambda>x. if x \<ge> c then x+d else x) t) = image (\<lambda>x. if int x \<ge> c then  nat (int x + d) else x) (FVE t)"
+proof (induction t arbitrary: c rule: ltermE.induct)
+  case (LEAbs T t)
+    show ?case 
+  (*by (auto simp: gr_Suc_conv image_iff) force+*) sorry
+qed auto
+
 lemma weakeningE:
-  "\<Gamma> \<turnstile>\<^sup>E t |:| A \<Longrightarrow> n \<le> length \<Gamma> \<Longrightarrow> insert_nth n S \<Gamma> \<turnstile>\<^sup>E shift_LE 1 n t |:| A"
+  "\<Gamma> \<turnstile>\<^sup>E t |:| A \<Longrightarrow> n \<le> length \<Gamma> \<Longrightarrow> insert_nth n S \<Gamma> \<turnstile>\<^sup>E shift_LE (\<lambda>x. if x\<ge>int n then x+1 else x) t |:| A"
 proof (induction \<Gamma> t A arbitrary: n rule: has_type_LE.induct)
   case (has_type_LEAbs \<Gamma> T1 t2 T2)
-    from has_type_LEAbs.prems has_type_LEAbs.hyps
-      has_type_LEAbs.IH[where n="Suc n"] show ?case
+    have same_fun:"(\<lambda>x. (if int n < x then x - 1 + 1 else x - 1) + 1) = (\<lambda>x. if int (Suc n) \<le> x then x + 1 else x)"
+      by force
+    show ?case
+      using has_type_LEAbs(1,3) has_type_LEAbs.IH[where n="Suc n", unfolded same_fun[symmetric]] 
       by (auto intro: has_type_LE.intros)
 next
-  case (has_type_LESeqE)
-    thus ?case sorry
+  case (has_type_LESeqE t2 \<Gamma> t1 A)
+    show ?case
+      using has_type_LESeqE(1)
+            FVE_shift[of "int n" 1 ]
+            has_type_LESeqE(4,5,6)
+      by (auto intro: has_type_LE.intros)
 qed (auto simp: nth_append min_def intro: has_type_LE.intros)
  
 (* Theorem 11.3.1 Sequence is a derived form*)
@@ -420,7 +451,7 @@ fun e::"ltermE \<Rightarrow> ltermI" where
 
 method e_elim uses rule1 = (auto intro: e.elims[OF rule1] is_value_LE.intros) 
 method sym_then_elim = match premises in I: "A = B" for A and B \<Rightarrow>
-            \<open>e_elim rule1: HOL.sym[OF I]\<close>
+            \<open>e_elim rule1: I[symmetric]\<close>
 
 lemma value_equiv: "is_value_LE v1 \<longleftrightarrow> is_value_L (e v1)" (is "?P \<longleftrightarrow> ?Q")
 proof
@@ -439,38 +470,15 @@ lemma e_inv:
   "e t = LVar x \<Longrightarrow> t = LEVar x"
   "e t = unit \<Longrightarrow> t = unitE"
   "e t = LApp t1 t2 \<Longrightarrow> \<exists>t1' t2'. e t1' = t1 \<and> e t2' = t2 \<and> t = LEApp t1' t2' 
-                        \<or> (\<exists>t3 t3'. t1 = LAbs Unit (shift_L 1 0 t3) \<and> e t3' = t3 \<and> t = SeqE t2' t3')"  
+                        \<or> (\<exists>t3 t3'. t1 = LAbs Unit (shift_L (\<lambda>x. if x\<ge>0 then x+1 else x) t3) \<and> e t3' = t3 \<and> t = SeqE t2' t3')"  
 by (auto elim: e.elims)
 
-lemma e_iso:
-  "e t = e t' \<Longrightarrow> t = t'"
-proof (induction arbitrary: t rule: ltermE.induct)
-  case (LEAbs A t1)
-    thus ?case 
-      using e_inv(4)
-      by force
-next
-  case (LEIf t0 t1 t2)
-    thus ?case
-      using e_inv(3)[of t "e t0" "e t1" "e t2"] 
-            "e.simps"(3)[of t0 t1 t2]
-      by auto
-next
-  case (LEApp t1 t2)
-    thus ?case
-      sorry
-next
-  case (SeqE t1 t2)
-    thus ?case sorry      
-qed (auto intro: e_inv)
 
 theorem e_complete:
   fixes t::ltermI
   shows "\<exists>u. e u = t"
 by (induction t)(blast intro:e.simps)+
       
-
-
 theorem equiv_type:
   "\<Gamma> \<turnstile>\<^sup>E t |:| A \<longleftrightarrow> \<Gamma> \<turnstile> (e t) |:| A" (is "?P \<longleftrightarrow> ?Q")
 proof 
@@ -567,9 +575,9 @@ next
             have H1:
               "e t' = LIf ll (e t1) (e t2) \<and> eval1_L (e c) ll \<and> e u = ll \<longrightarrow> eval1_LE (LEIf c t1 t2) (LEIf u t1 t2) \<and>
                  e u = ll \<and> t' = LEIf u t1 t2 "
-              by (metis e_iso "LEIf.IH"(1) "LEIf.prems"(2) inversion(3) eval1_LEIf "e.simps"(3))                            
+              sorry                            
             with f1 show ?thesis
-              by(auto)(metis eval1_LE.intros(1,2) e_inv(1,2,3) e_iso)+               
+              sorry               
           qed          
     next     
       case (SeqE t1 t2)
@@ -582,13 +590,9 @@ next
                     is_value_L (e t1) \<and> e t' = e t2"
               by (metis eval1_LSeq_E[OF A] e_complete) 
             have 1:"is_value_L (e t1) \<and> e t' = e t2 \<Longrightarrow> eval1_LE (SeqE t1 t2) t'"
-              by (metis ltype.inject(2) SeqE.prems(2) e.simps(8) canonical_forms(3) 
-                        e_inv(6) e_iso inversion(5,6) eval1_LE_E_Seq_Next)
-              
+              sorry
             with f1 show ?case
-                by (auto)
-                    (metis SeqE.IH(1) SeqE.prems(2)  e.simps(7,8) e_iso eval1_LE_E_Seq 
-                           inversion(6) eval1_LE_E_Seq_Next 1)+                  
+              sorry                  
           qed
     next
       case (LEApp t1 t2 t' B)
@@ -606,17 +610,10 @@ next
             have "is_value_L (e t2) \<and> e u = ll \<and> e t1 = LAbs C ll \<and> e t' = ?substll 
                     \<Longrightarrow> eval1_LE (LEApp t1 t2) ?substll1"
               using e_inv(4)[of t1 C "e u"]
-                    value_equiv[of t2]
-                    e_iso  
+                    value_equiv[of t2]  
                     eval1_LEApp_LEAbs
-              by fast
-            with f1 show ?case
-               proof  (auto)
-                  show "eval1_LE (LEApp t1 t2) (shift_LE (- 1) 0 (subst_LE 0 (shift_LE 1 0 t2) u)) \<Longrightarrow> is_value_L (e t2) \<Longrightarrow> ll = e u \<Longrightarrow> e t1 = LAbs C (e u) \<Longrightarrow> 
-                        e t' = shift_L (- 1) 0 (subst_L 0 (shift_L 1 0 (e t2)) (e u)) \<Longrightarrow> eval1_LE (LEApp t1 t2) t'"
-                  using e_iso[of "t'" "?substll1"]
-                  sorry                 
-               qed (metis LEApp.IH eval1_LE.intros(4,5) e.simps(6) LEApp.prems(2) inversion(6) e_iso value_equiv)+
+              sorry
+            with f1 show ?case sorry
           qed 
     qed
 qed    
