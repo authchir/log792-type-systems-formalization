@@ -144,15 +144,88 @@ lemma[simp]: "nat (int x - 1) = x - 1" by simp
 lemma gr_Suc_conv: "Suc x \<le> n \<longleftrightarrow> (\<exists>m. n = Suc m \<and> x \<le> m)"
   by (cases n) auto
 
+lemma toto: 
+  "n\<ge>0 \<Longrightarrow> Suc (nat n) = nat (n + 1)"
+by simp
+
 lemma shift_comp:
   "shift_L F (shift_L G t) = shift_L (F\<circ>G) t" sorry
 
 lemma FV_shift:
-  "FV (shift_L (\<lambda>x. if x \<ge> c then x+d else x) t) = image (\<lambda>x. if int x \<ge> c then  nat (int x + d) else x) (FV t)"
+  "FV (shift_L (\<lambda>x. if x \<ge> int c then x+d else x) t) = image (\<lambda>x. if x \<ge> c then  nat (int x + d) else x) (FV t)"
 proof (induction t arbitrary: c rule: ltermI.induct)
   case (LAbs T t)
+     have same_fun: "(\<lambda>x. (if int c \<le> x - 1 then x - 1 + d else x - 1) + 1) = (\<lambda>x. if int (c + 1) \<le> x then x + d else x)"
+          by force        
+  
+    have 1:" FV (shift_L (\<lambda>x. if int c \<le> x then x + d else x) (LAbs T t)) \<subseteq> (\<lambda>x. if int c \<le> int x then nat (int x + d) else x) ` FV (LAbs T t)"
+      proof 
+        fix x
+        assume H:  "x \<in> FV (shift_L (\<lambda>x. if int c \<le> x then x + d else x) (LAbs T t))"  
+        
+        obtain x1 where x1_def: "x1 \<in> (\<lambda>x. if c + 1 \<le>  x then nat (int x + d) else x) ` FV t - {0}"
+                                "x= x1 - 1 "
+          using H[unfolded shift_L.simps FV.simps same_fun LAbs image_iff Bex_def]
+          by blast
+        obtain x2 where x2_def:"x1 > 0" "x2\<in> FV t"
+                               "c + 1 \<le> x2 \<and> x1= nat (int x2 + d) \<or> \<not>c + 1 \<le>  x2 \<and> x1=x2"
+          using x1_def(1) image_iff
+          by auto
+        show "x \<in> (\<lambda>x. if int c \<le> int x then nat (int x + d) else x) ` FV (LAbs T t)"
+          by (simp add: image_iff Bex_def, rule disjE[OF x2_def(3)])
+              (insert  x1_def(2) x2_def(1,2), rule disjI1,force | force)+
+      qed
+
+    have 2:"(\<lambda>x. if int c \<le> int x then nat (int x + d) else x) ` FV (LAbs T t)  \<subseteq> FV (shift_L (\<lambda>x. if int c \<le> x then x + d else x) (LAbs T t))"
+      proof 
+        fix x
+        assume H: "x \<in> (\<lambda>x. if int c \<le> int x then nat (int x + d) else x) ` FV (LAbs T t)"
+        
+        obtain x1 x2 where x12_def: "x = nat (int x1 + d) \<and> c \<le> x1 \<or> x = x1 \<and> \<not>c \<le> x1"
+                                    "x2\<in> FV t - {0}" "x1 = x2 - 1"
+          using H[unfolded FV.simps image_iff Bex_def] 
+                if_splits(1)[where P="\<lambda>y. x = y"]
+          by auto
+        have s:"int (c+1) = 1 + int c" by simp
+       
+        
+          
+        show "x \<in> FV (shift_L (\<lambda>x. if int c \<le> x then x + d else x) (LAbs T t))"
+          apply (rule disjE[OF x12_def(1)])
+          prefer 2
+          apply (simp add: same_fun[simplified]  LAbs[of "c+1", unfolded s] image_iff Bex_def)
+          using x12_def(2,3)                     
+          apply force
+          apply (simp add: same_fun[simplified] LAbs[of "c+1", unfolded s] image_iff Bex_def)
+          apply (cases "int x1 + d\<ge>0")
+          apply rule
+          apply rule
+          prefer 2
+          using x12_def(2,3)
+          apply force
+          apply rule
+          apply rule
+          using x12_def(2,3) toto[of "int (x2 - Suc 0) + d"]
+          apply auto[1]
+          apply (simp add: Suc_leI  of_nat_diff)
+          apply rule
+          apply rule
+          prefer 2
+          using x12_def(2,3)
+          apply force
+          apply rule
+          apply rule
+          using x12_def(2,3)
+          (*
+              from \<not> 0 \<le> int x1 + d \<rightarrow> d' > int x1 where obtain d' = -d (\<ge>0)
+              from x1 = x2 - 1 \<rightarrow> int (x2-1) < d'\<rightarrow> x2 \<le> d'
+              Suc 0 = nat (int x1 + d) \<rightarrow> Suc 0 = nat (int (x2 - 1) + d)
+              given nat (int (d'+1) +d) = Suc 0 \<rightarrow> x2 = d'+2 contradiction with x2 \<le> d'
+          *)          
+          sorry
+      qed
     show ?case 
-  (*by (auto simp: gr_Suc_conv image_iff) force+*) sorry
+      by(rule, insert 1 2, auto)
 qed auto
 
 lemma FV_subst:
