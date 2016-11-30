@@ -581,9 +581,6 @@ next
   show "?Q \<Longrightarrow> ?P" sorry
 qed
 
-lemma e_bij_on_val:
-  "is_value_LE t1 \<Longrightarrow> is_value_LE t2 \<Longrightarrow> e t1 = e t2 \<Longrightarrow> t1 = t2"
-sorry
 
 
 theorem Progress:
@@ -598,103 +595,118 @@ theorem eval1_L_det:
   "eval1_L t t1 \<Longrightarrow> eval1_L t t2 \<Longrightarrow> t1 = t2"
 sorry
 
-theorem lolo: "(eval1_LE t t') \<Longrightarrow> (eval1_L (e t) (e t'))"
+theorem eval1_L_to_eval1_LE :
+  fixes   t t'::ltermE
+  shows   "(eval1_LE t t') \<Longrightarrow> (eval1_L (e t) (e t'))" (is "?P \<Longrightarrow> ?Q")
+proof (induction t arbitrary: t' A)
+  case (LEIf t1 t2 t3) 
+    obtain ll :: ltermE where
+      f1: "t1 = LETrue \<and> t2 = t' \<or> t1 = LEFalse \<and> t3 = t' \<or> t' = LEIf ll t2 t3 \<and> eval1_LE t1 ll"
+      by (metis LEIf(4) eval1_LEIf_E)       
+    have "t' = LEIf ll t2 t3 \<and> eval1_LE t1 ll \<longrightarrow> eval1_L (LIf (e t1) (e t2) (e t3)) (LIf (e ll) (e t2) (e t3))"
+      using LEIf.IH(1) eval1_LIf
+        by blast
+    with f1 show ?case
+      by (auto intro: "eval1_L.intros"(1,2))            
+     
+next       
+  case (LEApp t1 t2 t')       
+    
+    let ?s10 = "\<lambda>x. if x \<ge> 0 then x+1 else x" and ?sm10="\<lambda>x. if x \<ge> 0 then x-1 else x"
+    obtain ll :: ltermE  and A::ltype where
+      f1: "t' = LEApp ll t2 \<and> eval1_LE t1 ll
+            \<or>  t' = LEApp t1 ll \<and> is_value_LE t1 \<and> eval1_LE t2 ll \<or> 
+                t' = shift_LE ?sm10 (subst_LE 0 (shift_LE ?s10 t2) ll) \<and> is_value_LE t2 \<and> t1 = LEAbs A ll"
+      using eval1_LEApp_E[OF LEApp(3), of thesis]
+      by blast
+    let ?substll="shift_LE ?sm10 (subst_LE 0 (shift_LE ?s10 t2) ll)"
+   
+    have "t' = ?substll \<and> is_value_LE t2 \<and> t1 = LEAbs A ll
+            \<longrightarrow> eval1_L (LApp (e t1) (e t2)) (e ?substll)"  
+      using value_equiv[of t2] 
+            eval1_LApp_LAbs[of "e t2" A "e ll", unfolded e_shift[symmetric] e_subst[symmetric]]
+      by auto      
+    with f1 show ?case
+      by(auto)
+        (metis "LEApp.IH"  eval1_L.intros(4,5) value_equiv)+
+next
+  case (SeqE t1 t2)
+    
+    obtain ll :: ltermE where
+      f1: "t' = SeqE ll t2 \<and> eval1_LE t1 ll \<or> t2 = t' \<and> t1 = unitE"
+      by (metis eval1_LESeq_E SeqE(3))
+    
+    then show ?case
+      using eval1_Lseq SeqE(1) eval1_Lseq_next
+      by force  
+qed (auto elim: eval1_LE.cases)
+
+fun subterms:: "ltermE \<Rightarrow> ltermE list" where
+"subterms (LEIf c t1 t2) = [c,t1, t2]"|
+"subterms (LEApp t1 t2) = [t1,t2]"|
+"subterms (LEAbs A t)   = [t]"|
+"subterms (SeqE t1 t2)  = [t1, t2]" |
+"subterms t = []"
+
+abbreviation term_equiv:: "ltermE\<Rightarrow>ltermE\<Rightarrow>bool" ("(_)/ \<cong>/ (_)" [200,202] 200) where
+"t \<cong> t1 \<equiv> (\<forall>\<Gamma> A t2. \<Gamma> \<turnstile>\<^sup>E t |:| A = \<Gamma> \<turnstile>\<^sup>E t1 |:| A \<and> eval1_LE t t2 = eval1_LE t1 t2)"
+
+lemma equiv_subterms_comp:
+  "(\<And>i. i<length (subterms t) \<Longrightarrow> length (subterms t) = length (subterms t') \<Longrightarrow> (subterms t ! i) \<cong> (subterms t' ! i))
+    \<Longrightarrow> t \<cong> t'"
 sorry
 
-theorem equiv_eval :
+theorem sym_equiv[sym]:
+  "(t \<cong> t') \<Longrightarrow> (t' \<cong> t)"
+by blast
+
+print_attributes
+
+lemma e_equiv:
+  "e t1 = e t2 \<Longrightarrow> t1 \<cong> t2" sorry
+
+lemma eval1_LE_to_sim_eval1_L:
   fixes   t t'::ltermE
-  assumes welltyped: "\<Gamma> \<turnstile> (e t) |:| A" 
-  shows   "(eval1_LE t t') \<longleftrightarrow> (eval1_L (e t) (e t'))" (is "?P \<longleftrightarrow> ?Q")
-proof 
-  let ?s10 = "\<lambda>x. if x \<ge> 0 then x+1 else x" and ?sm10="\<lambda>x. if x \<ge> 0 then x-1 else x"
-  show "?P \<Longrightarrow> ?Q"
-    proof(induction t arbitrary: t' A)
-      case (LEIf t1 t2 t3) 
-        obtain ll :: ltermE where
-          f1: "t1 = LETrue \<and> t2 = t' \<or> t1 = LEFalse \<and> t3 = t' \<or> t' = LEIf ll t2 t3 \<and> eval1_LE t1 ll"
-          by (metis LEIf(4) eval1_LEIf_E)       
-        have "t' = LEIf ll t2 t3 \<and> eval1_LE t1 ll \<longrightarrow> eval1_L (LIf (e t1) (e t2) (e t3)) (LIf (e ll) (e t2) (e t3))"
-          using LEIf.IH(1) eval1_LIf
-            by blast
-        with f1 show ?case
-          by (auto intro: "eval1_L.intros"(1,2))            
-         
-    next       
-      case (LEApp t1 t2 t')       
-        obtain ll :: ltermE  and A::ltype where
-          f1: "t' = LEApp ll t2 \<and> eval1_LE t1 ll
-                \<or>  t' = LEApp t1 ll \<and> is_value_LE t1 \<and> eval1_LE t2 ll \<or> 
-                    t' = shift_LE ?sm10 (subst_LE 0 (shift_LE ?s10 t2) ll) \<and> is_value_LE t2 \<and> t1 = LEAbs A ll"
-          using eval1_LEApp_E[OF LEApp(3), of thesis]
-          by blast
-        let ?substll="shift_LE ?sm10 (subst_LE 0 (shift_LE ?s10 t2) ll)"
-       
-        have "t' = ?substll \<and> is_value_LE t2 \<and> t1 = LEAbs A ll
-                \<longrightarrow> eval1_L (LApp (e t1) (e t2)) (e ?substll)"  
-          using value_equiv[of t2] 
-                eval1_LApp_LAbs[of "e t2" A "e ll", unfolded e_shift[symmetric] e_subst[symmetric]]
-          by auto      
-        with f1 show ?case
-          by(auto)
-            (metis "LEApp.IH"  eval1_L.intros(4,5) value_equiv)+
-    next
-      case (SeqE t1 t2)
-        
-        obtain ll :: ltermE where
-          f1: "t' = SeqE ll t2 \<and> eval1_LE t1 ll \<or> t2 = t' \<and> t1 = unitE"
-          by (metis eval1_LESeq_E SeqE(3))
-        
-        then show ?case
-          using eval1_Lseq SeqE(1) eval1_Lseq_next
-          by force  
-          
-    qed (auto elim: eval1_LE.cases)
+  shows   "(eval1_L (e t) (e t')) \<Longrightarrow>\<exists>t1. (eval1_LE t t1) \<and> (t' \<cong> t1)" 
+proof (induction "e t" "e t'" arbitrary: t t' rule: eval1_L.induct)
+  case (eval1_LApp1)
+    thus ?case sorry
 next
-  let ?s10 = "\<lambda>x. if x \<ge> 0 then x+1 else x" and ?sm10="\<lambda>x. if x \<ge> 0 then x-1 else x"
-  from welltyped show "?Q \<Longrightarrow> ?P"
-    proof(induction t arbitrary:t' A)
-      case (LEIf c t1 t2)           
-        obtain ll :: ltermI and u::ltermE where
-               f1: "e c = LTrue \<and> e t1 = e t' \<or> e c= LFalse \<and> e t2 = e t' \<or> e t' = LIf ll (e t1) (e t2) \<and> eval1_L (e c) ll \<and> e u = ll"
-          using eval1_LIf_E[of "e c" "e t1" "e t2" "e t'"] LEIf(4) e_surjective
-          by fastforce
-        note args_types=LEIf(5)[unfolded e.simps has_type_L.simps[of _ "LIf (e c) (e t1) (e t2)", simplified]]
-             
-        show ?case
-          using f1
-          apply auto
-          using Progress[OF conjunct1[OF conjunct2[OF args_types]]]
-          apply auto[1]
-          sorry
-    next        
-      case (SeqE t1 t2)
-        hence A:"eval1_L (e t1;;e t2) (e t')" by simp
-        have 1:"is_value_L (e t1) \<and> e t' = e t2 \<Longrightarrow> eval1_LE (SeqE t1 t2) t'"
-          sorry
-        show ?case
-          using A[unfolded eval1_L.simps[of "e t1 ;; e t2" "e t'", simplified]]
-          apply auto
-          
-          sorry                  
-    next
-      case (LEApp t1 t2 t' B)
-        hence H: "eval1_L (LApp (e t1) (e t2)) (e t')"
-          by simp
-        obtain ll :: ltermI and u::ltermE and C::ltype where
-          f1: "e u = ll \<and> eval1_L (e t1) ll \<and> e t' = LApp ll (e t2)  \<or> 
-                e u = ll \<and> is_value_L (e t1) \<and> eval1_L (e t2) ll \<and> e t' = LApp (e t1) ll \<or>
-                is_value_L (e t2) \<and> e u = ll  \<and> e t1 = LAbs C ll \<and> e t' = shift_L ?sm10 (subst_L 0 (shift_L ?s10 (e t2)) ll)"
-          using eval1_LApp_E[OF H] e_surjective
-          sorry
-        let ?substll = "shift_L ?sm10 (subst_L 0 (shift_L ?s10 (e t2)) (e u))"
-            and ?substll1 = "shift_LE ?sm10 (subst_LE 0 (shift_LE ?s10 t2) u)"
-        have "is_value_L (e t2) \<and> e u = ll \<and> e t1 = LAbs C ll \<and> e t' = ?substll 
-                \<Longrightarrow> eval1_LE (LEApp t1 t2) ?substll1"
-          using e_inv(4)[of t1 C "e u"]
-                value_equiv[of t2]  
-                eval1_LEApp_LEAbs
-          sorry
-        with f1 show ?case sorry         
-    qed (insert eval1_L.cases, fastforce)+
-qed    
+  case (eval1_LApp2)
+    thus ?case sorry
+next
+  case (eval1_LApp_LAbs)
+    thus ?case sorry
+next
+  case (eval1_LIf c c1 t1 t2)
+    note H=this
+    obtain c' t1' t2' where invs_t: "c =e c'" "e t1' = t1" "t = LEIf c' t1' t2'" "e t2' = t2"
+      using e_inv(3)[OF H(3)[symmetric]]
+      by blast
+    obtain c1' t1'' t2'' where invs_t': "c1 = e c1'" "t1 = e t1''" "t' = LEIf c1' t1'' t2''" "t2 = e t2''"
+      using e_inv(3)[OF H(4)[symmetric]]
+      by blast
+
+    note invs_t = invs_t[unfolded invs_t']
+
+    obtain c2 where cdt_equi:"eval1_LE c' c2" "c1' \<cong> c2"
+      using H(2)[OF invs_t(1) invs_t'(1)]
+      by blast
+    have equi:"\<And>i. i < length (subterms t') \<Longrightarrow> length (subterms t') = length [c2, t1', t2'] \<Longrightarrow> (subterms t' ! i) \<cong> ([c2, t1', t2'] ! i)"
+      proof -
+        fix i
+        assume  inf_len:"i<length (subterms t')" and same_len:"length (subterms t') = length [c2, t1', t2']"
+        hence "i=0 \<or> i=1 \<or> i=2" by auto
+        thus "(subterms t' ! i) \<cong> ([c2, t1', t2'] ! i)"
+          using invs_t'(3) e_equiv[OF invs_t(2), symmetric] e_equiv[OF invs_t(4), symmetric]
+                cdt_equi(2)
+          by force
+      qed
+    show ?case
+      using eval1_LE.intros(3)[OF cdt_equi(1),of t1' t2'] invs_t(3)
+             equiv_subterms_comp[of t' "LEIf c2 t1' t2'", unfolded "subterms.simps"]
+            equi
+      by blast            
+qed (match premises in I: "A = B" for A and B \<Rightarrow> \<open> insert I[symmetric] e_equiv eval1_LE.intros
+            e_inv(1-3), metis \<close>)+
 
