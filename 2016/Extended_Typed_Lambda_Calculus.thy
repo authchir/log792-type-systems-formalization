@@ -450,7 +450,14 @@ qed
 
 lemma FV_equiv:
   "FV (e t) = FVE t"
-sorry
+proof (induction t)
+  case (SeqE t1 t2)
+    have "(\<lambda>x. x - Suc 0) ` (Suc ` FVE t2 - {0}) = FVE t2" 
+      by force
+    thus ?case
+      using FV_shift[of 1 0 "e t2"] SeqE
+      by auto
+qed auto
 
 lemma e_inv:
   "e t = LTrue \<Longrightarrow> t = LETrue"
@@ -461,30 +468,76 @@ lemma e_inv:
   "e t = unit \<Longrightarrow> t = unitE"
   "e t = LApp t1 t2 \<Longrightarrow> \<exists>t1' t2'. e t1' = t1 \<and> e t2' = t2 \<and> t = LEApp t1' t2' 
                         \<or> 
-       (\<exists>t3 t3'. t1 = LAbs Unit (shift_L 1 0 t3) \<and> e t3' = t3 \<and> t = SeqE t2' t3')"  
+       (\<exists>t3 t3'. t1 = LAbs Unit (shift_L 1 0 t3) \<and> e t2' = t2 \<and> e t3' = t3 \<and> t = SeqE t2' t3')"  
 by (auto elim: e.elims)
 
 lemma shift_suc:
-  "c\<ge>c1 \<Longrightarrow> int c + d \<ge> int c1 \<Longrightarrow> shift_L d (Suc c) (shift_L 1 c1 t) = shift_L 1 c1 (shift_L d c t)"
-by (induction t arbitrary: c c1, auto)
+  "(\<And>x. x\<in>FV t \<Longrightarrow> x\<ge> c \<Longrightarrow> int x \<ge> -d \<and> int x + d \<ge> int c1) \<Longrightarrow> c\<ge>c1 \<Longrightarrow>  shift_L d (Suc c) (shift_L 1 c1 t) = shift_L 1 c1 (shift_L d c t)"
+proof (induction t arbitrary: c c1)
+  case (LVar x1)
+    show ?case
+      using LVar(1)[of x1] LVar(2)
+      by auto
+next
+  case (LAbs A t)
+    
+    have "\<And>x. x \<in> FV t \<Longrightarrow> Suc c \<le> x \<Longrightarrow> - d \<le> int x \<and> int x + d \<ge> int (Suc c1)"
+      proof -
+        fix x
+        assume hyps: "x\<in>FV t" "Suc c \<le> x"
+        
+        have "x\<noteq>0" using hyps(2) by auto
+        
+        then show "-d \<le> int x \<and> int x + d \<ge> int (Suc c1)"
+          using LAbs(2)[of "x-1", unfolded FVE.simps image_iff, simplified] hyps
+          by force
+      qed
+    then show ?case
+      using LAbs(1)[of "Suc c" "Suc c1"]
+            LAbs(3)
+      by force
+qed auto
+
 
 lemma e_shift:
-  "int 0 \<le> int c + d \<Longrightarrow> e (shift_LE d c t) = shift_L d c (e t)" 
-   
-proof -
-  show "int 0 \<le> int c + d \<Longrightarrow> e (shift_LE d c t) = shift_L d c (e t)"
-    proof (induction t arbitrary: c)
-      case (SeqE t1 t2)    
-        show ?case
-          using shift_suc[of 0 c d "e t2", OF _ SeqE(3)] SeqE
-          by auto  
-    qed auto
+  "(\<And>x. x\<in>FVE t \<Longrightarrow> x\<ge> c \<Longrightarrow> int x \<ge> -d) \<Longrightarrow> e (shift_LE d c t) = shift_L d c (e t)" 
+proof (induction t arbitrary: c)
+  case (LEAbs A t)
+    have "\<And>x. x \<in> FVE t \<Longrightarrow> Suc c \<le> x \<Longrightarrow> - d \<le> int x"
+      proof -
+        fix x
+        assume hyps: "x\<in>FVE t" "Suc c \<le> x"
+        
+        have "x\<noteq>0" using hyps(2) by auto
+        
+        then show "-d \<le> int x"
+          using LEAbs(2)[of "x-1", unfolded FVE.simps image_iff, simplified] hyps
+          by force
+      qed
+    then show ?case
+      using LEAbs(1)[of "Suc c"]
+      by auto
+next
+  case (SeqE t1 t2)    
+    have A:"(\<lambda>x. x - 1) ` (FV (shift_L 1 0 (e t2)) - {0}) = FV (e t2)"
+      using FV_shift[of 1 0 "e t2"]
+      by (auto, smt Diff_empty Diff_insert0 One_nat_def diff_Suc_1 imageE image_insert 
+                    insert_iff mk_disjoint_insert nat.simps(3))
 
-qed
+    show ?case
+      using shift_suc[of "e t2" c d 0] 
+            SeqE[unfolded FV_equiv[symmetric] e.simps FV.simps A]
+      by force
+qed auto
+
+lemma shift_subst_suc: 
+  "j\<ge>c \<Longrightarrow> shift_L 1 c (subst_L j v t) = subst_L (Suc j) (shift_L 1 c v) (shift_L 1 c t)"
+by (induction t arbitrary: c j v, auto simp: shift_suc)
 
 lemma e_subst:
   "e (subst_LE j s t) = subst_L j (e s) (e t)"
-sorry
+by (induction t arbitrary: j s, auto simp: e_shift shift_subst_suc)
+
 
 theorem e_surjective:
   fixes t::ltermI
@@ -500,41 +553,28 @@ next
 qed
 
 
-
-theorem Progress:
-  "\<Gamma> \<turnstile> t |:| A \<Longrightarrow> is_value_L t \<or> (\<exists>t'. eval1_L t t')"
-sorry
-
-theorem ProgressE:
-  "\<Gamma> \<turnstile>\<^sup>E t |:| A \<Longrightarrow> is_value_LE t \<or> (\<exists>t'. eval1_LE t t')"
-sorry
-
-theorem eval1_L_det:
-  "eval1_L t t1 \<Longrightarrow> eval1_L t t2 \<Longrightarrow> t1 = t2"
-sorry
-
 theorem eval1_L_to_eval1_LE :
   fixes   t t'::ltermE and \<Gamma>::lcontext
-  assumes "\<Gamma> \<turnstile>\<^sup>E t |:| A" and "(eval1_LE t t')"
+  assumes "(eval1_LE t t')"
   shows   "(eval1_L (e t) (e t'))" 
-using assms(2,1)
+using assms
 proof (induction t t' arbitrary: A rule: eval1_LE.induct)
-  case (eval1_LE_E_Seq t1 t1' t2)
-    note hyps = this and
-         inv_type = has_type_LE.simps[of \<Gamma> "SeqE t1 t2", simplified]
-    show ?case 
-      using hyps(3)[unfolded inv_type,THEN conjunct2,THEN conjunct1]
-            hyps(2) eval1_Lseq
-      by simp
-next
-  case (eval1_LE_E_Seq_Next t2)
-    note hyps = this and
-         inv_type = has_type_LE.simps[of \<Gamma> "SeqE unitE t2", simplified]
-    show ?case
-      using eval1_Lseq_next hyps[unfolded inv_type, THEN conjunct1, unfolded FV_equiv[symmetric]]
-            e_shift[of 0] FV_equiv
+  case (eval1_LEApp_LEAbs v2 A1 t1)
+    note hyp=this(1)
+
+    have "\<And>x. x \<in> (if 0 \<in> FV (e t1) then FV (e t1) - {0} \<union> FV (e (shift_LE 1 0 v2)) else FV (e t1)) \<Longrightarrow> 1 \<le> int x"
+      using FV_shift[of 1 0 "e v2"] e_shift[of v2 0 1, simplified]
+      by (cases "0\<in> FV (e t1)") (auto, smt of_nat_le_0_iff)
+        
+    then show ?case
+      using e_shift[of v2 0 1, simplified]
+            e_subst
+            e_shift[of "(subst_LE 0 (shift_LE 1 0 v2) t1)" 0 "-1", 
+                    unfolded FV_equiv[symmetric] e_subst FV_subst, simplified]
+            eval1_LApp_LAbs[OF hyp[unfolded value_equiv]]
       by auto
-qed (auto intro: eval1_L.intros elim: has_type_LE.cases simp: value_equiv e_shift e_subst)
+qed (auto intro: eval1_L.intros eval1_Lseq eval1_Lseq_next elim: has_type_LE.cases simp: value_equiv e_shift e_subst)
+
 
 fun subterms:: "ltermE \<Rightarrow> ltermE list" where
 "subterms (LEIf c t1 t2) = [c,t1, t2]"|
@@ -555,10 +595,156 @@ theorem sym_equiv[sym]:
   "(t \<cong> t') \<Longrightarrow> (t' \<cong> t)"
 by blast
 
-print_attributes
+theorem trans_equiv:
+  "(t \<cong> t1) \<Longrightarrow> (t1 \<cong> t2) \<Longrightarrow> (t \<cong> t2)"
+by blast
+
+lemma derive_form_equiv:
+  "LEApp (LEAbs Unit (shift_LE 1 0 t2)) t1 \<cong> SeqE t1 t2" sorry
+
+method value_equiv_elim = (match premises in H:"e A = e B" for A and B \<Rightarrow>
+              \<open>insert equiv_subterms_comp[of A B], simp\<close>
+            )
 
 lemma e_equiv:
-  "e t1 = e t2 \<Longrightarrow> t1 \<cong> t2" sorry
+  "e t1 = e t2 \<Longrightarrow> t1 \<cong> t2"
+proof (induction t1 arbitrary: t2)
+  case (LEIf c t1' t2')
+    obtain c1 t11 t22 where H:"e c = e c1" "e t1'= e t11" "t2 = LEIf c1 t11 t22"  "e t2' = e t22"
+      using e_inv(3)[OF LEIf(4)[symmetric, simplified]]
+      by force
+    have "\<And>i. i < length (subterms (LEIf c t1' t2')) \<Longrightarrow>
+          length (subterms (LEIf c t1' t2')) = length (subterms (LEIf c1 t11 t22)) \<Longrightarrow>
+          (subterms (LEIf c t1' t2') ! i) \<cong> (subterms (LEIf c1 t11 t22) ! i)"
+      proof -
+        fix i
+        assume "i < length (subterms (LEIf c t1' t2'))" "length (subterms (LEIf c t1' t2')) = length (subterms (LEIf c1 t11 t22))"
+        hence "i=0 \<or> i=1 \<or> i =2" by auto
+        thus "(subterms (LEIf c t1' t2') ! i) \<cong> (subterms (LEIf c1 t11 t22) ! i)"
+          using "LEIf.IH" H(1,2,4)
+          by auto
+      qed
+    then show ?case
+      using equiv_subterms_comp[of "LEIf c t1' t2'" t2, unfolded H(3)]
+            H(3)
+      by auto      
+next
+  case (LEAbs A t)
+    obtain t' where "t2 = LEAbs A t'" "e t = e t'"
+      using e_inv(4)[OF LEAbs(2)[symmetric, simplified]]
+      by force
+    thus ?case 
+      using  equiv_subterms_comp[of "LEAbs A t" "LEAbs A _",unfolded "subterms.simps"]
+             LEAbs(1)
+      by force
+next
+  case (LEApp t1' t2')
+    obtain t11 t22 t3 t33 where case_split:" e t1'= e t11 \<and> e t2'= e t22 \<and> t2 = LEApp t11 t22 \<or>
+     (e t1' = e (LEAbs Unit (shift_LE 1 0 t33)) \<and> e t2' = e t22 \<and> e t33 = t3 \<and> t2 = SeqE t22 t33)"
+      using e_inv(7)[OF LEApp(3)[symmetric, simplified]] 
+            e_shift[of _ 0 1, simplified] e.simps(5)[symmetric]
+      by fastforce
+    have "e t1'= e t11 \<and> e t2'= e t22 \<and> t2 = LEApp t11 t22 \<Longrightarrow>(\<And>i. i < length (subterms (LEApp t1' t2')) \<Longrightarrow>
+          length (subterms (LEApp t1' t2')) = length (subterms (LEApp t11 t22)) \<Longrightarrow>
+          (subterms (LEApp t1' t2') ! i) \<cong> (subterms (LEApp t11 t22) ! i))"
+      proof 
+        fix i \<Gamma>
+        assume hyps:"e t1' = e t11 \<and> e t2' = e t22 \<and> t2 = LEApp t11 t22"
+               "i < length (subterms (LEApp t1' t2'))"
+               "length (subterms (LEApp t1' t2')) = length (subterms (LEApp t11 t22))"
+        hence "i=0\<or>i=1" by auto
+        then show "\<forall>A t2. \<Gamma> \<turnstile>\<^sup>E (subterms (LEApp t1' t2') ! i) |:| A = \<Gamma> \<turnstile>\<^sup>E (subterms (LEApp t11 t22) ! i) |:| A \<and>
+                  eval1_LE (subterms (LEApp t1' t2') ! i) t2 = eval1_LE (subterms (LEApp t11 t22) ! i) t2"
+          using LEApp(1,2) hyps(1)
+          by force
+      qed
+    hence 1:"e t1'= e t11 \<and> e t2'= e t22 \<and> t2 = LEApp t11 t22 \<Longrightarrow> ?case"
+      using  equiv_subterms_comp[of "LEApp t1' t2'" "LEApp t11 t22"]
+      by auto
+    
+    have "e t1' = e (LEAbs Unit (shift_LE 1 0 t33)) \<and> e t2' = e t22 \<and> e t33 = t3 \<and> t2 = SeqE t22 t33 \<Longrightarrow> 
+          (\<And>i. i < length (subterms (LEApp t1' t2')) \<Longrightarrow>
+          length (subterms (LEApp t1' t2')) = length (subterms (LEApp (LEAbs Unit (shift_LE 1 0 t33)) t22)) \<Longrightarrow>
+          (subterms (LEApp t1' t2') ! i) \<cong> (subterms (LEApp (LEAbs Unit (shift_LE 1 0 t33)) t22) ! i))"
+      proof 
+        fix i \<Gamma>
+        assume hyps:"e t1' = e (LEAbs Unit (shift_LE 1 0 t33)) \<and> e t2' = e t22 \<and> e t33 = t3 \<and> t2 = SeqE t22 t33"
+               "i < length (subterms (LEApp t1' t2'))"
+               "length (subterms (LEApp t1' t2')) = length (subterms (LEApp (LEAbs Unit (shift_LE 1 0 t33)) t22))"
+        hence "i=0\<or>i=1" by auto
+        then show "\<forall>A t2. \<Gamma> \<turnstile>\<^sup>E (subterms (LEApp t1' t2') ! i) |:| A = \<Gamma> \<turnstile>\<^sup>E (subterms (LEApp (LEAbs Unit (shift_LE 1 0 t33)) t22) ! i) |:| A \<and>
+                  eval1_LE (subterms (LEApp t1' t2') ! i) t2 = eval1_LE (subterms (LEApp (LEAbs Unit (shift_LE 1 0 t33)) t22) ! i) t2"
+           using LEApp(1)[OF hyps(1)[THEN conjunct1]] LEApp(2)[OF hyps(1)[THEN conjunct2, THEN conjunct1]]
+           by force
+      qed
+    hence "e t1' = e (LEAbs Unit (shift_LE 1 0 t33)) \<and> e t2' = e t22 \<and> e t33 = t3 \<and> t2 = SeqE t22 t33 \<Longrightarrow> LEApp t1' t2' \<cong> LEApp (LEAbs Unit (shift_LE 1 0 t33)) t22"
+      using equiv_subterms_comp[of "LEApp t1' t2'" "LEApp (LEAbs Unit (shift_LE 1 0 t33)) t22"]
+      by auto
+    hence "e t1' = e (LEAbs Unit (shift_LE 1 0 t33)) \<and> e t2' = e t22 \<and> e t33 = t3 \<and> t2 = SeqE t22 t33 \<Longrightarrow> ?case"
+      using trans_equiv[OF _ derive_form_equiv[of t33 t22],of "LEApp t1' t2'"]
+            equiv_subterms_comp[of "LEApp t1' t2'" "LEApp (LEAbs Unit (shift_LE 1 0 t33)) t22"]
+      by presburger
+    with case_split 1 show ?case by auto
+next
+  case (SeqE t1' t2')
+    let ?fpart ="LAbs Unit (shift_L 1 0 (e t2'))"
+    obtain t11 t22 t3 t33 where case_split:" ?fpart= e t11 \<and> e t1'= e t22 \<and> t2 = LEApp t11 t22 \<or>
+     (e t2' = t3 \<and> e t1' = e t22 \<and> e t33 = t3 \<and> t2 = SeqE t22 t33)"
+      using e_inv(7)[OF SeqE(3)[symmetric, simplified], simplified]
+            shift_shift_invert[of 1 0 "e t2'"] shift_shift_invert[of 1 0 _]
+      by fastforce
+    have "?fpart= e t11 \<and> e t1'= e t22 \<and> t2 = LEApp t11 t22 \<Longrightarrow>(\<And>i. i < length (subterms (SeqE t1' t2')) \<Longrightarrow>
+          length (subterms (SeqE t1' t2')) = length (subterms (LEApp t11 t22)) \<Longrightarrow>
+          (subterms (SeqE t1' t2') ! i) \<cong> (subterms (LEApp t11 t22) ! i))"
+      proof 
+        fix i \<Gamma>
+        assume hyps:"?fpart= e t11 \<and> e t1'= e t22 \<and> t2 = LEApp t11 t22"
+               "i < length (subterms (SeqE t1' t2'))"
+               "length (subterms (SeqE t1' t2')) = length (subterms (LEApp t11 t22))"
+        hence 1:"i=0\<or>i=1" by auto
+        obtain t11' where t11_def:"t11 = LEAbs Unit t11'" "e t11' = shift_L 1 0 (e t2')"
+          using e_inv(4)[of t11 Unit "shift_L 1 0 (e t2')"] hyps(1)
+          by auto
+        have "\<And>x. x\<in>FV (e t11') \<Longrightarrow> x\<ge> 1"
+          using t11_def(2) FV_shift[of 1 0 "e t2'"]
+          by force
+        hence eq:"e t2' = e(shift_LE (-1) 0 t11')"
+          using e_shift[of t11' 0 "-1", unfolded FV_equiv[symmetric]]
+                t11_def(2) shift_shift_invert[of 1 0 "e t2'", simplified]
+          by fastforce
+        with 1 show "\<forall>A t2. \<Gamma> \<turnstile>\<^sup>E (subterms (SeqE t1' t2') ! i) |:| A = \<Gamma> \<turnstile>\<^sup>E (subterms (LEApp t11 t22) ! i) |:| A \<and>
+                  eval1_LE (subterms (SeqE t1' t2') ! i) t2 = eval1_LE (subterms (LEApp t11 t22) ! i) t2"
+          using SeqE(1) hyps(1)[simplified] t11_def 
+                SeqE(2)[OF eq] has_type_LE.simps[of _ "SeqE t1' t2'", simplified]
+                has_type_LEAbs[of Unit _ t11]
+         
+          sorry
+      qed
+    hence 1:"?fpart= e t11 \<and> e t1'= e t22 \<and> t2 = LEApp t11 t22 \<Longrightarrow> ?case"
+      using equiv_subterms_comp[of "SeqE t1' t2'" "LEApp t11 t22"]      
+      by auto
+    have "e t2' = t3 \<and> e t1' = e t22 \<and> e t33 = t3 \<and> t2 = SeqE t22 t33 \<Longrightarrow> 
+          (\<And>i. i < length (subterms (SeqE t1' t2')) \<Longrightarrow>
+          length (subterms (SeqE t1' t2')) = length (subterms (SeqE t22 t33)) \<Longrightarrow>
+          (subterms (SeqE t1' t2') ! i) \<cong> (subterms (SeqE t22 t33) ! i))"
+      proof 
+        fix i \<Gamma>
+        assume hyps:"e t2' = t3 \<and> e t1' = e t22 \<and> e t33 = t3 \<and> t2 = SeqE t22 t33"
+               "i < length (subterms (SeqE t1' t2'))"
+               "length (subterms (SeqE t1' t2')) = length (subterms (SeqE t22 t33))"
+        hence "i=0\<or>i=1" by auto
+        then show "\<forall>A t2. \<Gamma> \<turnstile>\<^sup>E (subterms (SeqE t1' t2') ! i) |:| A = \<Gamma> \<turnstile>\<^sup>E (subterms (SeqE t22 t33) ! i) |:| A \<and>
+                  eval1_LE (subterms (SeqE t1' t2') ! i) t2 = eval1_LE (subterms (SeqE t22 t33) ! i) t2"
+           using SeqE(1)[OF hyps(1)[THEN conjunct2, THEN conjunct1]]
+                 SeqE(2)[OF hyps(1)[THEN conjunct1, 
+                          unfolded hyps(1)[THEN conjunct2, THEN conjunct2, THEN conjunct1, symmetric]]]
+           by force
+      qed
+    hence "e t2' = t3 \<and> e t1' = e t22 \<and> e t33 = t3 \<and> t2 = SeqE t22 t33 \<Longrightarrow> ?case"
+      using equiv_subterms_comp[of "SeqE t1' t2'" "SeqE t22 t33"]
+      by auto
+    with case_split 1 show ?case by auto
+qed value_equiv_elim+
 
 lemma eval1_LE_to_sim_eval1_L:
   fixes   t t'::ltermE
