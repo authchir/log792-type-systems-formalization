@@ -171,7 +171,7 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> pcontext \<R
   has_type_LAscribe:
     "\<Gamma> \<turnstile> \<lparr>t1|;|fill \<delta>\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t1 as A|;|fill \<delta>\<rparr> |:| A" |
   has_type_Let:
-    "\<Gamma> \<turnstile> \<lparr>t1|;|fill \<delta>\<rparr> |:| A \<Longrightarrow> (replace x A \<Gamma>) \<turnstile> \<lparr>t2|;| fill \<delta>\<rparr> |:| B \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Let var x := t1 in t2|;|fill \<delta>\<rparr> |:| B" |
+    "\<Gamma> \<turnstile> \<lparr>t1|;|fill \<delta>\<rparr> |:| A \<Longrightarrow> (insert_nth x A \<Gamma>) \<turnstile> \<lparr>shift_L 1 x t2|;| fill \<delta>\<rparr> |:| B \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Let var x := t1 in t2|;|fill \<delta>\<rparr> |:| B" |
   has_type_Pair:
     "\<Gamma> \<turnstile> \<lparr>t1|;|fill \<delta>\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t2|;|fill \<delta>\<rparr> |:| B \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>\<lbrace>t1,t2\<rbrace>|;|fill \<delta>\<rparr> |:| A |\<times>| B" |
   has_type_Proj1:
@@ -238,7 +238,7 @@ lemma inversion:
   "\<Gamma> \<turnstile> \<lparr> unit|;| \<delta>\<rparr> |:| R \<Longrightarrow> R = Unit"
   "\<Gamma> \<turnstile> \<lparr> Seq t1 t2 |;| \<delta>\<rparr> |:| R \<Longrightarrow> \<exists>A. R = A \<and> \<Gamma> \<turnstile> \<lparr>t2|;| \<delta>\<rparr> |:| A \<and> \<Gamma> \<turnstile> \<lparr>t1|;| \<delta>\<rparr> |:| Unit"
   "\<Gamma> \<turnstile> \<lparr> t as A |;| \<delta>\<rparr> |:| R \<Longrightarrow> R = A"
-  "\<Gamma> \<turnstile> \<lparr> Let var x := t in t1 |;| \<delta>\<rparr> |:| R \<Longrightarrow> \<exists>A B. R = B \<and> \<Gamma> \<turnstile> \<lparr> t|;| \<delta>\<rparr> |:| A \<and> (replace x A \<Gamma>) \<turnstile> \<lparr> t1|;| \<delta>\<rparr> |:| B"
+  "\<Gamma> \<turnstile> \<lparr> Let var x := t in t1 |;| \<delta>\<rparr> |:| R \<Longrightarrow> \<exists>A B. R = B \<and> \<Gamma> \<turnstile> \<lparr> t|;| \<delta>\<rparr> |:| A \<and> (insert_nth x A \<Gamma>) \<turnstile> \<lparr>shift_L 1 x t1|;| \<delta>\<rparr> |:| B"
   "\<Gamma> \<turnstile> \<lparr> \<lbrace>t1,t2\<rbrace>|;| \<delta>\<rparr> |:| R \<Longrightarrow> \<exists>A B. \<Gamma> \<turnstile> \<lparr> t1|;| \<delta>\<rparr> |:| A \<and> \<Gamma> \<turnstile> \<lparr> t2|;| \<delta>\<rparr> |:| B \<and> R = A |\<times>| B"
   "\<Gamma> \<turnstile> \<lparr> \<pi>1 t|;| \<delta>\<rparr> |:| R \<Longrightarrow> \<exists>A B. \<Gamma> \<turnstile> \<lparr> t|;| \<delta>\<rparr> |:| A |\<times>| B \<and> R = A"
   "\<Gamma> \<turnstile> \<lparr> \<pi>2 t|;| \<delta>\<rparr> |:| R \<Longrightarrow> \<exists>A B. \<Gamma> \<turnstile> \<lparr> t|;| \<delta>\<rparr> |:| A |\<times>| B \<and> R = B"
@@ -261,7 +261,7 @@ lemma inversion:
       \<Gamma> \<turnstile> \<lparr> t |;| \<delta>1 \<rparr> |:| <L1|,|TL> \<and> (\<forall>i<length L1. replace (I!i) (TL!i) \<Gamma> \<turnstile> \<lparr>(LT!i)|;| \<delta>1\<rparr> |:| A)"
 proof -
   assume H:"\<Gamma> \<turnstile> \<lparr> Let var x := t in t1|;|\<delta>\<rparr> |:| R"
-  show "\<exists>A B. R = B \<and> \<Gamma> \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<and> replace x A \<Gamma> \<turnstile> \<lparr>t1|;|\<delta>\<rparr> |:| B"
+  show "\<exists>A B. R = B \<and> \<Gamma> \<turnstile> \<lparr>t|;|\<delta>\<rparr> |:| A \<and> insert_nth x A \<Gamma> \<turnstile> \<lparr>shift_L 1 x t1|;|\<delta>\<rparr> |:| B"
     using H has_type_LetE
     by (cases "x\<ge> length \<Gamma>", fastforce+)
 next
