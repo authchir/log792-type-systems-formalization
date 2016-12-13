@@ -38,6 +38,11 @@ fun BigCirc::"('a\<Rightarrow>'a) list \<Rightarrow> ('a\<Rightarrow>'a)" ("\<Od
 lemma replace_inv_length[simp]:
   "length (replace n x S) = length S"  
 by(induction S arbitrary: x n, auto)
+
+lemma insert_nth_comp:
+  "n\<le> length L \<Longrightarrow> n\<le>n1 \<Longrightarrow> insert_nth n S (insert_nth n1 S1 L) = insert_nth (Suc n1) S1 (insert_nth n S L)"
+  "n\<le> length L \<Longrightarrow> n>n1 \<Longrightarrow> insert_nth (Suc n) S (insert_nth n1 S1 L) = insert_nth (n1) S1 (insert_nth n S L)"
+sorry
       
 lemma rep_ins:
   "n\<le>n1 \<Longrightarrow> n\<le> length W \<Longrightarrow> insert_nth n S (replace n1 A W) = replace (Suc n1) A (insert_nth n S W)" (is "?P\<Longrightarrow> ?R \<Longrightarrow> ?Q")

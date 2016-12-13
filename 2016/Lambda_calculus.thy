@@ -73,7 +73,7 @@ primrec shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lter
   "shift_L d c (t as A) = (shift_L d c t) as A" |
   "shift_L d c (Let var x := t in t1) = 
     (if x\<ge> c then Let var (nat (int x + d)) := (shift_L d c t) in (shift_L d c t1)
-     else  Let var x := (shift_L d c t) in (shift_L d c t1)
+     else  Let var x := (shift_L d c t) in (shift_L d (Suc c) t1)
      )" |
   "shift_L d c (\<lbrace>t1,t2\<rbrace>) = \<lbrace> shift_L d c t1 , shift_L d c t2 \<rbrace>" |
   "shift_L d c (\<pi>1 t) = \<pi>1 (shift_L d c t)" |

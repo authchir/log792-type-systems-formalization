@@ -171,7 +171,7 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> pcontext \<R
   has_type_LAscribe:
     "\<Gamma> \<turnstile> \<lparr>t1|;|fill \<delta>\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t1 as A|;|fill \<delta>\<rparr> |:| A" |
   has_type_Let:
-    "\<Gamma> \<turnstile> \<lparr>t1|;|fill \<delta>\<rparr> |:| A \<Longrightarrow> (insert_nth x A \<Gamma>) \<turnstile> \<lparr>shift_L 1 x t2|;| fill \<delta>\<rparr> |:| B \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Let var x := t1 in t2|;|fill \<delta>\<rparr> |:| B" |
+    "\<Gamma> \<turnstile> \<lparr>t1|;|fill \<delta>\<rparr> |:| A \<Longrightarrow> (insert_nth x A \<Gamma>) \<turnstile> \<lparr> t2|;| fill \<delta>\<rparr> |:| B \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Let var x := t1 in t2|;|fill \<delta>\<rparr> |:| B" |
   has_type_Pair:
     "\<Gamma> \<turnstile> \<lparr>t1|;|fill \<delta>\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t2|;|fill \<delta>\<rparr> |:| B \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>\<lbrace>t1,t2\<rbrace>|;|fill \<delta>\<rparr> |:| A |\<times>| B" |
   has_type_Proj1:

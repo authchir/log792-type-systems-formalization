@@ -5,6 +5,7 @@ imports
   "~~/src/HOL/Eisbach/Eisbach"
   "~~/src/HOL/Eisbach/Eisbach_Tools"
   "$AFP/List-Index/List_Index" 
+  "List_extra"
 begin
 (*>*)
 
@@ -46,7 +47,7 @@ primrec shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lter
   "shift_L d c (t as A) = (shift_L d c t) as A" |
   "shift_L d c (Let var x := t in t1) = 
     (if x\<ge> c then Let var (nat (int x + d)) := (shift_L d c t) in (shift_L d c t1)
-     else  Let var x := (shift_L d c t) in (shift_L d c t1)
+     else  Let var x := (shift_L d c t) in (shift_L d (Suc c) t1)
      )"
 
 primrec subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> lterm" where
@@ -166,7 +167,7 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> ltype \<Righ
   has_type_LAscribe:
     "\<Gamma> \<turnstile> t1 |:| A \<Longrightarrow> \<Gamma> \<turnstile> t1 as A |:| A" |
   has_type_Let:
-    "\<Gamma> \<turnstile> t1 |:| A \<Longrightarrow> (replace x A \<Gamma>) \<turnstile> t2 |:| B \<Longrightarrow> \<Gamma> \<turnstile> Let var x := t1 in t2 |:| B"
+    "\<Gamma> \<turnstile> t1 |:| A \<Longrightarrow> insert_nth x A \<Gamma> \<turnstile> t2 |:| B \<Longrightarrow> \<Gamma> \<turnstile> Let var x := t1 in t2 |:| B"
   
 inductive_cases has_type_LetE : "\<Gamma> \<turnstile> Let var x := t1 in t2 |:| B"
 
@@ -180,10 +181,10 @@ lemma inversion:
   "\<Gamma> \<turnstile> unit |:| R \<Longrightarrow> R = Unit"
   "\<Gamma> \<turnstile> Seq t1 t2 |:| R \<Longrightarrow> \<exists>A. R = A \<and> \<Gamma> \<turnstile> t2 |:| A \<and> \<Gamma> \<turnstile> t1 |:| Unit"
   "\<Gamma> \<turnstile> t as A |:| R \<Longrightarrow> R = A"
-  "\<Gamma> \<turnstile> Let var x := t in t1 |:| R \<Longrightarrow> \<exists>A B. R = B \<and> \<Gamma> \<turnstile> t |:| A \<and> (replace x A \<Gamma>) \<turnstile> t1 |:| B"
+  "\<Gamma> \<turnstile> Let var x := t in t1 |:| R \<Longrightarrow> \<exists>A B. R = B \<and> \<Gamma> \<turnstile> t |:| A \<and> (insert_nth x A \<Gamma>) \<turnstile> t1 |:| B"
 proof (auto elim: has_type_L.cases)
   assume H:"\<Gamma> \<turnstile> Let var x := t in t1 |:| R"
-  show "\<exists>A. (length \<Gamma> \<le> x \<longrightarrow> \<Gamma> \<turnstile> t |:| A \<and> \<Gamma> \<turnstile> t1 |:| R) \<and> (\<not> length \<Gamma> \<le> x \<longrightarrow> \<Gamma> \<turnstile> t |:| A \<and> (take x \<Gamma> @ drop (Suc x) \<Gamma> |,| A) \<turnstile> t1 |:| R)"
+  show "\<exists>A. \<Gamma> \<turnstile> t |:| A \<and> (take x \<Gamma> @ drop x \<Gamma> |,| A) \<turnstile> t1 |:| R "
     using H has_type_LetE
     by (cases "x\<ge> length \<Gamma>", fastforce+)
 qed
@@ -196,38 +197,7 @@ by (auto elim: has_type_L.cases is_value_L.cases)
 
 lemma[simp]: "nat (int x + 1) = Suc x" by simp
 
-lemma rep_ins:
-  "n\<le>n1 \<Longrightarrow> n\<le> length W \<Longrightarrow> insert_nth n S (replace n1 A W) = replace (Suc n1) A (insert_nth n S W)" (is "?P\<Longrightarrow> ?R \<Longrightarrow> ?Q")
-proof -
-  assume H: "?R" "?P"
-  have 1:"n1\<ge> length W \<Longrightarrow> ?Q"
-    by (simp add: min_def)
-  have "n1< length W \<Longrightarrow> ?Q"
-    proof -
-      assume H1: "n1<length W"
-      have "(Suc (Suc n1) - n) = Suc (Suc n1 - n)"
-            using H
-            by fastforce
-      with H show ?thesis
-        by (simp add: H1 min_def, auto)(simp add: H Suc_diff_le take_drop)
-    qed
-  with 1 show "?Q" by linarith
-qed
 
-lemma rep_ins2:
-  "n<n1 \<Longrightarrow> n1\<le> length W \<Longrightarrow> insert_nth n1 S (replace n A W) = replace n A (insert_nth n1 S W)" (is "?P\<Longrightarrow> ?R \<Longrightarrow> ?Q")
-proof -
-  assume H: "?R" "?P"
-  from H show "?Q"
-    proof (simp add: min_def, auto)
-      have "Suc n \<le> n1"
-        by (metis (no_types) H(2) Suc_leI)
-      then show "take (n1 - n) (A # drop (Suc n) W) @ S # drop (n1 - n) (A # drop (Suc n) W) = A # drop (Suc n) (take n1 W) @ S # drop n1 W"
-        by (simp add: drop_Cons' drop_take take_Cons')
-    qed
-qed      
-    
-  
 lemma weakening:
   "\<Gamma> \<turnstile> t |:| A \<Longrightarrow> n \<le> length \<Gamma> \<Longrightarrow> insert_nth n S \<Gamma> \<turnstile> shift_L 1 n t |:| A"
 proof (induction \<Gamma> t A arbitrary: n rule: has_type_L.induct)
@@ -237,32 +207,18 @@ proof (induction \<Gamma> t A arbitrary: n rule: has_type_L.induct)
       by (auto intro: has_type_L.intros(5))
 next
   case (has_type_Let \<Gamma> t A x t1 B)
-    show ?case 
-      proof (cases "x\<ge> n")
-        assume H:"x\<ge>n"
-        have 1:"insert_nth n S \<Gamma> \<turnstile> shift_L 1 n t |:| A"
-          using has_type_Let(3)[OF has_type_Let(5)]
-          by blast
-   
-        have "(replace (Suc x) A (insert_nth n S \<Gamma>)) \<turnstile> shift_L 1 n t1 |:| B"
-          using has_type_Let(4,5) H 
-                rep_ins[of n x \<Gamma> S A,OF H has_type_Let(5)]
-                replace_inv_length[of x A \<Gamma>]
-          by metis
-        with 1 show "insert_nth n S \<Gamma> \<turnstile> shift_L 1 n (Let var x := t in t1) |:| B"
-          using "has_type_L.intros"(10) H
-          by auto
-      next
-        assume H: "\<not> n \<le> x"
-        have a:"replace x A (take n \<Gamma> @ drop n \<Gamma> |,| S) \<turnstile> shift_L 1 n t1 |:| B"
-          using has_type_Let(4)[of n] has_type_Let(5) H
-                rep_ins2[of x n \<Gamma> S A]
-                replace_inv_length[of n A \<Gamma>]
-          by simp
-        show "insert_nth n S \<Gamma> \<turnstile> shift_L 1 n (Let var x := t in t1) |:| B"
-          using has_type_Let(3,5) 
-          by (simp add: H, auto intro: a  "has_type_L.intros"(10) )
-      qed    
+    have 1: "n\<le>x \<Longrightarrow> ?case"
+      using has_type_Let(3,5)[simplified]
+            has_type_Let(4)[simplified length_insert_nth,OF le_SucI[OF has_type_Let(5)]]  
+            insert_nth_comp[of n \<Gamma> x S A]
+      by (force intro: has_type_L.intros)
+    have "n>x \<Longrightarrow> ?case"
+      using has_type_Let(3,5)[simplified]
+             has_type_Let(4)[of "Suc n", simplified length_insert_nth]
+            insert_nth_comp(2)[of n \<Gamma> x S A] has_type_Let(5)
+      by (force intro: has_type_L.intros)
+    with 1 show ?case 
+      by auto      
 qed (auto simp: nth_append min_def intro: has_type_L.intros)
 
 subsection{* Ascription*}
@@ -277,12 +233,8 @@ lemma eval1_L_asE:
   "eval1_L t1 t2 \<Longrightarrow> eval1_L (t1 asE A) (t2 asE A)"
 by (auto intro: eval1_LApp2 "is_value_L.intros"(3))
 
-
 lemma shift_shift_invert: "a>0 \<Longrightarrow> shift_L (-a) b (shift_L a b t) = t"
-proof(induction t arbitrary: a b)
-  case LetBinder
-    thus ?case sorry
-qed auto
+by (induction t arbitrary: a b, auto)
 
 lemma eval1_L_asE1:
   "is_value_L t1 \<Longrightarrow> eval1_L (t1 asE A) t1"
