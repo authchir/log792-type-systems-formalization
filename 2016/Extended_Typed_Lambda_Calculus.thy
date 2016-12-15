@@ -390,7 +390,6 @@ lemma canonical_formsE:
   "is_value_LE v \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E v |:| Unit \<Longrightarrow> v = unitE"
 by (auto elim: has_type_LE.cases is_value_LE.cases)
   
-
 lemma FVE_shift:
   "FVE (shift_LE (int d) c t) = image (\<lambda>x. if x \<ge> c then x + d else x) (FVE t)"
 proof (induction t arbitrary: c rule: ltermE.induct)
@@ -435,9 +434,9 @@ fun e::"ltermE \<Rightarrow> ltermI" where
    equivalent in term of typing and evaluation
 *)
 
-method e_elim uses rule1 = (auto intro: e.elims[OF rule1] is_value_LE.intros) 
-method sym_then_elim = match premises in I: "A = B" for A and B \<Rightarrow>
-            \<open>e_elim rule1: I[symmetric]\<close>
+method e_elim uses rule1 intro elim simp = (auto intro: e.elims[OF rule1, simplified] intro elim: elim simp: simp) 
+method sym_then_elim uses intro elim simp = match premises in I: "A = B" for A and B \<Rightarrow>
+            \<open>(e_elim rule1: I[symmetric] intro: intro elim: elim simp: simp)\<close>
 
 lemma value_equiv: "is_value_LE v1 \<longleftrightarrow> is_value_L (e v1)" (is "?P \<longleftrightarrow> ?Q")
 proof
@@ -445,7 +444,7 @@ proof
     by (induction rule: is_value_LE.induct, auto intro:"is_value_L.intros")    
 next
   show "?Q \<Longrightarrow> ?P" 
-    by (induction "e v1" rule: is_value_L.induct, sym_then_elim+)
+    by (induction "e v1" rule: is_value_L.induct, (sym_then_elim intro: is_value_LE.intros)+)
 qed
 
 lemma FV_equiv:
@@ -543,15 +542,10 @@ theorem e_surjective:
   fixes t::ltermI
   shows "\<exists>u. e u = t"
 by (induction t)(blast intro:e.simps)+
-      
-theorem equiv_type:
-  "\<Gamma> \<turnstile>\<^sup>E t |:| A \<longleftrightarrow> \<Gamma> \<turnstile> (e t) |:| A" (is "?P \<longleftrightarrow> ?Q")
-proof 
-  show "?P \<Longrightarrow> ?Q" sorry
-next
-  show "?Q \<Longrightarrow> ?P" sorry
-qed
 
+theorem typingE_imp_typingI:
+  "\<Gamma> \<turnstile>\<^sup>E t |:| A \<Longrightarrow> \<Gamma> \<turnstile> (e t) |:| A"
+by (induction rule: has_type_LE.induct) (auto intro: "has_type_L.intros" has_type_LSeq)
 
 theorem eval1_L_to_eval1_LE :
   fixes   t t'::ltermE and \<Gamma>::lcontext
