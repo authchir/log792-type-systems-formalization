@@ -5,6 +5,7 @@ imports
   "~~/src/HOL/Eisbach/Eisbach"
   "~~/src/HOL/Eisbach/Eisbach_Tools"
   "$AFP/List-Index/List_Index" 
+  "~~/src/HOL/IMP/Star"
 begin
 (*>*)
 
@@ -420,23 +421,20 @@ qed (auto simp: nth_append min_def intro: has_type_LE.intros)
 
 
 fun e::"ltermE \<Rightarrow> ltermI" where
-  "e LETrue = LTrue" |
-  "e LEFalse = LFalse" |
-  "e (LEIf t1 t2 t3) = LIf (e t1) (e t2) (e t3)" |
-  "e (LEVar x) = LVar x" |
-  "e (LEAbs A t1) = LAbs A (e t1)" |
+  "e LETrue           = LTrue" |
+  "e LEFalse          = LFalse" |
+  "e (LEIf t1 t2 t3)  = LIf (e t1) (e t2) (e t3)" |
+  "e (LEVar x)        = LVar x" |
+  "e (LEAbs A t1)     = LAbs A (e t1)" |
   "e (LEApp t1 t2) = LApp (e t1) (e t2)" |
   "e unitE = unit" |
-  "e (SeqE t1 t2) = (e t1 ;; e t2)"
+  "e (SeqE t1 t2) = e t1 ;; e t2"
 
 (* 
   This theorem shows that both implementation of sequence are
    equivalent in term of typing and evaluation
 *)
 
-method e_elim uses rule1 intro elim simp = (auto intro: e.elims[OF rule1, simplified] intro elim: elim simp: simp) 
-method sym_then_elim uses intro elim simp = match premises in I: "A = B" for A and B \<Rightarrow>
-            \<open>(e_elim rule1: I[symmetric] intro: intro elim: elim simp: simp)\<close>
 
 lemma value_equiv: "is_value_LE v1 \<longleftrightarrow> is_value_L (e v1)" (is "?P \<longleftrightarrow> ?Q")
 proof
@@ -444,7 +442,7 @@ proof
     by (induction rule: is_value_LE.induct, auto intro:"is_value_L.intros")    
 next
   show "?Q \<Longrightarrow> ?P" 
-    by (induction "e v1" rule: is_value_L.induct, (sym_then_elim intro: is_value_LE.intros)+)
+    by (induction rule: e.induct) (auto intro: is_value_LE.intros simp: "is_value_L.simps")
 qed
 
 lemma FV_equiv:
@@ -461,13 +459,14 @@ qed auto
 lemma e_inv:
   "e t = LTrue \<Longrightarrow> t = LETrue"
   "e t = LFalse \<Longrightarrow> t = LEFalse" 
-  "e t = LIf c t1 t2 \<Longrightarrow> \<exists>c' t1' t2'. e c'= c \<and>  e t1' = t1 \<and> t = LEIf c' t1' t2' \<and>  e t2' = t2"
+  "e t = LIf c t1 t2 \<Longrightarrow> \<exists>c' t1' t2'. e c'= c \<and>  e t1' = t1 \<and> t = LEIf c' t1' t2' 
+                                              \<and> e t2' = t2"  
   "e t = LAbs A t1 \<Longrightarrow> \<exists>t1'. t = LEAbs A t1' \<and> e t1' = t1"
   "e t = LVar x \<Longrightarrow> t = LEVar x"
-  "e t = unit \<Longrightarrow> t = unitE"
-  "e t = LApp t1 t2 \<Longrightarrow> \<exists>t1' t2'. e t1' = t1 \<and> e t2' = t2 \<and> t = LEApp t1' t2' 
-                        \<or> 
-       (\<exists>t3 t3'. t1 = LAbs Unit (shift_L 1 0 t3) \<and> e t2' = t2 \<and> e t3' = t3 \<and> t = SeqE t2' t3')"  
+  "e t = unit \<Longrightarrow> t = unitE"  
+  "e t = LApp t1 t2 \<Longrightarrow> \<exists>t1' t2'. t = LEApp t1' t2' \<and> e t1' = t1 \<and> e t2' = t2 \<or>
+                        (\<exists>t3 t3'. t1 = LAbs Unit (shift_L 1 0 t3) \<and> e t3' = t3 \<and> e t2' = t2 \<and>
+                          t = SeqE t2' t3')"
 by (auto elim: e.elims)
 
 lemma shift_suc:
@@ -543,9 +542,10 @@ theorem e_surjective:
   shows "\<exists>u. e u = t"
 by (induction t)(blast intro:e.simps)+
 
-theorem typingE_imp_typingI:
+lemma typingE_imp_typingI:
   "\<Gamma> \<turnstile>\<^sup>E t |:| A \<Longrightarrow> \<Gamma> \<turnstile> (e t) |:| A"
 by (induction rule: has_type_LE.induct) (auto intro: "has_type_L.intros" has_type_LSeq)
+
 
 theorem eval1_L_to_eval1_LE :
   fixes   t t'::ltermE and \<Gamma>::lcontext
@@ -569,219 +569,144 @@ proof (induction t t' arbitrary: A rule: eval1_LE.induct)
       by auto
 qed (auto intro: eval1_L.intros eval1_Lseq eval1_Lseq_next elim: has_type_LE.cases simp: value_equiv e_shift e_subst)
 
+inductive BigS :: "ltermI\<Rightarrow>ltermI\<Rightarrow>bool" ("(_)\<Down>(_)" [151,150]200) where
+ BigS_v         : "is_value_L v \<Longrightarrow> v \<Down> v" |
+ BigS_App       : "s \<Down> LAbs A s' \<Longrightarrow> t \<Down> v2 \<Longrightarrow>
+                    (shift_L (-1) 0 (subst_L 0 (shift_L 1 0 v2) s')) \<Down> v3 \<Longrightarrow> LApp s t \<Down> v3" |
+ BigS_If_True   : "c \<Down> LTrue \<Longrightarrow> t1 \<Down> v1 \<Longrightarrow> t2 \<Down> v2 \<Longrightarrow> LIf c t1 t2 \<Down> v1" |
+ BigS_If_False   : "c \<Down> LFalse \<Longrightarrow> t1 \<Down> v1 \<Longrightarrow> t2 \<Down> v2 \<Longrightarrow> LIf c t1 t2 \<Down> v2" 
 
-fun subterms:: "ltermE \<Rightarrow> ltermE list" where
-"subterms (LEIf c t1 t2) = [c,t1, t2]"|
-"subterms (LEApp t1 t2) = [t1,t2]"|
-"subterms (LEAbs A t)   = [t]"|
-"subterms (SeqE t1 t2)  = [t1, t2]" |
-"subterms t = []"
+abbreviation normal::"ltermI \<Rightarrow> bool" where
+  "normal s \<equiv> (\<forall>t'. \<not> eval1_L s t')" 
 
-abbreviation term_equiv:: "ltermE\<Rightarrow>ltermE\<Rightarrow>bool" ("(_)/ \<cong>/ (_)" [200,202] 200) where
-"t \<cong> t1 \<equiv> (\<forall>\<Gamma> A t2. \<Gamma> \<turnstile>\<^sup>E t |:| A = \<Gamma> \<turnstile>\<^sup>E t1 |:| A \<and> eval1_LE t t2 = eval1_LE t1 t2)"
+abbreviation isNF :: "ltermI \<Rightarrow> ltermI \<Rightarrow> bool" where
+  "isNF s t \<equiv> t \<Down> s"
 
-lemma equiv_subterms_comp:
-  "(\<And>i. i<length (subterms t) \<Longrightarrow> length (subterms t) = length (subterms t') \<Longrightarrow> (subterms t ! i) \<cong> (subterms t' ! i))
-    \<Longrightarrow> t \<cong> t'"
-sorry
-
-theorem sym_equiv[sym]:
-  "(t \<cong> t') \<Longrightarrow> (t' \<cong> t)"
-by blast
-
-theorem trans_equiv:
-  "(t \<cong> t1) \<Longrightarrow> (t1 \<cong> t2) \<Longrightarrow> (t \<cong> t2)"
-by blast
-
-lemma derive_form_equiv:
-  "LEApp (LEAbs Unit (shift_LE 1 0 t2)) t1 \<cong> SeqE t1 t2" sorry
-
-method value_equiv_elim = (match premises in H:"e A = e B" for A and B \<Rightarrow>
-              \<open>insert equiv_subterms_comp[of A B], simp\<close>
-            )
-
-lemma e_equiv:
-  "e t1 = e t2 \<Longrightarrow> t1 \<cong> t2"
-proof (induction t1 arbitrary: t2)
-  case (LEIf c t1' t2')
-    obtain c1 t11 t22 where H:"e c = e c1" "e t1'= e t11" "t2 = LEIf c1 t11 t22"  "e t2' = e t22"
-      using e_inv(3)[OF LEIf(4)[symmetric, simplified]]
-      by force
-    have "\<And>i. i < length (subterms (LEIf c t1' t2')) \<Longrightarrow>
-          length (subterms (LEIf c t1' t2')) = length (subterms (LEIf c1 t11 t22)) \<Longrightarrow>
-          (subterms (LEIf c t1' t2') ! i) \<cong> (subterms (LEIf c1 t11 t22) ! i)"
-      proof -
-        fix i
-        assume "i < length (subterms (LEIf c t1' t2'))" "length (subterms (LEIf c t1' t2')) = length (subterms (LEIf c1 t11 t22))"
-        hence "i=0 \<or> i=1 \<or> i =2" by auto
-        thus "(subterms (LEIf c t1' t2') ! i) \<cong> (subterms (LEIf c1 t11 t22) ! i)"
-          using "LEIf.IH" H(1,2,4)
-          by auto
-      qed
-    then show ?case
-      using equiv_subterms_comp[of "LEIf c t1' t2'" t2, unfolded H(3)]
-            H(3)
-      by auto      
-next
-  case (LEAbs A t)
-    obtain t' where "t2 = LEAbs A t'" "e t = e t'"
-      using e_inv(4)[OF LEAbs(2)[symmetric, simplified]]
-      by force
-    thus ?case 
-      using  equiv_subterms_comp[of "LEAbs A t" "LEAbs A _",unfolded "subterms.simps"]
-             LEAbs(1)
-      by force
-next
-  case (LEApp t1' t2')
-    obtain t11 t22 t3 t33 where case_split:" e t1'= e t11 \<and> e t2'= e t22 \<and> t2 = LEApp t11 t22 \<or>
-     (e t1' = e (LEAbs Unit (shift_LE 1 0 t33)) \<and> e t2' = e t22 \<and> e t33 = t3 \<and> t2 = SeqE t22 t33)"
-      using e_inv(7)[OF LEApp(3)[symmetric, simplified]] 
-            e_shift[of _ 0 1, simplified] e.simps(5)[symmetric]
-      by fastforce
-    have "e t1'= e t11 \<and> e t2'= e t22 \<and> t2 = LEApp t11 t22 \<Longrightarrow>(\<And>i. i < length (subterms (LEApp t1' t2')) \<Longrightarrow>
-          length (subterms (LEApp t1' t2')) = length (subterms (LEApp t11 t22)) \<Longrightarrow>
-          (subterms (LEApp t1' t2') ! i) \<cong> (subterms (LEApp t11 t22) ! i))"
-      proof 
-        fix i \<Gamma>
-        assume hyps:"e t1' = e t11 \<and> e t2' = e t22 \<and> t2 = LEApp t11 t22"
-               "i < length (subterms (LEApp t1' t2'))"
-               "length (subterms (LEApp t1' t2')) = length (subterms (LEApp t11 t22))"
-        hence "i=0\<or>i=1" by auto
-        then show "\<forall>A t2. \<Gamma> \<turnstile>\<^sup>E (subterms (LEApp t1' t2') ! i) |:| A = \<Gamma> \<turnstile>\<^sup>E (subterms (LEApp t11 t22) ! i) |:| A \<and>
-                  eval1_LE (subterms (LEApp t1' t2') ! i) t2 = eval1_LE (subterms (LEApp t11 t22) ! i) t2"
-          using LEApp(1,2) hyps(1)
-          by force
-      qed
-    hence 1:"e t1'= e t11 \<and> e t2'= e t22 \<and> t2 = LEApp t11 t22 \<Longrightarrow> ?case"
-      using  equiv_subterms_comp[of "LEApp t1' t2'" "LEApp t11 t22"]
-      by auto
-    
-    have "e t1' = e (LEAbs Unit (shift_LE 1 0 t33)) \<and> e t2' = e t22 \<and> e t33 = t3 \<and> t2 = SeqE t22 t33 \<Longrightarrow> 
-          (\<And>i. i < length (subterms (LEApp t1' t2')) \<Longrightarrow>
-          length (subterms (LEApp t1' t2')) = length (subterms (LEApp (LEAbs Unit (shift_LE 1 0 t33)) t22)) \<Longrightarrow>
-          (subterms (LEApp t1' t2') ! i) \<cong> (subterms (LEApp (LEAbs Unit (shift_LE 1 0 t33)) t22) ! i))"
-      proof 
-        fix i \<Gamma>
-        assume hyps:"e t1' = e (LEAbs Unit (shift_LE 1 0 t33)) \<and> e t2' = e t22 \<and> e t33 = t3 \<and> t2 = SeqE t22 t33"
-               "i < length (subterms (LEApp t1' t2'))"
-               "length (subterms (LEApp t1' t2')) = length (subterms (LEApp (LEAbs Unit (shift_LE 1 0 t33)) t22))"
-        hence "i=0\<or>i=1" by auto
-        then show "\<forall>A t2. \<Gamma> \<turnstile>\<^sup>E (subterms (LEApp t1' t2') ! i) |:| A = \<Gamma> \<turnstile>\<^sup>E (subterms (LEApp (LEAbs Unit (shift_LE 1 0 t33)) t22) ! i) |:| A \<and>
-                  eval1_LE (subterms (LEApp t1' t2') ! i) t2 = eval1_LE (subterms (LEApp (LEAbs Unit (shift_LE 1 0 t33)) t22) ! i) t2"
-           using LEApp(1)[OF hyps(1)[THEN conjunct1]] LEApp(2)[OF hyps(1)[THEN conjunct2, THEN conjunct1]]
-           by force
-      qed
-    hence "e t1' = e (LEAbs Unit (shift_LE 1 0 t33)) \<and> e t2' = e t22 \<and> e t33 = t3 \<and> t2 = SeqE t22 t33 \<Longrightarrow> LEApp t1' t2' \<cong> LEApp (LEAbs Unit (shift_LE 1 0 t33)) t22"
-      using equiv_subterms_comp[of "LEApp t1' t2'" "LEApp (LEAbs Unit (shift_LE 1 0 t33)) t22"]
-      by auto
-    hence "e t1' = e (LEAbs Unit (shift_LE 1 0 t33)) \<and> e t2' = e t22 \<and> e t33 = t3 \<and> t2 = SeqE t22 t33 \<Longrightarrow> ?case"
-      using trans_equiv[OF _ derive_form_equiv[of t33 t22],of "LEApp t1' t2'"]
-            equiv_subterms_comp[of "LEApp t1' t2'" "LEApp (LEAbs Unit (shift_LE 1 0 t33)) t22"]
-      by presburger
-    with case_split 1 show ?case by auto
-next
-  case (SeqE t1' t2')
-    let ?fpart ="LAbs Unit (shift_L 1 0 (e t2'))"
-    obtain t11 t22 t3 t33 where case_split:" ?fpart= e t11 \<and> e t1'= e t22 \<and> t2 = LEApp t11 t22 \<or>
-     (e t2' = t3 \<and> e t1' = e t22 \<and> e t33 = t3 \<and> t2 = SeqE t22 t33)"
-      using e_inv(7)[OF SeqE(3)[symmetric, simplified], simplified]
-            shift_shift_invert[of 1 0 "e t2'"] shift_shift_invert[of 1 0 _]
-      by fastforce
-    have "?fpart= e t11 \<and> e t1'= e t22 \<and> t2 = LEApp t11 t22 \<Longrightarrow>(\<And>i. i < length (subterms (SeqE t1' t2')) \<Longrightarrow>
-          length (subterms (SeqE t1' t2')) = length (subterms (LEApp t11 t22)) \<Longrightarrow>
-          (subterms (SeqE t1' t2') ! i) \<cong> (subterms (LEApp t11 t22) ! i))"
-      proof 
-        fix i \<Gamma>
-        assume hyps:"?fpart= e t11 \<and> e t1'= e t22 \<and> t2 = LEApp t11 t22"
-               "i < length (subterms (SeqE t1' t2'))"
-               "length (subterms (SeqE t1' t2')) = length (subterms (LEApp t11 t22))"
-        hence 1:"i=0\<or>i=1" by auto
-        obtain t11' where t11_def:"t11 = LEAbs Unit t11'" "e t11' = shift_L 1 0 (e t2')"
-          using e_inv(4)[of t11 Unit "shift_L 1 0 (e t2')"] hyps(1)
-          by auto
-        have "\<And>x. x\<in>FV (e t11') \<Longrightarrow> x\<ge> 1"
-          using t11_def(2) FV_shift[of 1 0 "e t2'"]
-          by force
-        hence eq:"e t2' = e(shift_LE (-1) 0 t11')"
-          using e_shift[of t11' 0 "-1", unfolded FV_equiv[symmetric]]
-                t11_def(2) shift_shift_invert[of 1 0 "e t2'", simplified]
-          by fastforce
-        with 1 show "\<forall>A t2. \<Gamma> \<turnstile>\<^sup>E (subterms (SeqE t1' t2') ! i) |:| A = \<Gamma> \<turnstile>\<^sup>E (subterms (LEApp t11 t22) ! i) |:| A \<and>
-                  eval1_LE (subterms (SeqE t1' t2') ! i) t2 = eval1_LE (subterms (LEApp t11 t22) ! i) t2"
-          using SeqE(1) hyps(1)[simplified] t11_def 
-                SeqE(2)[OF eq] has_type_LE.simps[of _ "SeqE t1' t2'", simplified]
-                has_type_LEAbs[of Unit _ t11]
-         
-          sorry
-      qed
-    hence 1:"?fpart= e t11 \<and> e t1'= e t22 \<and> t2 = LEApp t11 t22 \<Longrightarrow> ?case"
-      using equiv_subterms_comp[of "SeqE t1' t2'" "LEApp t11 t22"]      
-      by auto
-    have "e t2' = t3 \<and> e t1' = e t22 \<and> e t33 = t3 \<and> t2 = SeqE t22 t33 \<Longrightarrow> 
-          (\<And>i. i < length (subterms (SeqE t1' t2')) \<Longrightarrow>
-          length (subterms (SeqE t1' t2')) = length (subterms (SeqE t22 t33)) \<Longrightarrow>
-          (subterms (SeqE t1' t2') ! i) \<cong> (subterms (SeqE t22 t33) ! i))"
-      proof 
-        fix i \<Gamma>
-        assume hyps:"e t2' = t3 \<and> e t1' = e t22 \<and> e t33 = t3 \<and> t2 = SeqE t22 t33"
-               "i < length (subterms (SeqE t1' t2'))"
-               "length (subterms (SeqE t1' t2')) = length (subterms (SeqE t22 t33))"
-        hence "i=0\<or>i=1" by auto
-        then show "\<forall>A t2. \<Gamma> \<turnstile>\<^sup>E (subterms (SeqE t1' t2') ! i) |:| A = \<Gamma> \<turnstile>\<^sup>E (subterms (SeqE t22 t33) ! i) |:| A \<and>
-                  eval1_LE (subterms (SeqE t1' t2') ! i) t2 = eval1_LE (subterms (SeqE t22 t33) ! i) t2"
-           using SeqE(1)[OF hyps(1)[THEN conjunct2, THEN conjunct1]]
-                 SeqE(2)[OF hyps(1)[THEN conjunct1, 
-                          unfolded hyps(1)[THEN conjunct2, THEN conjunct2, THEN conjunct1, symmetric]]]
-           by force
-      qed
-    hence "e t2' = t3 \<and> e t1' = e t22 \<and> e t33 = t3 \<and> t2 = SeqE t22 t33 \<Longrightarrow> ?case"
-      using equiv_subterms_comp[of "SeqE t1' t2'" "SeqE t22 t33"]
-      by auto
-    with case_split 1 show ?case by auto
-qed value_equiv_elim+
-
-lemma eval1_LE_to_sim_eval1_L:
-  fixes   t t'::ltermE
-  shows   "(eval1_L (e t) (e t')) \<Longrightarrow>\<exists>t1. (eval1_LE t t1) \<and> (t' \<cong> t1)" 
-proof (induction "e t" "e t'" arbitrary: t t' rule: eval1_L.induct)
-  case (eval1_LApp1)
-    thus ?case sorry
-next
-  case (eval1_LApp2)
-    thus ?case sorry
-next
-  case (eval1_LApp_LAbs)
-    thus ?case sorry
-next
-  case (eval1_LIf c c1 t1 t2)
-    note H=this
-    obtain c' t1' t2' where invs_t: "c =e c'" "e t1' = t1" "t = LEIf c' t1' t2'" "e t2' = t2"
-      using e_inv(3)[OF H(3)[symmetric]]
+lemma BigS_imp_normal:
+  "s \<Down> t \<Longrightarrow> normal t"
+proof (induction rule: BigS.induct)
+  case (BigS_v v)
+    thus ?case
+      using eval1_L.simps[of v _] "is_value_L.simps"[of v]
       by blast
-    obtain c1' t1'' t2'' where invs_t': "c1 = e c1'" "t1 = e t1''" "t' = LEIf c1' t1'' t2''" "t2 = e t2''"
-      using e_inv(3)[OF H(4)[symmetric]]
+qed auto
+
+lemma BigS_value:
+  "s \<Down> v \<Longrightarrow> is_value_L v"
+by (induction rule: BigS.induct)
+
+lemma star_eval_LIF1:
+  "star eval1_L c t \<Longrightarrow> star eval1_L (LIf c t1 t2) (LIf t t1 t2)"
+by (induction rule: star.induct)(auto | meson eval1_LIf star.intros(2))+
+ 
+lemma BigS_star_step:
+ "s \<Down> t \<Longrightarrow> star eval1_L s t"
+proof (induction rule: BigS.induct)
+  case (BigS_App s A s' t v1 v2)
+    have 1:"star eval1_L (LApp s t) (LApp (LAbs A s') t)"
+      using BigS_App(4)
+      by (induction rule: star.induct)(auto | meson eval1_LApp1 star.intros(2))+ 
+
+    have 2:"star eval1_L (LApp (LAbs A s') t) (LApp (LAbs A s') v1)"
+      using BigS_App(5)
+       by (induction rule: star.induct)(auto | meson eval1_LApp2[OF is_value_L.intros(3)] star.intros(2))+ 
+
+    have 3:"star eval1_L (LApp (LAbs A s') v1) v2" 
+      using BigS_value[OF BigS_App(2)] eval1_LApp_LAbs[of v1 A s']
+            star.intros(2)[OF _ BigS_App(6)]
       by blast
 
-    note invs_t = invs_t[unfolded invs_t']
-
-    obtain c2 where cdt_equi:"eval1_LE c' c2" "c1' \<cong> c2"
-      using H(2)[OF invs_t(1) invs_t'(1)]
-      by blast
-    have equi:"\<And>i. i < length (subterms t') \<Longrightarrow> length (subterms t') = length [c2, t1', t2'] \<Longrightarrow> (subterms t' ! i) \<cong> ([c2, t1', t2'] ! i)"
-      proof -
-        fix i
-        assume  inf_len:"i<length (subterms t')" and same_len:"length (subterms t') = length [c2, t1', t2']"
-        hence "i=0 \<or> i=1 \<or> i=2" by auto
-        thus "(subterms t' ! i) \<cong> ([c2, t1', t2'] ! i)"
-          using invs_t'(3) e_equiv[OF invs_t(2), symmetric] e_equiv[OF invs_t(4), symmetric]
-                cdt_equi(2)
-          by force
-      qed
+    with 1 2 show ?case using star_trans[of "eval1_L"] by meson
+next
+  case (BigS_If_False c t1 v1 t2 v2)
     show ?case
-      using eval1_LE.intros(3)[OF cdt_equi(1),of t1' t2'] invs_t(3)
-             equiv_subterms_comp[of t' "LEIf c2 t1' t2'", unfolded "subterms.simps"]
-            equi
-      by blast            
-qed (match premises in I: "A = B" for A and B \<Rightarrow> \<open> insert I[symmetric] e_equiv eval1_LE.intros
-            e_inv(1-3), metis \<close>)+
+      using star_eval_LIF1[OF BigS_If_False(4)]
+            star.intros(2)[of "eval1_L", OF eval1_LIf_LFalse BigS_If_False(6)]
+            star_trans[of "eval1_L"]
+      by blast
+next
+  case (BigS_If_True c t1 v1 t2 v2)
+    show ?case
+      using star_eval_LIF1[OF BigS_If_True(4)]
+            star.intros(2)[of "eval1_L", OF eval1_LIf_LTrue BigS_If_True(5)]
+            star_trans[of "eval1_L"]
+      by blast
+qed auto 
 
+inductive BigSE :: "ltermE\<Rightarrow>ltermE\<Rightarrow>bool" ("(_)\<Down>\<^sub>E(_)" [151,150]200) where
+ BigSE_v         : "is_value_LE v \<Longrightarrow> v \<Down>\<^sub>E v" |
+ BigSE_App       : "s \<Down>\<^sub>E LEAbs A s' \<Longrightarrow> t \<Down>\<^sub>E v2 \<Longrightarrow>
+                    (shift_LE (-1) 0 (subst_LE 0 (shift_LE 1 0 v2) s')) \<Down>\<^sub>E v3 \<Longrightarrow> LEApp s t \<Down>\<^sub>E v3" |
+ BigSE_If_True    : "c \<Down>\<^sub>E LETrue \<Longrightarrow> t1 \<Down>\<^sub>E v1 \<Longrightarrow> t2 \<Down>\<^sub>E v2 \<Longrightarrow> LEIf c t1 t2 \<Down>\<^sub>E v1" |
+ BigSE_If_False   : "c \<Down>\<^sub>E LEFalse \<Longrightarrow> t1 \<Down>\<^sub>E v1 \<Longrightarrow> t2 \<Down>\<^sub>E v2 \<Longrightarrow> LEIf c t1 t2 \<Down>\<^sub>E v2"|
+ BigSE_Seq        : "t1 \<Down>\<^sub>E unitE \<Longrightarrow> t2 \<Down>\<^sub>E v1 \<Longrightarrow> SeqE t1 t2 \<Down>\<^sub>E v1"
+
+abbreviation normalE::"ltermE \<Rightarrow> bool" where
+  "normalE s \<equiv> (\<forall>t'. \<not> eval1_LE s t')" 
+
+abbreviation isNFE :: "ltermE \<Rightarrow> ltermE \<Rightarrow> bool" where
+  "isNFE s t \<equiv> t \<Down>\<^sub>E s"
+
+lemma BigSE_imp_normalE:
+  "s \<Down>\<^sub>E t \<Longrightarrow> normalE t"
+proof (induction rule: BigSE.induct)
+  case (BigSE_v v)
+    thus ?case
+      using eval1_LE.simps[of v _] "is_value_LE.simps"[of v]
+      by blast
+qed auto
+
+lemma BigSE_value:
+  "s \<Down>\<^sub>E v \<Longrightarrow> is_value_LE v"
+by (induction rule: BigSE.induct)
+
+lemma star_eval_LEIF1:
+  "star eval1_LE c t \<Longrightarrow> star eval1_LE (LEIf c t1 t2) (LEIf t t1 t2)"
+by (induction rule: star.induct)(auto | meson eval1_LEIf star.intros(2))+
+ 
+lemma BigSE_star_step:
+ "s \<Down>\<^sub>E t \<Longrightarrow> star eval1_LE s t"
+proof (induction rule: BigSE.induct)
+  case (BigSE_App s A s' t v1 v2)
+    have 1:"star eval1_LE (LEApp s t) (LEApp (LEAbs A s') t)"
+      using BigSE_App(4)
+      by (induction rule: star.induct)(auto | meson eval1_LEApp1 star.intros(2))+ 
+
+    have 2:"star eval1_LE (LEApp (LEAbs A s') t) (LEApp (LEAbs A s') v1)"
+      using BigSE_App(5)
+       by (induction rule: star.induct)(auto | meson eval1_LEApp2[OF is_value_LE.intros(3)] star.intros(2))+ 
+
+    have 3:"star eval1_LE (LEApp (LEAbs A s') v1) v2" 
+      using BigSE_value[OF BigSE_App(2)] eval1_LEApp_LEAbs[of v1 A s']
+            star.intros(2)[OF _ BigSE_App(6)]
+      by blast
+
+    with 1 2 show ?case using star_trans[of "eval1_LE"] by meson
+next
+  case (BigSE_If_False c t1 v1 t2 v2)
+    show ?case
+      using star_eval_LEIF1[OF BigSE_If_False(4)]
+            star.intros(2)[of "eval1_LE", OF eval1_LEIf_LFalse BigSE_If_False(6)]
+            star_trans[of "eval1_LE"]
+      by blast
+next
+  case (BigSE_If_True c t1 v1 t2 v2)
+    show ?case
+      using star_eval_LEIF1[OF BigSE_If_True(4)]
+            star.intros(2)[of "eval1_LE", OF eval1_LEIf_LTrue BigSE_If_True(5)]
+            star_trans[of "eval1_LE"]
+      by blast
+next
+  case (BigSE_Seq t1 t2 v1)
+    have "star eval1_LE (SeqE t1 t2) (SeqE unitE t2)"
+      using BigSE_Seq(3)            
+      by (induction rule: star.induct)(auto | meson eval1_LE_E_Seq star.intros(2))+
+    thus ?case
+      using star.intros(2)[of "eval1_LE", OF eval1_LE_E_Seq_Next BigSE_Seq(4)]
+            star_trans[of "eval1_LE"]
+      by meson
+qed auto 
+
+
+
+end
