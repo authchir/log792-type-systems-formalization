@@ -305,7 +305,7 @@ fun subterms :: "lterm\<Rightarrow>subterm_set" where
 "subterms t = Void"
 
 lemma P_pat_subterm_cases:
-  "P (patterns t) \<longrightarrow> (\<exists>t1. subterms t = U t1 \<and> P (patterns t1)) \<or>
+  "P (patterns t) \<Longrightarrow> (\<exists>t1. subterms t = U t1 \<and> P (patterns t1)) \<or>
     (\<exists>t1 t2. subterms t = Bi t1 t2 \<and> P (patterns t1) \<and> P (patterns t2)) \<or>
     (\<exists>t1 t2 t3. subterms t = Ter t1 t2 t3 \<and> P (patterns t1) \<and> P (patterns t2) \<and> P (patterns t3)) \<or>
     (\<exists>t1 L. subterms t = Comp t1 L \<and> P (patterns t1) \<and> (\<forall>i<length L. P (patterns (L!i)))) \<or>
