@@ -35,6 +35,30 @@ fun BigCirc::"('a\<Rightarrow>'a) list \<Rightarrow> ('a\<Rightarrow>'a)" ("\<Od
 "\<Odot> [] = id" |
 "\<Odot> (f#fs) = f \<circ> (\<Odot> fs)"
 
+fun indexed_map::"nat \<Rightarrow> (nat\<Rightarrow>'a\<Rightarrow>'b) \<Rightarrow> 'a list \<Rightarrow> 'b list" where
+"indexed_map n f [] = []" |
+"indexed_map n f (x#xs) = f n x # (indexed_map (Suc n) f xs)"
+
+lemma indexed_map_cong[fundef_cong]:
+  "n=n1 \<Longrightarrow> L = L1 \<Longrightarrow>(\<And>x m. x \<in> set L1 \<Longrightarrow> f m x = g m x) \<Longrightarrow> 
+    indexed_map n f L = indexed_map n1 g L1"
+by (induction L arbitrary: n n1 L1, auto)
+
+
+lemma index_not_index_cong:
+ "indexed_map i f L = 
+  map (\<lambda>p. f (fst p) (snd p)) (zip [i..<(i+length L)] L)"
+proof (induction L arbitrary: i) 
+  case (Cons a L')
+    have "map (\<lambda>p. f (fst p) (snd p)) (zip [i..<(i + length (a # L'))] (a # L')) =
+          f i a # map (\<lambda>p. f (fst p) (snd p)) (zip [Suc i..<(Suc i + length L')] L')"
+      by (metis (no_types, lifting) enumerate_eq_zip enumerate_simps(2) fst_conv 
+                map_eq_Cons_conv snd_conv)      
+    thus ?case
+      using Cons[of "Suc i"]
+      by force
+qed auto
+
 lemma replace_inv_length[simp]:
   "length (replace n x S) = length S"  
 by(induction S arbitrary: x n, auto)

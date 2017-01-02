@@ -57,7 +57,7 @@ datatype subterm_set = U lterm | Bi lterm lterm | Ter lterm lterm lterm | Comp l
 definition letR :: "ltype\<Rightarrow>lterm\<Rightarrow>lterm\<Rightarrow>lterm" ("letrec/ x:(_) =(_)/ in/ (_)" [100,100,100]200) where
  "letrec x:A = t1 in t2 \<equiv> (let x=fix(LAbs A t1) in t2)"     
 
-primrec shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lterm" where
+fun shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lterm" where
   "shift_L d c LTrue = LTrue" |
   "shift_L d c LFalse = LFalse" |
   "shift_L d c (LIf t1 t2 t3) = LIf (shift_L d c t1) (shift_L d c t2) (shift_L d c t3)" |
@@ -88,11 +88,12 @@ primrec shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lter
   "shift_L d c (inr t as T') =  inr (shift_L d c t) as T'" |
   "shift_L d c (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = 
     (Case (shift_L d c t) of 
-        Inl (if x\<ge> c then (nat (int x + d)) else x) \<Rightarrow> shift_L d c t1 
-      | Inr (if y\<ge> c then (nat (int y + d)) else y) \<Rightarrow> shift_L d c t2)" |
+        Inl (if x\<ge> c then (nat (int x + d)) else x) \<Rightarrow> shift_L d (if x< c then Suc c else c) t1 
+      | Inr (if y\<ge> c then (nat (int y + d)) else y) \<Rightarrow> shift_L d (if y< c then Suc c else c) t2)" |
   "shift_L d c (<l:=t> as A) = <l:= shift_L d c t> as A" |
   "shift_L d c (Case t of <L:=I> \<Rightarrow> LT) = 
-    (Case (shift_L d c t) of <L:= (map (\<lambda>x. if x\<ge> c then (nat (int x + d)) else x) I)> \<Rightarrow> map (shift_L d c) LT)"|
+    (Case (shift_L d c t) of <L:= (map (\<lambda>x. if x\<ge> c then (nat (int x + d)) else x) I)> \<Rightarrow> 
+      indexed_map 0 (\<lambda>k. shift_L d (if (I!k)<c then Suc c else c)) LT)"|
   "shift_L d c (Fixpoint t) = Fixpoint (shift_L d c t)"
 
 
