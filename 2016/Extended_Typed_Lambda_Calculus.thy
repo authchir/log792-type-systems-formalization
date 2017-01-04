@@ -372,7 +372,7 @@ inductive has_type_LE :: "lcontext \<Rightarrow> ltermE \<Rightarrow> ltype \<Ri
     "\<Gamma> \<turnstile>\<^sup>E unitE |:| Unit " |  
   -- "Rule relating to sequence"
   has_type_LESeqE:
-    "0\<notin>FVE t2 \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E t1 |:| Unit \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E t2 |:| A \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E (SeqE t1 t2) |:| A"
+    "\<Gamma> \<turnstile>\<^sup>E t1 |:| Unit \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E t2 |:| A \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E (SeqE t1 t2) |:| A"
 
 lemma inversionE:
   "\<Gamma> \<turnstile>\<^sup>E LETrue |:| R \<Longrightarrow> R = Bool"
@@ -382,7 +382,7 @@ lemma inversionE:
   "\<Gamma> \<turnstile>\<^sup>E LEAbs T1 t2 |:| R \<Longrightarrow> \<exists>R2. R = T1 \<rightarrow> R2 \<and> \<Gamma> |,| T1 \<turnstile>\<^sup>E t2 |:| R2"
   "\<Gamma> \<turnstile>\<^sup>E LEApp t1 t2 |:| R \<Longrightarrow> \<exists>T11. \<Gamma> \<turnstile>\<^sup>E t1 |:| T11 \<rightarrow> R \<and> \<Gamma> \<turnstile>\<^sup>E t2 |:| T11"
   "\<Gamma> \<turnstile>\<^sup>E unitE |:| R \<Longrightarrow> R = Unit"
-  "\<Gamma> \<turnstile>\<^sup>E SeqE t1 t2 |:| R \<Longrightarrow> \<exists>A. R = A \<and> \<Gamma> \<turnstile>\<^sup>E t2 |:| A \<and> \<Gamma> \<turnstile>\<^sup>E t1 |:| Unit \<and> 0\<notin>FVE t2"
+  "\<Gamma> \<turnstile>\<^sup>E SeqE t1 t2 |:| R \<Longrightarrow> \<exists>A. R = A \<and> \<Gamma> \<turnstile>\<^sup>E t2 |:| A \<and> \<Gamma> \<turnstile>\<^sup>E t1 |:| Unit"
   by (auto elim: has_type_LE.cases)
 
 lemma canonical_formsE:
@@ -407,11 +407,9 @@ proof (induction \<Gamma> t A arbitrary: n rule: has_type_LE.induct)
       using has_type_LEAbs(1,3) has_type_LEAbs.IH[where n="Suc n"] 
       by (auto intro: has_type_LE.intros)
 next
-  case (has_type_LESeqE t2 \<Gamma> t1 A)
+  case (has_type_LESeqE \<Gamma> t1 t2 A)
     show ?case
-      using has_type_LESeqE(1)
-            FVE_shift[of 1 n]
-            has_type_LESeqE(4,5,6)
+      using FVE_shift[of 1 n] has_type_LESeqE(3,4,5)
       by (auto intro: has_type_LE.intros)
 qed (auto simp: nth_append min_def intro: has_type_LE.intros)
  
@@ -542,11 +540,35 @@ theorem e_surjective:
   shows "\<exists>u. e u = t"
 by (induction t)(blast intro:e.simps)+
 
-lemma typingE_imp_typingI:
-  "\<Gamma> \<turnstile>\<^sup>E t |:| A \<Longrightarrow> \<Gamma> \<turnstile> (e t) |:| A"
-by (induction rule: has_type_LE.induct) (auto intro: "has_type_L.intros" has_type_LSeq)
+method AppCase_m = ((match conclusion in "\<Gamma> \<turnstile>\<^sup>E LEApp e1 e2 |:| A" for \<Gamma> and e1 and e2 and A \<Rightarrow>
+                  \<open>(auto intro!: "has_type_LE.intros")\<close>), auto)| (auto intro: "has_type_LE.intros")
 
+method typeE_typeI_m =  ((match premises in H: "\<Gamma> \<turnstile> E |:| A" for \<Gamma> and E and A \<Rightarrow>
+          \<open> insert has_type_L.simps[of \<Gamma> E A], auto \<close>), AppCase_m)
 
+lemma typingE_equiv_typingI:
+  "\<Gamma> \<turnstile>\<^sup>E t |:| A = \<Gamma> \<turnstile> (e t) |:| A"
+proof 
+  show "\<Gamma> \<turnstile>\<^sup>E t |:| A \<Longrightarrow> \<Gamma> \<turnstile> (e t) |:| A"
+    by (induction rule: has_type_LE.induct) (auto intro: "has_type_L.intros" has_type_LSeq)
+next
+  show "\<Gamma> \<turnstile> (e t) |:| A \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E t |:| A"    
+    proof (induction arbitrary: \<Gamma> A rule: e.induct) 
+      case (8 t1 t2 \<Gamma> A)
+        note H=this
+        obtain T11 where hyps:"\<Gamma> \<turnstile> LAbs Unit (shift_L 1 0 (e t2)) |:| T11 \<rightarrow> A" " \<Gamma> \<turnstile> e t1 |:| T11"
+          using H(3)[simplified, unfolded has_type_L.simps[of \<Gamma> "e t1 ;; e t2" A, simplified]]
+          by auto
+        show ?case
+          using hyps H(1,2)[of \<Gamma>] 
+                has_type_L.simps[of \<Gamma> "LAbs Unit (shift_L 1 0 (e t2))" "T11\<rightarrow>A", simplified]
+                shift_down[of 0 Unit \<Gamma> "shift_L 1 0 (e t2)" A, 
+                            unfolded shift_shift_invert[of 1 0, simplified]]
+                FV_shift[of 1 0] has_type_LESeqE[of \<Gamma> t1 t2 A]                 
+          by auto
+    qed typeE_typeI_m+ 
+qed
+          
 theorem eval1_L_to_eval1_LE :
   fixes   t t'::ltermE and \<Gamma>::lcontext
   assumes "(eval1_LE t t')"
