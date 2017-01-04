@@ -374,16 +374,52 @@ proof (induction rule: Lmatch.induct)
       qed 
 qed auto
 
-lemma it_fill:
-  "(fill \<sigma> ^^ n) t = fill (\<sigma> ^^ n) t" sorry 
-
-lemma fill_correct_var:
-  "\<Gamma> \<turnstile> \<lparr><|V x|>|;|fill \<sigma>\<rparr> |:| A = (\<exists>n. \<Gamma> \<turnstile> \<lparr> (\<sigma>^^n) x |;| id\<rparr> |:| A)" 
-sorry
-
+   
 lemma well_typed_no_pat:
   "\<Gamma> \<turnstile> \<lparr> t |;| id \<rparr> |:| A \<Longrightarrow> patterns t = []"
-sorry
+unfolding fill_id
+proof (induction rule:has_type_L.induct)
+  case (has_type_Tuple L TL \<Gamma> \<sigma>) 
+    from this(4) have "\<And>l. l\<in>patterns ` {L ! i |i. i < length L} \<Longrightarrow> set l = {}" 
+      using image_iff[of _ patterns "{L ! i |i. i < length L}", simplified] 
+      by fast
+    then show ?case
+      using set_list_it_app[of "map patterns L", unfolded set_map set_conv_nth[of L]]
+      by (metis (mono_tags, lifting) SUP_bot_conv(2) patterns.simps(12) set_empty2)
+next
+  case (has_type_RCD L LT TL \<Gamma> \<sigma>)
+    from this(6) have "\<And>l. l\<in>patterns ` {LT ! i |i. i < length LT} \<Longrightarrow> set l = {}" 
+      using image_iff[of _ patterns "{LT ! i |i. i < length LT}", simplified] 
+      by fast
+    then show ?case 
+      using set_list_it_app[of "map patterns LT", unfolded set_map set_conv_nth[of LT]]
+      by (metis (mono_tags, lifting) SUP_bot_conv(2) patterns.simps(13) set_empty2)      
+next
+  case (has_type_PatternVar)
+    thus ?case sorry
+next
+  case (has_type_PatternRCD)
+    thus ?case sorry
+next
+  case (has_type_LetPattern)
+    thus ?case sorry
+next
+  case (has_type_CaseV)
+    thus ?case sorry
+qed auto
+
+lemma fill_correct_var:
+  "\<Gamma> \<turnstile> \<lparr><|V x|>|;|fill \<sigma>\<rparr> |:| A = (\<exists>n. \<Gamma> \<turnstile> \<lparr> (fill \<sigma>^^n) (<|V x|>) |;| id\<rparr> |:| A)" 
+proof
+  show "\<Gamma> \<turnstile> \<lparr><|V x|>|;|fill \<sigma>\<rparr> |:| A \<Longrightarrow> (\<exists>n. \<Gamma> \<turnstile> \<lparr> ((fill \<sigma>)^^n) (<|V x|>) |;| id\<rparr> |:| A)"
+    using has_type_L.simps[of \<Gamma> "<|V x|>", simplified]
+    by auto
+next
+  show "(\<exists>n. \<Gamma> \<turnstile> \<lparr> (fill \<sigma>^^n) (<|V x|>) |;| id\<rparr> |:| A) \<Longrightarrow> \<Gamma> \<turnstile> \<lparr><|V x|>|;|fill \<sigma>\<rparr> |:| A"
+    using well_typed_no_pat[of \<Gamma> "(fill \<sigma> ^^ _) (<|V x|>)" A]
+          has_type_PatternVar[of \<Gamma> _ \<sigma> x A]
+    by auto
+qed
 
 (*lemma weakening1 :
   fixes \<Gamma>::lcontext  and t::lterm and A R::ltype and \<sigma> \<sigma>'::"nat\<Rightarrow>lterm"
@@ -484,7 +520,7 @@ next
     
     obtain m where 1: "(take n \<Gamma>1 @ drop n \<Gamma>1 |,| S) \<turnstile> \<lparr>(fill \<sigma>' ^^ m) (<|V k|>)|;|id\<rparr> |:| A"
       using hyps(6)[of k \<Gamma>1 A n,simplified] 
-            hyps(1)[unfolded hyps(4) it_fill fill.simps p_instantiate.simps] 
+            hyps(1)[unfolded hyps(4)]
             fill_correct_var[of _ k _ A] 
             inversion(18) 
       by blast

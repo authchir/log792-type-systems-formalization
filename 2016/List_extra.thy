@@ -331,7 +331,7 @@ lemma set_list_it_app[simp]:
 sorry
 
 lemma nth_list_it_app:
-  "\<exists>j k. (list_iter op @ [] L) ! i = (L ! j) ! k \<and> k<length(L!j) \<and> j<length L" 
+  "L\<noteq>[] \<Longrightarrow> (\<forall>sl. sl\<in>set L \<longrightarrow> sl \<noteq>[]) \<Longrightarrow> i<foldr (\<lambda> a r. length a + r) L 0\<Longrightarrow>\<exists>j k. (list_iter op @ [] L) ! i = (L ! j) ! k \<and> k<length(L!j) \<and> j<length L" 
 sorry
 
 lemma update_snd_rewrite_fun:

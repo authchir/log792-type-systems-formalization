@@ -568,11 +568,11 @@ next
           by auto
     qed typeE_typeI_m+ 
 qed
-          
+  
 theorem eval1_L_to_eval1_LE :
   fixes   t t'::ltermE and \<Gamma>::lcontext
-  assumes "(eval1_LE t t')"
-  shows   "(eval1_L (e t) (e t'))" 
+  assumes "eval1_LE t t'"
+  shows   "eval1_L (e t) (e t')" 
 using assms
 proof (induction t t' arbitrary: A rule: eval1_LE.induct)
   case (eval1_LEApp_LEAbs v2 A1 t1)
