@@ -17,7 +17,7 @@ begin
   Sum ltype ltype (infix "|+|" 225) |
   TVariant "string list" "ltype list" ( "<_|,|_>" [150,150] 225) 
   
-datatype Lpattern = V nat | RCD "string list" "Lpattern list"
+datatype Lpattern = V nat | RCD "string list" "Lpattern list" | SV "int list" "nat list" nat
 
 
 datatype lterm =
@@ -82,8 +82,10 @@ fun shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lterm" w
   "shift_L d c (\<Pi> i t)   = \<Pi> i (shift_L d c t)" |
   "shift_L d c (Record L LT)  = Record L (map (shift_L d c) LT)" |
   "shift_L d c (ProjR l t) = ProjR l (shift_L d c t)" |
-  "shift_L d c (Pattern p) = <|p|>" |
-  "shift_L d c (Let pattern p := t1 in t2) = (Let pattern p := (shift_L d c t1) in (shift_L d c t2))" |
+  "shift_L d c (<|SV d' c' k|>) = <|SV (d#d') (c#c') k|>" |
+  "shift_L d c (<|V k|>) = <|SV [d] [c] k|>" |
+  "shift_L d c (<|RCD L PL|>) = <|RCD L PL|>" |
+  "shift_L d c (Let pattern p := t1 in t2) = (Let pattern p := t1 in (shift_L d c t2))" |
   "shift_L d c (inl t as T') =  inl (shift_L d c t) as T'" |
   "shift_L d c (inr t as T') =  inr (shift_L d c t) as T'" |
   "shift_L d c (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = 
@@ -139,9 +141,6 @@ termination
   by (relation "measure (\<lambda>(j,s,t). size t)", auto)
       (metis less_add_Suc1 size_list_estimation' set_zip_rightD lessI not_less)+
   
-fun nbinder :: "lterm \<Rightarrow> nat" where
-"nbinder (LAbs A t) = Suc (nbinder t)" |
-"nbinder _ = 0" 
 
 text{*
       We want to restrict the considered pattern matching and filling to coherent cases, which are
@@ -153,8 +152,8 @@ text{*
 
 fun Pvars :: "Lpattern \<Rightarrow> nat list" where
 "Pvars (V n) = [n]" |
-"Pvars (RCD L PL) = (list_iter (\<lambda>x r. x @ r) [] (map Pvars PL))"
-
+"Pvars (RCD L PL) = (list_iter (\<lambda>x r. x @ r) [] (map Pvars PL))" |
+"Pvars (SV d c k) = [k]"
 
 fun patterns::"lterm \<Rightarrow> nat list" where
 "patterns (<|p|>) = Pvars p" |
@@ -174,7 +173,6 @@ fun patterns::"lterm \<Rightarrow> nat list" where
 "patterns (\<pi>2 t)                      = patterns t" |
 "patterns (\<Pi> i t)                     = patterns t" |
 "patterns (ProjR l t)                 = patterns t" |
-(*"patterns (Let pattern p := t1 in t2) = patterns t1 @ filter (\<lambda>x. x\<notin> set(Pvars p))(patterns t2)" |*)
 "patterns (Let pattern p := t1 in t2) = patterns t1 @ patterns t2" |
 "patterns (inl t as T') =  patterns t" |
 "patterns (inr t as T') =  patterns t" |
@@ -248,36 +246,37 @@ inductive same_dom:: "(nat \<Rightarrow> lterm) \<Rightarrow> nat list \<Rightar
   non_empty: "(\<And>x. x\<in>set A \<Longrightarrow> f x \<noteq> <|V x|>) \<Longrightarrow> same_dom f A"
 
 fun p_instantiate::"(nat\<Rightarrow> lterm) \<Rightarrow> Lpattern \<Rightarrow> lterm" where
-"p_instantiate \<Delta> (V k) = \<Delta> k"|
-"p_instantiate \<Delta> (RCD L PL) =  (if (same_dom \<Delta> (Pvars (RCD L PL)) \<and> (Pvars (RCD L PL)\<noteq>[])) then Record L (map (p_instantiate \<Delta>) PL)
-                                else <|RCD L PL|>)"
+"p_instantiate \<Sigma> (V k) = \<Sigma> k"|
+"p_instantiate \<Sigma> (RCD L PL) =  (if (same_dom \<Sigma> (Pvars (RCD L PL)) \<and> (Pvars (RCD L PL)\<noteq>[])) then Record L (map (p_instantiate \<Sigma>) PL)
+                                else <|RCD L PL|>)" |
+"p_instantiate \<Sigma> (SV d c k) = <|SV d c k|>"
 
 fun fill::"(nat \<Rightarrow> lterm) \<Rightarrow> lterm \<Rightarrow> lterm" where
-"fill \<Delta> (Pattern p)                 = p_instantiate \<Delta> p" |
-"fill \<Delta> (LIf c t1 t2)               = LIf (fill \<Delta> c) (fill \<Delta> t1) (fill \<Delta> t2)" |
-"fill \<Delta> (LAbs A t1)                 = LAbs A (fill \<Delta> t1)" |
-"fill \<Delta> (LApp t1 t2)                = LApp (fill \<Delta> t1) (fill \<Delta> t2)" |
-"fill \<Delta> (LPlus t1 t2)               = LPlus (fill \<Delta> t1) (fill \<Delta> t2)" |
-"fill \<Delta> (UMinus t)                  = UMinus (fill \<Delta> t)" |
-"fill \<Delta> (IsZero t)                  = IsZero (fill \<Delta> t)" |
-"fill \<Delta> (Seq t1 t2)                 =  Seq (fill \<Delta> t1) (fill \<Delta> t2)" |
-"fill \<Delta> (t1 as A)                   = (fill \<Delta> t1) as A" |
-"fill \<Delta> (Let var x := t1 in t2)     = (Let var x := (fill \<Delta> t1) in (fill \<Delta> t2))" |
-"fill \<Delta> (\<lbrace>t1,t2\<rbrace>)                   = \<lbrace>(fill \<Delta> t1), (fill \<Delta> t2)\<rbrace>" |
-"fill \<Delta> (Tuple L)                   = Tuple (map (fill \<Delta>) L)" |
-"fill \<Delta> (Record L LT)               = Record L (map (fill \<Delta>) LT)" |
-"fill \<Delta> (\<pi>1 t)                      = \<pi>1 (fill \<Delta> t)" |
-"fill \<Delta> (\<pi>2 t)                      = \<pi>2 (fill \<Delta> t)" |
-"fill \<Delta> (\<Pi> i t)                     = \<Pi> i (fill \<Delta> t)" |
-"fill \<Delta> (ProjR l t)                 = ProjR l (fill \<Delta> t)" |
-"fill \<Delta> (Let pattern p := t1 in t2) = (Let pattern p := (fill \<Delta> t1) in (fill \<Delta> t2))" |
-"fill \<Delta> (inl t as A) = inl (fill \<Delta> t) as A"|
-"fill \<Delta> (inr t as A) = inr (fill \<Delta> t) as A"|
-"fill \<Delta> (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = (Case (fill \<Delta> t) of Inl x \<Rightarrow> (fill \<Delta> t1) | Inr y \<Rightarrow> (fill \<Delta> t2))"|
-"fill \<Delta> (<l:=t> as A) =  <l:=(fill \<Delta> t)> as A"|
-"fill \<Delta> (Case t of <L:=I> \<Rightarrow> LT) = (Case (fill \<Delta> t) of <L:=I> \<Rightarrow> map (fill \<Delta>) LT)"|
-"fill \<Delta> (Fixpoint t) = Fixpoint (fill \<Delta> t)" |
-"fill \<Delta> t = t"
+"fill \<Sigma> (Pattern p)                 = p_instantiate \<Sigma> p" |
+"fill \<Sigma> (LIf c t1 t2)               = LIf (fill \<Sigma> c) (fill \<Sigma> t1) (fill \<Sigma> t2)" |
+"fill \<Sigma> (LAbs A t1)                 = LAbs A (fill \<Sigma> t1)" |
+"fill \<Sigma> (LApp t1 t2)                = LApp (fill \<Sigma> t1) (fill \<Sigma> t2)" |
+"fill \<Sigma> (LPlus t1 t2)               = LPlus (fill \<Sigma> t1) (fill \<Sigma> t2)" |
+"fill \<Sigma> (UMinus t)                  = UMinus (fill \<Sigma> t)" |
+"fill \<Sigma> (IsZero t)                  = IsZero (fill \<Sigma> t)" |
+"fill \<Sigma> (Seq t1 t2)                 =  Seq (fill \<Sigma> t1) (fill \<Sigma> t2)" |
+"fill \<Sigma> (t1 as A)                   = (fill \<Sigma> t1) as A" |
+"fill \<Sigma> (Let var x := t1 in t2)     = (Let var x := (fill \<Sigma> t1) in (fill \<Sigma> t2))" |
+"fill \<Sigma> (\<lbrace>t1,t2\<rbrace>)                   = \<lbrace>(fill \<Sigma> t1), (fill \<Sigma> t2)\<rbrace>" |
+"fill \<Sigma> (Tuple L)                   = Tuple (map (fill \<Sigma>) L)" |
+"fill \<Sigma> (Record L LT)               = Record L (map (fill \<Sigma>) LT)" |
+"fill \<Sigma> (\<pi>1 t)                      = \<pi>1 (fill \<Sigma> t)" |
+"fill \<Sigma> (\<pi>2 t)                      = \<pi>2 (fill \<Sigma> t)" |
+"fill \<Sigma> (\<Pi> i t)                     = \<Pi> i (fill \<Sigma> t)" |
+"fill \<Sigma> (ProjR l t)                 = ProjR l (fill \<Sigma> t)" |
+"fill \<Sigma> (Let pattern p := t1 in t2) = (Let pattern p := (fill \<Sigma> t1) in (fill \<Sigma> t2))" |
+"fill \<Sigma> (inl t as A) = inl (fill \<Sigma> t) as A"|
+"fill \<Sigma> (inr t as A) = inr (fill \<Sigma> t) as A"|
+"fill \<Sigma> (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = (Case (fill \<Sigma> t) of Inl x \<Rightarrow> (fill \<Sigma> t1) | Inr y \<Rightarrow> (fill \<Sigma> t2))"|
+"fill \<Sigma> (<l:=t> as A) =  <l:=(fill \<Sigma> t)> as A"|
+"fill \<Sigma> (Case t of <L:=I> \<Rightarrow> LT) = (Case (fill \<Sigma> t) of <L:=I> \<Rightarrow> map (fill \<Sigma>) LT)"|
+"fill \<Sigma> (Fixpoint t) = Fixpoint (fill \<Sigma> t)" |
+"fill \<Sigma> t = t"
 
 fun subterms :: "lterm\<Rightarrow>subterm_set" where
 "subterms (LIf c t1 t2)               = Ter c t1 t2" |
