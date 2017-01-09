@@ -131,7 +131,25 @@ inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
   eval1_L_FixBeta:
     "eval1_L (fix (LAbs A t)) (shift_L (-1) 0 (subst_L 0 (shift_L 1 0 (fix LAbs A t)) t))"|
   eval1_LFix_step:
-    "eval1_L t t' \<Longrightarrow> eval1_L (fix t) (fix t')"
+    "eval1_L t t' \<Longrightarrow> eval1_L (fix t) (fix t')" |
+  eval1_Lcons1:
+    "eval1_L t t1 \<Longrightarrow> eval1_L (Lcons A t t') (Lcons A t1 t')"|
+  eval1_Lcons2:
+    "is_value_L v \<Longrightarrow> eval1_L t' t1 \<Longrightarrow> eval1_L (Lcons A v t') (Lcons A v t1)"|
+  eval1_Lisnil_nil:
+    "eval1_L (Lisnil A (Lnil A)) LTrue"|
+   eval1_Lisnil_cons:
+    "is_value_L v1 \<Longrightarrow> is_value_L v2 \<Longrightarrow> eval1_L (Lisnil A (Lcons A v1 v2)) LFalse"|
+  eval1_Lisnil_step:
+    "eval1_L t t' \<Longrightarrow> eval1_L (Lisnil A t) (Lisnil A t')"|
+  eval1_Lhead_cons:
+    "is_value_L v1 \<Longrightarrow> is_value_L v2 \<Longrightarrow> eval1_L (Lhead A (Lcons A v1 v2)) v1" | 
+  eval1_Lhead_step:
+    "eval1_L t t1 \<Longrightarrow> eval1_L (Lhead A t) (Lhead A t1)" |
+  eval1_Ltail_cons:
+    "is_value_L v1 \<Longrightarrow> is_value_L v2 \<Longrightarrow> eval1_L (Ltail A (Lcons A v1 v2)) v2" | 
+  eval1_Ltail_step:
+    "eval1_L t t1 \<Longrightarrow> eval1_L (Ltail A t) (Ltail A t1)" 
 
 type_synonym lcontext = "ltype list"
 type_synonym pcontext = "(lterm \<Rightarrow> lterm)"
@@ -147,8 +165,6 @@ text{*  For the typing rule of letbinder, we require to replace the type
         of the variable by the expected type 
     *}
 
-abbreviation unfold_SV:: "int list \<Rightarrow> nat list \<Rightarrow> (lterm \<Rightarrow> lterm)" where
- "unfold_SV \<equiv> (\<lambda> d c. rec_nat (id) (\<lambda> n r. r \<circ> shift_L (d!n) (c!n)) (length d))"   
 
 inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> pcontext \<Rightarrow> ltype \<Rightarrow> bool" ("((_)/ \<turnstile> \<lparr>(_)|;|(_)\<rparr>/ |:| (_))" [150, 150, 150, 150] 150) where
   -- "Rules relating to the type of Booleans"
@@ -200,10 +216,8 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> pcontext \<R
     "distinct L1 \<Longrightarrow> l\<in> set L1  \<Longrightarrow> length L1 = length TL \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t|;|fill \<sigma>\<rparr> |:| \<lparr>L1|:|TL\<rparr> \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>ProjR l t|;|fill \<sigma>\<rparr> |:| (TL ! index L1 l)" |
   has_type_PatternVar:
     "\<Gamma> \<turnstile> \<lparr> \<sigma> k |;| fill \<sigma> \<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr><|V k|>|;|fill \<sigma>\<rparr> |:| A" |
-  has_type_PatternSV:
-    "\<Gamma> \<turnstile> \<lparr> unfold_SV d c (\<sigma> k) |;| fill \<sigma> \<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr> <|SV d c k|> |;| fill \<sigma> \<rparr> |:| A" |
   has_type_LetPattern:
-    "coherent p B \<Longrightarrow> Lmatch_Gnl p t1 \<sigma> \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t1|;| fill \<sigma>1\<rparr> |:| B \<Longrightarrow>
+    "coherent p B \<Longrightarrow> Lmatch_Gnl p t1 \<sigma> \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>fill \<sigma>1 t1|;| fill \<sigma>1\<rparr> |:| B \<Longrightarrow>
      \<Gamma> \<turnstile> \<lparr>t2|;|((fill \<sigma>1) \<circ> \<sigma>)\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|fill \<sigma>1\<rparr> |:| A" |
   has_type_Inl:
     "\<Gamma> \<turnstile> \<lparr>t1|;|fill \<sigma>1\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>inl t1 as A|+|B |;|fill \<sigma>1\<rparr> |:| A|+|B" |
@@ -219,7 +233,17 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> pcontext \<R
       \<Gamma> \<turnstile> \<lparr> t |;| fill \<sigma> \<rparr> |:| <L|,|TL> \<Longrightarrow> (\<forall>i<length L. insert_nth (I!i) (TL!i) \<Gamma> \<turnstile> \<lparr>(LT!i)|;|fill \<sigma>\<rparr> |:| A) \<Longrightarrow>
       \<Gamma> \<turnstile> \<lparr> Case t of <L:=I> \<Rightarrow> LT |;|fill \<sigma>\<rparr> |:| A" |
   has_type_Fix:
-    "\<Gamma> \<turnstile> \<lparr> t |;| fill \<sigma> \<rparr> |:| A\<rightarrow>A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr> fix t |;| fill \<sigma> \<rparr> |:| A"
+    "\<Gamma> \<turnstile> \<lparr> t |;| fill \<sigma> \<rparr> |:| A\<rightarrow>A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr> fix t |;| fill \<sigma> \<rparr> |:| A"|
+  has_type_Nil:
+    "\<Gamma> \<turnstile> \<lparr> Lnil A |;| fill \<sigma> \<rparr> |:| \<lambda>List A"|
+  has_type_isNil:
+    "\<Gamma> \<turnstile> \<lparr> t|;| fill \<sigma> \<rparr> |:| \<lambda>List A \<Longrightarrow>\<Gamma> \<turnstile> \<lparr> Lisnil A t|;| fill \<sigma> \<rparr> |:| Bool"| 
+  has_type_head:
+    "\<Gamma> \<turnstile> \<lparr> t|;| fill \<sigma> \<rparr> |:| \<lambda>List A \<Longrightarrow>\<Gamma> \<turnstile> \<lparr> Lhead A t|;| fill \<sigma> \<rparr> |:| A"| 
+  has_type_tail:
+    "\<Gamma> \<turnstile> \<lparr> t|;| fill \<sigma> \<rparr> |:| \<lambda>List A \<Longrightarrow>\<Gamma> \<turnstile> \<lparr> Ltail A t|;| fill \<sigma> \<rparr> |:| A"| 
+  has_type_cons:
+    "\<Gamma> \<turnstile> \<lparr> t|;| fill \<sigma> \<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr> t' |;| fill \<sigma> \<rparr> |:| A \<Longrightarrow>\<Gamma> \<turnstile> \<lparr> Lcons A t t'|;| fill \<sigma> \<rparr> |:| \<lambda>List A"  
 
 inductive_cases has_type_LetE : "\<Gamma> \<turnstile> \<lparr> Let var x := t1 in t2|;|\<sigma>1\<rparr>  |:| B"
 inductive_cases has_type_ProjTE: "\<Gamma> \<turnstile> \<lparr> \<Pi> i t|;|\<sigma>1\<rparr> |:| R"
@@ -255,7 +279,7 @@ lemma inversion:
   "\<Gamma> \<turnstile> \<lparr> (ProjR l t)|;| \<sigma>\<rparr> |:| R \<Longrightarrow>\<exists>m L TL. \<Gamma> \<turnstile> \<lparr>t |;| \<sigma>\<rparr> |:| \<lparr>L|:|TL\<rparr> \<and> index L l = m \<and> TL ! m = R \<and> distinct L \<and> length L = length TL
                               \<and> l \<in> set L"
   "\<Gamma> \<turnstile> \<lparr><|V k|>|;|\<sigma>\<rparr> |:| R \<Longrightarrow> \<exists>n. \<Gamma> \<turnstile> \<lparr>\<sigma> (<|V k|>)|;| \<sigma>\<rparr> |:| R"
-  "\<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|\<sigma>1\<rparr> |:| R \<Longrightarrow>\<exists>\<sigma> B. coherent p B\<and> Lmatch_Gnl p t1 \<sigma>  \<and> \<Gamma> \<turnstile> \<lparr>t1|;|(\<sigma>1)\<rparr> |:| B \<and>
+  "\<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|\<sigma>1\<rparr> |:| R \<Longrightarrow>\<exists>\<sigma> B. coherent p B\<and> Lmatch_Gnl p t1 \<sigma>  \<and> \<Gamma> \<turnstile> \<lparr>\<sigma>1 t1|;|\<sigma>1\<rparr> |:| B \<and>
                                                   \<Gamma> \<turnstile> \<lparr>t2|;|(\<sigma>1 \<circ> \<sigma>)\<rparr> |:| R" 
   "\<Gamma> \<turnstile> \<lparr>inl t as R|;|\<sigma>1\<rparr> |:| R \<Longrightarrow>\<exists>A B. R = A|+|B \<and> \<Gamma> \<turnstile> \<lparr>t|;|\<sigma>1\<rparr> |:| A"
   "\<Gamma> \<turnstile> \<lparr>inr t as R|;|\<sigma>1\<rparr> |:| R \<Longrightarrow>\<exists>A B. R = A|+|B \<and> \<Gamma> \<turnstile> \<lparr>t|;|\<sigma>1\<rparr> |:| B"
@@ -271,7 +295,7 @@ proof -
     by fastforce 
 next
   assume H1: "\<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|\<sigma>1\<rparr> |:| R"
-  show "\<exists>\<sigma> B. coherent p B\<and> Lmatch_Gnl p t1 \<sigma>  \<and> \<Gamma> \<turnstile> \<lparr>t1|;|(\<sigma>1)\<rparr> |:| B \<and> \<Gamma> \<turnstile> \<lparr>t2|;|(\<sigma>1 \<circ> \<sigma>)\<rparr> |:| R"
+  show "\<exists>\<sigma> B. coherent p B\<and> Lmatch_Gnl p t1 \<sigma>  \<and> \<Gamma> \<turnstile> \<lparr>\<sigma>1 t1|;|\<sigma>1\<rparr> |:| B \<and> \<Gamma> \<turnstile> \<lparr>t2|;|(\<sigma>1 \<circ> \<sigma>)\<rparr> |:| R"
     using has_type_LetPE[OF H1]
     by metis
 next
@@ -307,32 +331,40 @@ lemma[simp]: "nat (1 + int x) = Suc x" by simp
 
 lemma[simp]: "nat (int x - 1) = x - 1" by simp 
 
+lemma shift_fill:
+  "fill \<sigma> (shift_L d c t) = shift_L d c (fill \<sigma> t)"
+sorry
 
-lemma fill_id:
-  "id = fill (\<lambda>x. <|V x|>)"
-proof 
-  fix t
-  show "id t = fill (\<lambda>x. <|V x|>) t"
-    proof (induction t)
-      case (Tuple L)
-        thus ?case by (induction L, auto)
-    next
-      case (Record L TL)
-        thus ?case by (induction TL, auto)
-    next
-      case (Pattern p)
-        show ?case
-          proof (induction p)
-            case (RCD L PL)
-              show ?case
-                using "same_dom.cases"[of "\<lambda>x. <|V x|>" "list_iter op @ \<emptyset> (map Pvars PL)"]
-                by fastforce
-          qed auto
-    next
-      case (CaseVar t L I LT)
-        thus ?case by (induction LT, auto)
-    qed auto
-qed
+lemma unfold_SV_sub:
+  "length d = length c \<Longrightarrow> 
+   rec_nat id (\<lambda>n r. r \<circ> shift_L ((d @ [d1]) ! n) ((c @ [c1]) ! n)) (length d) t =
+   unfold_SV d c t"
+sorry
+
+lemma fill_unfold:
+  "length d = length c \<Longrightarrow>fill \<sigma> (unfold_SV d c t) = unfold_SV d c (fill \<sigma> t)"
+proof (induction "length d" arbitrary: c d t)
+  case (Suc n)
+    obtain d1 c1 d' c' where unfolds:"d=d'@[d1]" "c=c'@[c1]"
+      using Suc(2,3) 
+      by (metis append_butlast_last_id length_0_conv nat.simps(3))
+    hence sub_len:"length d' = length c'" "n=length d'" using Suc(2,3) by auto
+    
+    from Suc(3) have lhs1:"fill \<sigma> (unfold_SV d c t) = fill \<sigma> (rec_nat id (\<lambda>n r. r \<circ> shift_L ((d' @ [d1]) ! n) ((c' @ [c1]) ! n)) (length c')
+       (shift_L ((d' @ [d1]) ! length c') c1 t))"
+      by (simp add: unfolds)
+    from Suc(3) have "unfold_SV d c (fill \<sigma> t) = 
+        rec_nat id (\<lambda>n r. r \<circ> shift_L ((d' @ [d1]) ! n) ((c' @ [c1]) ! n)) (length c')
+         (shift_L ((d' @ [d1]) ! length c') c1 (fill \<sigma> t))"
+      by (simp add: unfolds)
+    with lhs1 show ?case
+      using Suc(1)[OF sub_len(2,1), of "shift_L d1 c1 t"
+                    , unfolded sub_len(1)[symmetric] shift_fill , simplified]
+            unfold_SV_sub[OF sub_len(1), of d1 c1, 
+                          unfolded unfolds[symmetric] Suc(3) sub_len(1), simplified, 
+                          unfolded unfolds sub_len(1)[symmetric]] 
+      by (simp add: sub_len(1)[symmetric]) 
+qed auto
 
 lemma fill_fill_comp:
   "fill \<sigma> \<circ> fill \<sigma>1 = fill (fill \<sigma> \<circ> \<sigma>1)"
@@ -343,28 +375,23 @@ proof (rule)
       case (Pattern p)
         show ?case
           proof (induction p)
-            case (RCD L PL)
+            case (SV d c k)
               show ?case
-                apply (simp del: "p_instantiate.simps")
-                using "p_instantiate.simps"(2) RCD
-                sorry
+                using fill_unfold[of d c \<sigma> "\<sigma>1 k"]
+                by auto
           qed auto
     qed auto
 qed
 
-
-
 lemma lmatchGnl_gives_fill:
-  "Lmatch_Gnl p t \<sigma> \<Longrightarrow> \<exists>\<sigma>1. fill \<sigma>1 = \<sigma>" 
+  "Lmatch_Gnl p t \<sigma> \<Longrightarrow> \<exists>\<sigma>1. fill \<sigma>1 = \<sigma> \<or> \<sigma>=id" 
 proof (induction rule: Lmatch_Gnl.induct)
   case (M_RCD L F PL t)
     show ?case
       using M_RCD(2,3,5)
       proof (induction F arbitrary:PL L)
-        case (Nil)
-          show ?case 
-            using fill_id "BigCirc.simps"(1) 
-            by metis
+        case Nil
+          thus ?case by auto
       next
         case (Cons f F)
           obtain p PL' where unfold_PL:"PL = p#PL'"
@@ -373,20 +400,20 @@ proof (induction rule: Lmatch_Gnl.induct)
           then obtain l L' where unfold_L: "L= l#L'"
             using Cons(3) length_Suc_conv
             by metis
-          obtain \<Sigma> where BigCirc_\<Sigma>:"fill \<Sigma> = \<Odot> F"
+          obtain \<Sigma> where BigCirc_\<Sigma>:"fill \<Sigma> = \<Odot> F \<or> \<Odot> F = id"
             using Cons(1)[OF  Cons(2)[unfolded unfold_PL, simplified]
                               Cons(3)[unfolded unfold_L unfold_PL, simplified]           
                           ]                   
                   Cons(4)[of "_+1", unfolded unfold_PL unfold_L, simplified] 
-            by blast
-
-          obtain \<sigma>1 where "fill \<sigma>1 = f"
+            by force      
+            
+          obtain \<sigma>1 where "fill \<sigma>1 = f \<or> f=id"
             using Cons(4)[of 0] Cons(2)
             by force
           with BigCirc_\<Sigma> show ?case
             using fill_fill_comp[of \<sigma>1 \<Sigma>]
             by fastforce
-      qed 
+      qed
 qed auto
 
 
@@ -454,28 +481,24 @@ next
             insert_nth_comp(2)[OF has_type_Let(6),of x S A]  
       by (auto intro!: has_type_L.intros(14)) 
 next
-  case (has_type_PatternSV \<Gamma> d c \<sigma>1 p A)
-    note hyps=this
-    show ?case
-      apply simp
-      apply rule
-      using hyps(2)[OF hyps(3-4), unfolded hyps(3)]
-      sorry
-next
   case (has_type_LetPattern p B t1 \<sigma>1 \<Gamma> \<sigma>2 t2 A \<sigma>3 n)
     note hyps=this
-    obtain \<sigma>' where fill_\<sigma>1:"\<sigma>1 = fill \<sigma>'"
+    obtain \<sigma>' where fill_\<sigma>1:"\<sigma>1 = fill \<sigma>' \<or> \<sigma>1 = id"
       using lmatchGnl_gives_fill[OF has_type_LetPattern(2)]
       by auto
       
     show ?case
-      apply simp
+      using fill_\<sigma>1
+      apply auto
       apply rule
       using hyps(1,2)
-      apply force+
-      using hyps(1,2,6,7,8)
-            hyps(4)[of "fill \<sigma>3 \<circ> \<sigma>'"]
-            fill_\<sigma>1 fill_fill_comp 
+      apply force
+      defer
+      using hyps(4)[OF hyps(7,8), unfolded shift_fill[symmetric] hyps(7)]
+      apply force
+      using hyps(6)[OF _ hyps(8), of "fill \<sigma>2 \<circ> \<sigma>'", unfolded hyps(7) fill_fill_comp[symmetric]]
+      apply force    
+      
       (*by (auto intro: has_type_L.intros(24))*) sorry
 next
   case (has_type_Case \<Gamma>1 t \<sigma>1 A B x t1 C y t2)
