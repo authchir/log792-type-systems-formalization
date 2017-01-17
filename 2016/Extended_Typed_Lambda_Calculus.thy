@@ -546,13 +546,13 @@ method AppCase_m = ((match conclusion in "\<Gamma> \<turnstile>\<^sup>E LEApp e1
 method typeE_typeI_m =  ((match premises in H: "\<Gamma> \<turnstile> E |:| A" for \<Gamma> and E and A \<Rightarrow>
           \<open> insert has_type_L.simps[of \<Gamma> E A], auto \<close>), AppCase_m)
 
-lemma typingE_equiv_typingI:
-  "\<Gamma> \<turnstile>\<^sup>E t |:| A = \<Gamma> \<turnstile> (e t) |:| A"
+theorem typingE_equiv_typingI:
+  "\<Gamma> \<turnstile>\<^sup>E t |:| A = \<Gamma> \<turnstile> e t |:| A"
 proof 
-  show "\<Gamma> \<turnstile>\<^sup>E t |:| A \<Longrightarrow> \<Gamma> \<turnstile> (e t) |:| A"
+  show "\<Gamma> \<turnstile>\<^sup>E t |:| A \<Longrightarrow> \<Gamma> \<turnstile> e t |:| A"
     by (induction rule: has_type_LE.induct) (auto intro: "has_type_L.intros" has_type_LSeq)
 next
-  show "\<Gamma> \<turnstile> (e t) |:| A \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E t |:| A"    
+  show "\<Gamma> \<turnstile> e t |:| A \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E t |:| A"    
     proof (induction arbitrary: \<Gamma> A rule: e.induct) 
       case (8 t1 t2 \<Gamma> A)
         note H=this
@@ -568,7 +568,7 @@ next
           by auto
     qed typeE_typeI_m+ 
 qed
-  
+
 theorem eval1_L_to_eval1_LE :
   fixes   t t'::ltermE and \<Gamma>::lcontext
   assumes "eval1_LE t t'"
