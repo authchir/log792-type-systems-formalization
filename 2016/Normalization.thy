@@ -346,6 +346,24 @@ next
     then show ?case using LAbs[of "Suc n"] by simp
 qed auto
 
+lemma substitution_all:
+  "\<Gamma> \<turnstile> t |:| T \<Longrightarrow>  (\<And>i. i<length V \<Longrightarrow> \<Gamma> \<turnstile> LVar (i+k) |:| (\<Gamma>!i) \<and> \<Gamma> \<turnstile> (V!i) |:| (\<Gamma>!i)) \<Longrightarrow> 
+    \<Gamma> \<turnstile> subst_all k V t |:| T"
+proof (induction \<Gamma> t T arbitrary: s n k V rule: has_type_L.induct)
+  case (has_type_LAbs \<Gamma> T1 t T2)
+    note H=this
+    show ?case
+      apply simp
+      apply rule
+      using H(2)[of "map (shift_L 1 0) V" "Suc k", simplified]
+            H(3)
+      sorry
+  (*by (fastforce
+    intro: has_type_L.intros weakening[where n=0, unfolded insert_nth_def nat.rec]
+    simp: has_type_L.simps[of _ "LVar n" _, simplified])*)
+qed (auto intro!: has_type_L.intros 
+          simp: has_type_L.simps[of _ "LVar _" _, simplified])
+
 lemma (in rel_reasoning) subst_R:
   "\<Gamma> \<turnstile> t |:| T \<Longrightarrow> length V = length \<Gamma> \<Longrightarrow> (\<And>i. i<length V \<Longrightarrow>is_value_L (V!i) \<and> (V!i) \<in>\<^sub>R (\<Gamma>!i)) \<Longrightarrow> 
     subst_all 0 V t \<in>\<^sub>R T"
@@ -409,11 +427,13 @@ next
           using star_trans[of "eval1_L"]
           by meson
         have type: "\<emptyset> \<turnstile> LApp (LAbs T1 (subst_all (Suc 0) (map (shift_L 1 0) V) t)) v |:| T2"
-          using R_def[of "subst_all 0 (v # V) t" T2]
-                substitution[OF hyps(1), of _ "(\<Gamma>|,|T1)!_" "shift_L 1 0 (V!_)"] hyps(4)
+          using R_def[of "subst_all 0 (v # V) t" T2,THEN conjunct2]
+                substitution[OF hyps(1), of _ "(\<Gamma>|,|T1)!_" "shift_L 1 0 (V!_)"]
+                hyps(4)
                 weakening[of \<emptyset> "V!_" "\<Gamma>!_" 0 T1, simplified]
                 R_def[OF Rv, THEN conjunct2]
                 has_type_L.intros(3,4)
+                has_type_L.simps[of "\<Gamma> |,| T1" "LVar _", simplified]
           sorry
         thm hyps(2)[of "v#V",simplified]
         show "LApp (LAbs T1 (subst_all (Suc 0) (map (shift_L 1 0) V) t)) s\<in>\<^sub>RT2"
