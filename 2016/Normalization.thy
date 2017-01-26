@@ -83,16 +83,6 @@ abbreviation closed ::"lterm \<Rightarrow> bool" where
 abbreviation halts :: "lterm \<Rightarrow> bool" where
   "halts t \<equiv> (\<exists>t'. star eval1_L t t' \<and> (\<forall>t1. \<not> eval1_L t' t1)) \<or> (\<forall>t1. \<not> eval1_L t t1)"
 
-locale rel_reasoning =
-  fixes R::"lterm \<Rightarrow> ltype \<Rightarrow> bool" ("(_)\<in>\<^sub>R(_)" [150,150] 200)
-  assumes R\<^sub>A: " halts t = t \<in>\<^sub>R A" and 
-          R_fun: " (halts t \<and>
-            (\<forall>s. s \<in>\<^sub>R T1 \<longrightarrow> (LApp t s) \<in>\<^sub>R T2)) = t \<in>\<^sub>R T1\<rightarrow>T2" and
-          R_def: "t\<in>\<^sub>RT \<Longrightarrow> closed t \<and> \<emptyset> \<turnstile> t |:| T"
-
-lemma (in rel_reasoning) R_halts:
-  "t \<in>\<^sub>R T \<Longrightarrow> halts t"
-by (induction T, insert R\<^sub>A[of t] R_fun[of t], auto)
 
 lemma value_characterisation:
   "\<Gamma> \<turnstile> t |:| T \<Longrightarrow> \<Gamma> = \<emptyset> \<Longrightarrow> \<forall>t1. \<not> eval1_L t t1 \<Longrightarrow> is_value_L t"
@@ -235,7 +225,70 @@ lemma preservation_step:
   "star eval1_L t t' \<Longrightarrow> \<Gamma> \<turnstile> t |:| T \<Longrightarrow> \<Gamma> \<turnstile> t' |:| T"
 by (induction rule: star.induct, auto intro: preservation)
 
-lemma (in rel_reasoning)halt_val:
+lemma closed_shift:
+  "closed t \<Longrightarrow> shift_L d c t = t" 
+proof (induction t arbitrary: d c)
+  case (LAbs T t)
+    show ?case 
+      using LAbs(2)[simplified] sorry
+qed auto
+
+lemma closedness_preservation1:
+  "eval1_L t t' \<Longrightarrow> closed t = closed t'"
+proof (induction rule: eval1_L.induct)
+  case (eval1_LApp_LAbs v T t)
+    note hyps=this
+    show ?case
+      apply (simp add: FV_subst[of 0 "shift_L 1 0 v" t] FV_shift[of 1 0 v, simplified])
+      apply rule
+      using subset_singletonD[of "FV t" 0]
+      apply simp
+      apply (rule disjE[of " closed t" " FV t = {0}"])
+      apply simp
+      using  closed_shift[of "subst_L 0 (shift_L 1 0 v) t" "-1" 0] 
+             FV_subst[of 0 "shift_L 1 0 v" t] FV_shift[of 1 0 v, simplified]
+      apply force
+      using  closed_shift[of "subst_L 0 (shift_L 1 0 v) t" "-1" 0] 
+             FV_subst[of 0 "shift_L 1 0 v" t] FV_shift[of 1 0 v, simplified]
+      apply force
+      sorry       
+qed auto
+
+lemma closedness_preservation:
+ "star eval1_L t t' \<Longrightarrow> closed t = closed t'"
+proof (induction rule: star.induct)
+  case (step x y z)
+    show ?case 
+      using closedness_preservation1[OF step(1)] step(3)
+      by auto
+qed auto
+
+locale rel_reasoning =
+  fixes R::"lterm \<Rightarrow> ltype \<Rightarrow> bool" ("(_)\<in>\<^sub>R(_)" [150,150] 200)
+  assumes R\<^sub>A: " halts t = t \<in>\<^sub>R A" and 
+          R_fun: " (halts t \<and>
+            (\<forall>s. s \<in>\<^sub>R T1 \<longrightarrow> (LApp t s) \<in>\<^sub>R T2)) = t \<in>\<^sub>R T1\<rightarrow>T2" and
+          R_def: "t\<in>\<^sub>RT \<Longrightarrow> closed t \<and> \<emptyset> \<turnstile> t |:| T"
+
+abbreviation C::"ltype \<Rightarrow> lterm set" where
+"C T \<equiv> {t. closed t \<and> \<emptyset> \<turnstile> t |:| T}"
+
+fun R::"lterm \<Rightarrow> ltype \<Rightarrow> bool" ("(_)\<in>\<^sub>R(_)" [150,150] 200) where
+  "R t A = (t \<in> C A \<and> halts t)"|
+  "R t (T1\<rightarrow>T2) = ( t \<in> C (T1\<rightarrow>T2) \<and> halts t \<and> (\<forall>s. R s T1 \<longrightarrow> R (LApp t s) T2))"  
+
+theorem type_unique:
+  "\<Gamma> \<turnstile> t |:| T  \<Longrightarrow> \<Gamma> \<turnstile> t |:| B \<Longrightarrow> T=B" sorry
+
+lemma R\<^sub>A: "t \<in>\<^sub>R A \<Longrightarrow> halts t " by auto
+
+lemma R_halts:
+  "t \<in>\<^sub>R T \<Longrightarrow> halts t"
+by (induction T, auto)
+
+lemma R_def: "t\<in>\<^sub>RT \<Longrightarrow> closed t \<and> \<emptyset> \<turnstile> t |:| T" by (auto elim: R.elims)
+
+lemma halt_val:
   "t \<in>\<^sub>R T \<Longrightarrow>\<exists>v. is_value_L v \<and> star eval1_L t v"
 proof -
   assume Rt: "t \<in>\<^sub>R T"
@@ -252,37 +305,44 @@ proof -
   with 1 show "\<exists>v. is_value_L v \<and> star eval1_L t v" using R_halts[OF Rt] by auto
 qed  
 
-lemma (in rel_reasoning) eval_preserves_R:
+lemma eval_preserves_R:
   "\<Gamma> \<turnstile> t|:|T \<Longrightarrow> eval1_L t t' \<Longrightarrow> t \<in>\<^sub>R T \<Longrightarrow> t'\<in>\<^sub>R T"
 proof (induction T arbitrary: \<Gamma> t t')
   case (A)
     then show ?case 
-      using A(3)[unfolded R\<^sub>A[symmetric] halting_eval[OF A(2)]]
-            preservation[of \<emptyset> t A t'] A(2)
-            R\<^sub>A[of t']
+      using R\<^sub>A[OF A(3), unfolded halting_eval[OF A(2)]]
+            preservation[of \<emptyset> t A t']
+            closedness_preservation
       by auto
 next
   case (Fun T1 T2)
     note hyps=this
     have "(\<forall>s. s\<in>\<^sub>RT1 \<longrightarrow> LApp t' s\<in>\<^sub>RT2)" 
       using hyps(2)[of \<emptyset>, OF _ eval1_LApp1[OF hyps(4)]]
-            hyps(5)[unfolded R_fun[symmetric], THEN conjunct2]
+            hyps(5)[simplified]
             R_def[of "LApp t _" T2]
       by blast
     then show ?case
-      using R_fun[of t' T1 T2]
-            hyps(5)[unfolded R_fun[symmetric] halting_eval[OF hyps(4)]]
+      using hyps(5)[simplified, unfolded halting_eval[OF hyps(4)]]
+            preservation[OF _ hyps(4)] closedness_preservation1[OF hyps(4)]
       by auto
 qed
 
-lemma (in rel_reasoning) eval_preserves_R2:
+(*
+lemma  eval_preserves_R2:
   "\<Gamma> \<turnstile> t|:|T \<Longrightarrow> eval1_L t t' \<Longrightarrow> t' \<in>\<^sub>R T \<Longrightarrow> t\<in>\<^sub>R T"
 proof (induction T arbitrary: \<Gamma> t t')
   case (A)
+    have 1:"\<And>B. \<emptyset> \<turnstile> t |:| B \<Longrightarrow> B=A"
+      using preservation[of \<emptyset>,OF _ A(2)]
+            A(3)[simplified, THEN conjunct2, THEN conjunct1]
+            type_unique[of \<emptyset> t' A]
+      by fast
     show ?case 
-      using A(3)[unfolded R\<^sub>A[symmetric] halting_eval[OF A(2), symmetric]]
-            R\<^sub>A[of t]
-      by auto
+      using A(3)[simplified, unfolded halting_eval[OF A(2), symmetric]]
+            closedness_preservation1[OF A(2), symmetric] A(2)
+      apply auto
+      
 next
   case (Fun T1 T2)
     note hyps=this
@@ -295,7 +355,7 @@ next
       using R_fun[of t T1 T2]
             hyps(5)[unfolded R_fun[symmetric] halting_eval[OF hyps(4),symmetric]]
       by auto
-qed
+qed*)
 
 fun subst_all :: "nat \<Rightarrow> lterm list \<Rightarrow> lterm \<Rightarrow> lterm" where
   "subst_all n V ValA = ValA" |
@@ -358,13 +418,15 @@ proof (induction \<Gamma> t T arbitrary: s n k V rule: has_type_L.induct)
       using H(2)[of "map (shift_L 1 0) V" "Suc k", simplified]
             H(3)
       sorry
+next
+  case (has_type_LVar) thus ?case sorry
   (*by (fastforce
     intro: has_type_L.intros weakening[where n=0, unfolded insert_nth_def nat.rec]
     simp: has_type_L.simps[of _ "LVar n" _, simplified])*)
 qed (auto intro!: has_type_L.intros 
           simp: has_type_L.simps[of _ "LVar _" _, simplified])
 
-lemma (in rel_reasoning) subst_R:
+lemma  subst_R:
   "\<Gamma> \<turnstile> t |:| T \<Longrightarrow> length V = length \<Gamma> \<Longrightarrow> (\<And>i. i<length V \<Longrightarrow>is_value_L (V!i) \<and> (V!i) \<in>\<^sub>R (\<Gamma>!i)) \<Longrightarrow> 
     subst_all 0 V t \<in>\<^sub>R T"
 proof (induction arbitrary: V rule:has_type_L.induct)
@@ -377,13 +439,15 @@ next
   case (has_type_LApp \<Gamma> t1 T1 T2 t2)
     note hyps=this
     show ?case
-      using hyps(3)[OF hyps(5,6), unfolded R_fun[symmetric], simplified,
+      using hyps(3)[OF hyps(5,6), simplified,
                     THEN conjunct2]
             hyps(4)[OF hyps(5,6),simplified]
       by auto
 next
   case (has_type_LAbs \<Gamma> T1 t T2)
     note hyps=this
+    have B:"\<emptyset> |,| T1 \<turnstile> subst_all (Suc 0) (map (shift_L 1 0) V) t |:| T2" sorry
+    have C: "closed (subst_all (Suc 0) (map (shift_L 1 0) V) t)" sorry
     have "\<And>s. s\<in>\<^sub>RT1 \<Longrightarrow> LApp (LAbs T1 (subst_all (Suc 0) (map (shift_L 1 0) V) t)) s\<in>\<^sub>RT2"
       proof -
         fix s
@@ -440,22 +504,26 @@ next
           using v_prop(1) 
                 R_def[OF Rs, THEN conjunct2] value_characterisation
                 hyps(2)[of "v# V", simplified]
-                eval_preserves_R2
+                
                 eval
                 
                 
                 
           sorry
       qed
+    
     then show ?case
-      using R_fun[symmetric]
-            eval1_L.simps[of "LAbs T1 _", simplified]
+      using eval1_L.simps[of "LAbs T1 _", simplified] 
+            has_type_L.intros(3)[OF B] C
       by auto     
 qed (insert R\<^sub>A, auto intro!: has_type_L.intros eval1_L.simps[of ValA, simplified])
 
-theorem (in rel_reasoning) Normalization:
+theorem Normalization:
   "\<emptyset>\<turnstile> t |:| T \<Longrightarrow> halts t"
 using subst_R[of \<emptyset> t T \<emptyset>] R_halts[of t T]
 by auto  
+
+
+
 
 end
