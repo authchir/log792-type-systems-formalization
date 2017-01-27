@@ -225,13 +225,65 @@ lemma preservation_step:
   "star eval1_L t t' \<Longrightarrow> \<Gamma> \<turnstile> t |:| T \<Longrightarrow> \<Gamma> \<turnstile> t' |:| T"
 by (induction rule: star.induct, auto intro: preservation)
 
-lemma closed_shift:
-  "closed t \<Longrightarrow> shift_L d c t = t" 
+theorem type_unique:
+  "\<Gamma> \<turnstile> t |:| T  \<Longrightarrow> \<Gamma> \<turnstile> t |:| B \<Longrightarrow> T=B" sorry
+
+lemma shift_only_FV:
+  "(\<forall>x\<in>FV t. x < c) \<Longrightarrow> shift_L d c t = t" 
 proof (induction t arbitrary: d c)
   case (LAbs T t)
     show ?case 
-      using LAbs(2)[simplified] sorry
+      using LAbs(2)[simplified]
+            LAbs(1)[of "Suc c" d]
+      by force
 qed auto
+
+lemma FV_neg_shift:
+  "d<0 \<Longrightarrow> FV (shift_L d c t) \<subseteq> {0} \<Longrightarrow> FV t = {} \<or> FV t ={0} \<or> (\<forall>x\<in>FV t. x=0 \<or> nat(int x + d) = 0)"
+proof (induction t arbitrary: d c)
+  case (LVar k)
+    show ?case
+      using subset_singletonD[OF LVar(2)]
+      by (cases "k<c", auto)
+next
+  case (LApp t1 t2)
+    have 1: "closed (shift_L d c t1) \<and> closed (shift_L d c t2) \<Longrightarrow> ?case"
+      using LApp(1,2)[OF LApp(3), of c]
+      by force
+    have 2:"FV (shift_L d c t1) \<union> FV (shift_L d c t2) = {0} \<Longrightarrow> 
+            FV (shift_L d c t1)\<subseteq>{0} \<and> FV (shift_L d c t2) \<subseteq> {0}"
+      by blast
+    show ?case 
+      by (rule disjE[OF subset_singletonD[OF LApp(4), simplified], of ?case])
+          (insert 1 LApp(1,2)[OF LApp(3), of c] 2, fastforce+)
+next
+  case (LAbs T t)
+    show ?case
+      apply (cases "Suc 0 < Suc c")
+      using LAbs(1)[OF LAbs(2), of "Suc c"]
+            LAbs(3)[simplified, unfolded image_subset_iff, simplified]      
+            shift_only_FV[of t]
+      sorry
+qed auto
+
+lemma closed_shift:
+  "closed (shift_L d c t) \<Longrightarrow> FV t={} \<or> (\<forall>x\<in>FV t. nat (int x + d) = 0)"
+proof (induction t arbitrary: d c)
+  case (LApp t1 t2)
+    show ?case
+      using LApp(3)[simplified]
+            LApp(1,2)[of d c]
+      by auto
+next
+  case (LAbs T t)
+    show ?case
+      using LAbs(2)[simplified] FV_shift[of "nat d" "Suc c" t, simplified]
+            LAbs(1)[of d "Suc c"]
+            FV_neg_shift[OF _ LAbs(2)[simplified]]
+      by (cases "d\<ge>0") (fastforce+)
+qed auto
+
+
 
 lemma closedness_preservation1:
   "eval1_L t t' \<Longrightarrow> closed t = closed t'"
@@ -245,14 +297,19 @@ proof (induction rule: eval1_L.induct)
       apply simp
       apply (rule disjE[of " closed t" " FV t = {0}"])
       apply simp
-      using  closed_shift[of "subst_L 0 (shift_L 1 0 v) t" "-1" 0] 
+      using  shift_only_FV[of "subst_L 0 (shift_L 1 0 v) t" 0 "-1"] 
              FV_subst[of 0 "shift_L 1 0 v" t] FV_shift[of 1 0 v, simplified]
       apply force
-      using  closed_shift[of "subst_L 0 (shift_L 1 0 v) t" "-1" 0] 
+      using  shift_only_FV[of "subst_L 0 (shift_L 1 0 v) t" 0 "-1"] 
              FV_subst[of 0 "shift_L 1 0 v" t] FV_shift[of 1 0 v, simplified]
       apply force
+      using closed_shift[of "-1" 0 "(subst_L 0 (shift_L 1 0 v) t)", simplified]
+            FV_subst[of 0 "shift_L 1 0 v" t]
+      
       sorry       
 qed auto
+
+
 
 lemma closedness_preservation:
  "star eval1_L t t' \<Longrightarrow> closed t = closed t'"
@@ -277,8 +334,7 @@ fun R::"lterm \<Rightarrow> ltype \<Rightarrow> bool" ("(_)\<in>\<^sub>R(_)" [15
   "R t A = (t \<in> C A \<and> halts t)"|
   "R t (T1\<rightarrow>T2) = ( t \<in> C (T1\<rightarrow>T2) \<and> halts t \<and> (\<forall>s. R s T1 \<longrightarrow> R (LApp t s) T2))"  
 
-theorem type_unique:
-  "\<Gamma> \<turnstile> t |:| T  \<Longrightarrow> \<Gamma> \<turnstile> t |:| B \<Longrightarrow> T=B" sorry
+
 
 lemma R\<^sub>A: "t \<in>\<^sub>R A \<Longrightarrow> halts t " by auto
 
