@@ -11,7 +11,7 @@ datatype lterm=
 | LAbs ltype lterm 
 | unit
 | ref lterm
-| deref lterm ("!(_)" 200)
+| deref lterm ("!(_)" [180]220)
 | assign lterm lterm ("(_)::=(_)" [100,195] 220)
 | L nat
 
@@ -173,7 +173,7 @@ proof (induction \<Gamma> \<Sigma>  t T arbitrary: s n rule: has_type_L.induct)
     by (force intro!: has_type_L.intros simp: has_type_L.simps[of _ _ "LVar _" _, simplified])
 qed (auto intro!: has_type_L.intros simp: has_type_L.simps[of _ _ "LVar _" _, simplified])
 
-lemma storing_updt:
+lemma store_updt:
   "\<Gamma> |;|\<Sigma> \<Turnstile> \<mu> \<Longrightarrow> i<length \<Sigma> \<Longrightarrow> \<Sigma>!i = T \<Longrightarrow> \<Gamma> |;|\<Sigma> \<turnstile> v |:| T \<Longrightarrow> \<Gamma> |;|\<Sigma> \<Turnstile> (\<mu>[i:=v])"
 by (simp, metis  nth_list_update_eq nth_list_update_neq)
        
@@ -230,24 +230,101 @@ lemma preservation:
 proof (induction \<Gamma> \<Sigma> t T arbitrary: \<mu>' t' rule: has_type_L.induct)
   case (has_type_LApp \<Gamma> \<Sigma> t1 T11 T12 t2)
     note hyps = this and has_T_Abs= has_type_L.simps[of _ _ "LAbs _ _", simplified]
-         
+    
+    have 1:"(\<exists>t1'. t' = LApp t1' t2 \<and> eval1_L t1 \<mu> t1' \<mu>') \<Longrightarrow> ?case"
+      using has_type_L.intros(4) eval1_L.intros(1)
+            hyps(2) store_weakening[of \<Gamma> \<Sigma>] hyps(3)[OF hyps(5)]
+      by meson
+    
+    have 2:"\<exists>t2'. t' = LApp t1 t2' \<and> is_value_L t1 \<and> eval1_L t2 \<mu> t2' \<mu>' \<Longrightarrow> ?case"
+      using has_type_L.intros(4) eval1_L.intros(2)
+            hyps(1) store_weakening[of \<Gamma> \<Sigma>] hyps(4)[OF hyps(5)]
+      by meson
+
+    have 3: "\<exists>T' t12.
+        t1 = LAbs T' t12 \<and> t' = shift_L (- 1) 0 (subst_L 0 (shift_L 1 0 t2) t12) \<and> \<mu>' = \<mu> \<and> is_value_L t2
+        \<Longrightarrow> ?case"
+      proof -
+        assume P:"\<exists>T' t12. t1 = LAbs T' t12 \<and> t' = shift_L (- 1) 0 (subst_L 0 (shift_L 1 0 t2) t12) \<and> 
+                            \<mu>' = \<mu> \<and> is_value_L t2"
+        then obtain T' t1' where H: "t1 = LAbs T' t1'" "t' = shift_L (- 1) 0 (subst_L 0 (shift_L 1 0 t2) t1')"
+                                       "\<mu>'= \<mu>" "is_value_L t2"
+          by fastforce
+
+        have H':"\<Gamma> |,| T'|;|\<Sigma> \<turnstile> t1' |:| T12" "T'=T11"
+          using  hyps(1)[unfolded H(1) has_type_L.simps[of _ _ "LAbs _ _", simplified]]
+          by fast+
+
+        have FV_after_subst:"(\<And>x. x \<in> FV (subst_L 0 (shift_L 1 0 t2) t1') \<Longrightarrow> x \<noteq> 0)"
+          using FV_subst[of 0 "shift_L 1 0 t2" t1', unfolded FV_shift[of 1 0 t2, simplified]]
+          by (cases "0\<in>FV t1'") (fastforce, metis)
+          
+        show ?thesis
+          using substitution[OF H'(1), of 0 T11 "shift_L 1 0 t2", unfolded H'(2)]
+                weakening[OF hyps(2),of 0 T', unfolded insert_nth_def nat.rec H'(2), simplified]                 
+                hyps(5)[unfolded H(3)[symmetric]]
+                shift_down[ of 0 T11 \<Gamma> \<Sigma> "subst_L 0 (shift_L 1 0 t2) t1'" T12, 
+                            OF _  _ FV_after_subst, 
+                            unfolded insert_nth_def nat.rec H(2)[symmetric], simplified]
+                has_type_L.simps[of "\<Gamma>|,|T11" \<Sigma> "LVar 0", simplified]
+          by simp
+      qed
     show ?case
-      using hyps(3,4)[OF hyps(5)]
-            hyps(6)[unfolded eval1_L.simps[of "LApp t1 t2" \<mu>, simplified]]
-      apply auto
-      using has_type_L.intros(4) eval1_L.intros(1,2)
-            hyps(1,2) store_weakening[of \<Gamma> \<Sigma>]
-      apply (meson,meson)
-      using substitution 
-            weakening[where n=0, unfolded insert_nth_def nat.rec]
-            
-      (* by (auto
-      intro!: has_type_L.intros substitution shift_down
-      dest: weakening[where n=0, unfolded insert_nth_def nat.rec]
-      elim!: eval1_LAppE
-      split: lterm.splits if_splits
-      simp: FV_subst FV_shift[of 1, unfolded int_1] has_T_Abs) 
-        (metis neq0_conv)*)
+      using  hyps(6)[unfolded eval1_L.simps[of "LApp t1 t2" \<mu>, simplified]]
+             1 2 3
+      by force
+next
+  case (has_type_Ref \<Gamma> \<Sigma> t T1)
+    note hyps=this
+    have 1:" t' = L (length \<mu>) \<and> \<mu>' = \<mu> |\<leftarrow>| t \<and> is_value_L t \<Longrightarrow> ?case"
+      using hyps(1) has_type_L.intros(5)[of "length \<mu>" T1 "\<Sigma>|,|\<^sub>lT1" \<Gamma>, simplified]
+            hyps(3) store_weakening
+      by (metis length_append_singleton less_Suc_eq nth_append nth_append_length)
+    have "(\<exists>t1'. t' = ref t1' \<and> eval1_L t \<mu> t1' \<mu>') \<Longrightarrow> ?case"
+      using hyps(2)[OF hyps(3), of _ \<mu>']
+            has_type_L.intros(6)[of \<Gamma> "\<Sigma> @ _" _ T1]
+      by meson
+    with 1 show ?case
+      using hyps(4)[unfolded eval1_L.simps[of "ref _",simplified]]
+      by fast      
+next
+  case (has_type_Deref \<Gamma> \<Sigma> t T1)
+    note hyps=this
+    have 1:"(\<exists>n. t = L n \<and> t' = \<mu> ! n \<and> \<mu>' = \<mu> \<and> n < length \<mu>) \<Longrightarrow> ?case"
+      using hyps(3) hyps(1) has_type_L.simps[of \<Gamma> \<Sigma> "L _" "Ref T1", simplified]
+      by fastforce
+
+    have "(\<exists>t1'. t' = !t1' \<and> eval1_L t \<mu> t1' \<mu>') \<Longrightarrow> ?case"
+      using hyps(2)[OF hyps(3), of _ \<mu>']
+            has_type_L.intros(7)[of \<Gamma> "\<Sigma>@_" _ T1]
+      by meson
+
+    with 1 show ?case 
+      using hyps(4)[unfolded eval1_L.simps[of "!t",simplified]]
+      by blast
+next
+  case (has_type_Assign \<Gamma> \<Sigma> t1 T1 t2)
+    note hyps=this
+    
+    have 1: "\<exists>n. t1 = L n \<and> t' = unit \<and> \<mu>' = \<mu>[n := t2] \<and> is_value_L t2 \<Longrightarrow> ?case" 
+      using has_type_L.simps[of \<Gamma> \<Sigma> "L _" "Ref T1", simplified] hyps(1) 
+            store_updt[OF hyps(5) _ _ hyps(2)]
+            has_type_Lunit
+      by fastforce
+
+    have 2: "\<exists>t1'. t' = t1'::=t2 \<and> eval1_L t1 \<mu> t1' \<mu>' \<Longrightarrow> ?case"
+      using hyps(3)[OF hyps(5), of _ \<mu>']             
+            has_type_L.intros(8)[OF _ store_weakening[OF hyps(2)]]
+      by meson
+
+    have "\<exists>t2'. t' = t1::=t2' \<and> is_value_L t1 \<and> eval1_L t2 \<mu> t2' \<mu>' \<Longrightarrow> ?case"
+      using hyps(4)[OF hyps(5), of _ \<mu>']
+            has_type_L.intros(8)[OF store_weakening[OF hyps(1)]]
+      by meson
+
+    with 1 2 show ?case 
+      using hyps(6)[unfolded eval1_L.simps[of "t1::=t2", simplified]]
+      by blast
 qed (auto elim: eval1_L.cases)
 
 end
