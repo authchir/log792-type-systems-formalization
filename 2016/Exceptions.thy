@@ -193,7 +193,7 @@ inductive  has_type1_L :: "ltype \<Rightarrow> lcontext \<Rightarrow> lterm1 \<R
   has_type1_LApp:
     "T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 t1 |:| (T11 \<rightarrow> T12) \<Longrightarrow> T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 t2 |:| T11 \<Longrightarrow> T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 (LApp1 t1 t2) |:| T12" |
   has_type1_Variant:
-    "L!i = s \<Longrightarrow> TL!i= A \<Longrightarrow> T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 t |:| A \<Longrightarrow>T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 <s::=t> |:| <L:=TL>" |
+    "L\<noteq>\<emptyset> \<Longrightarrow> length L = length TL \<Longrightarrow> L!i = s \<Longrightarrow> TL!i= A \<Longrightarrow> T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 t |:| A \<Longrightarrow>T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 <s::=t> |:| <L:=TL>" |
   has_type1_try:
     "T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 t1 |:| T \<Longrightarrow> T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 t2 |:| T\<alpha>\<rightarrow>T \<Longrightarrow> T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 try t1 with t2 |:| T" |
   has_type1_raise:
@@ -206,7 +206,110 @@ by (auto elim: "is_value_L1.cases" has_type1_L.cases)
 
 lemma progress1:
   "<\<emptyset>:=\<emptyset>>|*|\<emptyset> \<turnstile>\<^sub>1 t |:| T \<Longrightarrow> is_value_L1 t \<or> (\<exists>t'. eval1_L1 t t')"
-sorry
+proof (induction "<\<emptyset>:=\<emptyset>>" "\<emptyset>::ltype list" t T rule: has_type1_L.induct)
+  case (has_type1_LApp t1 T1 T2 t2)
+    note hyps=this
+    show ?case 
+      using hyps(2,4) eval1_L1.intros(1-3)
+            canonical_forms1(2)[OF _ hyps(1)]
+      by metis
+next
+  case (has_type1_Variant L TL i s A t)
+    note hyps=this
+    show ?case 
+      using hyps(6) "is_value_L1.intros"(5)[of t s]
+            eval1_VE[of t _ s]
+      by auto
+next
+  case (has_type1_try t1 T t2)
+    note hyps=this
+    show ?case
+      using hyps(2) eval1_L1.intros(5,6)[of t1]
+      by metis
+next
+  case (has_type1_raise t)
+    note hyps=this
+    have "is_value_L1 t \<Longrightarrow> ?case"
+      using hyps(1)[unfolded has_type1_L.simps[of "<\<emptyset>:=\<emptyset>>" \<emptyset> t "<\<emptyset>:=\<emptyset>>", simplified]]
+            "is_value_L1.simps"
+      by blast
+    then show ?case 
+      using hyps(2) eval1_L1.intros(9)
+      by auto
+qed (simp_all add: is_value_L1.intros)
+
+lemma[simp]: "nat (int x + 1) = Suc x" by simp
+lemma[simp]: "nat (1 + int x) = Suc x" by simp
+lemma[simp]: "nat (int x - 1) = x - 1" by simp
+
+lemma gr_Suc_conv: "Suc x \<le> n \<longleftrightarrow> (\<exists>m. n = Suc m \<and> x \<le> m)"
+  by (cases n) auto
+
+lemma FV1_shift:
+  "FV1 (shift_L1 (int d) c t) = image (\<lambda>x. if x \<ge> c then x + d else x) (FV1 t)"
+proof (induction t arbitrary: c rule: lterm1.induct)
+  case (LAbs1 T E t)
+  thus ?case  by (auto simp: gr_Suc_conv image_iff) force+
+qed auto
+
+lemma FV1_subst:
+  "FV1 (subst_L1 n t u) = (if n \<in> FV1 u then (FV1 u - {n}) \<union> FV1 t else FV1 u)"
+proof (induction u arbitrary: n t rule: lterm1.induct)
+  case (LAbs1 T u)
+  thus ?case 
+    by (auto simp: gr0_conv_Suc image_iff FV1_shift[of 1, unfolded int_1],
+        (metis DiffI One_nat_def UnCI diff_Suc_1 empty_iff imageI insert_iff nat.distinct(1))+)
+qed (auto simp: gr0_conv_Suc image_iff FV1_shift[of 1, unfolded int_1])
+
+lemma weakening1:
+  "T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 t |:| T \<Longrightarrow> n \<le> length \<Gamma> \<Longrightarrow> T\<alpha>|*|insert_nth n U \<Gamma> \<turnstile>\<^sub>1 shift_L1 1 n t |:| T"
+proof (induction T\<alpha> \<Gamma> t T arbitrary: n rule: has_type1_L.induct)
+  case (has_type1_LAbs L t TL \<Gamma> T1 T2)
+    have "agrees (shift_L1 1 (Suc n) t) (<L:=TL>)" 
+      using has_type1_LAbs.hyps(2)
+      by (induction t, auto)
+
+    with has_type1_LAbs.prems has_type1_LAbs.hyps(1)
+      has_type1_LAbs.IH[where n="Suc n"] 
+    show ?case      
+      by (auto intro: has_type1_L.intros)
+qed (auto simp: nth_append min_def intro: has_type1_L.intros)
+
+lemma substitution:
+  "T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 t |:| T \<Longrightarrow> T\<alpha>1|*|\<Gamma> \<turnstile>\<^sub>1 LVar1 n |:| U \<Longrightarrow> T\<alpha>1|*|\<Gamma> \<turnstile>\<^sub>1 s |:| U \<Longrightarrow> T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 subst_L1 n s t |:| T"  
+proof (induction T\<alpha> \<Gamma> t T arbitrary: T\<alpha>1 s n rule: has_type1_L.induct)
+  case (has_type1_LAbs L t TL \<Gamma> T1 T2 T\<alpha>)
+    note hyps=this
+    have "agrees (subst_L1 (Suc n) (shift_L1 1 0 s) t) (<L:=TL>)"
+      using hyps(2)
+      sorry
+      
+    then show ?case
+      using hyps(5-) hyps(4)[of T\<alpha>1 "Suc n"]
+            weakening1[where n=0, unfolded insert_nth_def nat.rec,simplified]
+      by (fastforce intro!: "has_type1_L.intros"(5)[OF hyps(1)])
+next
+  case (has_type1_LVar x Ta \<Gamma> T\<alpha>)
+    thus ?case
+      apply (auto intro!: has_type1_L.intros simp: has_type1_L.simps[of _ _ "LVar1 _" _, simplified])
+      sorry
+qed (auto intro!: has_type1_L.intros simp: has_type1_L.simps[of _ _ "LVar1 _" _, simplified])
+
+
+lemma shift_down:
+  "T\<alpha>|*|(insert_nth n U \<Gamma>) \<turnstile>\<^sub>1 t |:| T \<Longrightarrow> n \<le> length \<Gamma> \<Longrightarrow>
+   (\<And>x. x \<in> FV1 t \<Longrightarrow> x \<noteq> n) \<Longrightarrow> T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 shift_L1 (- 1) n t |:| T"
+proof (induction T\<alpha> "insert_nth n U \<Gamma>" t T arbitrary: \<Gamma> n rule: has_type1_L.induct)
+  case (has_type1_LAbs L t TL V T T\<alpha>)
+    note hyps=this
+    have "agrees (shift_L1 (- 1) (Suc n) t) (<L:=TL>)"
+      using hyps(2)
+      by (induction t, auto)
+    
+    with hyps(1,5-) show ?case
+      by (fastforce intro: has_type1_L.intros hyps(4)[of "Suc n" "\<Gamma>|,|V"])     
+qed (fastforce intro: has_type1_L.intros simp: nth_append min_def)+
+
 
 
 lemma preservation:

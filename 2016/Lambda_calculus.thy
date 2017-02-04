@@ -5,7 +5,7 @@ imports Main
         "$AFP/List-Index/List_Index"
 begin
 
-  datatype ltype =
+datatype ltype =
   Nat  |
   Bool |
   T (num:nat) |
@@ -13,9 +13,9 @@ begin
   Prod ltype ltype (infix "|\<times>|" 225)|
   Fun (domain: ltype) (codomain: ltype) (infixr "\<rightarrow>" 225)|
   TupleT "ltype list" ( "\<lparr>_\<rparr>" [150]225) |
-  RecordT "string list" "ltype list" ( "\<lparr>_|:|_\<rparr>" [150,150] 225) |
+  RecordT "string list" "ltype list" ( "\<lparr>(_)|:|(_)\<rparr>" [151,150] 225) |
   Sum ltype ltype (infix "|+|" 225) |
-  TVariant "string list" "ltype list" ( "<_|,|_>" [150,150] 225)|
+  TVariant "string list" "ltype list" ( "<(_)|,|(_)>" [151,150] 225)|
   ListT ltype ("\<lambda>List (_)" 225)
   
 datatype Lpattern = V nat | RCD "string list" "Lpattern list" | SV "int list" "nat list" nat

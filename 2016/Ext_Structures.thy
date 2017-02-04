@@ -32,8 +32,11 @@ inductive Lmatch_Gnl ::"Lpattern \<Rightarrow> lterm \<Rightarrow> (lterm \<Righ
     "distinct L \<Longrightarrow> length F = length PL \<Longrightarrow> length L = length PL \<Longrightarrow> (\<And>i. i<length PL \<Longrightarrow> Lmatch_Gnl (PL!i) (ProjR (L!i) t) (F!i))
     \<Longrightarrow> Lmatch_Gnl (RCD L PL) t (\<Odot> F)"
 
-abbreviation coherent ::"Lpattern \<Rightarrow> ltype \<Rightarrow> bool" where
-"coherent p A \<equiv> distinct (Pvars p) \<and> (case p of RCD L PL \<Rightarrow> (\<exists>TL. A=\<lparr>L|:|TL\<rparr>) | _ \<Rightarrow> True)"
+inductive coherent ::"Lpattern \<Rightarrow> ltype \<Rightarrow> bool" where
+ "coherent (V n) A" |
+ "L\<noteq>[] \<Longrightarrow> length PL = length L \<Longrightarrow> length TL = length L \<Longrightarrow> distinct (Pvars (RCD L PL)) \<Longrightarrow>
+    (\<And>i. i<length PL\<Longrightarrow> coherent (PL!i) (TL!i)) \<Longrightarrow>
+    coherent (RCD L PL) (\<lparr>L|:|TL\<rparr>)"
 
 inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
   -- "Rules relating to the evaluation of Booleans"
@@ -217,7 +220,7 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> pcontext \<R
   has_type_PatternVar:
     "\<Gamma> \<turnstile> \<lparr> \<sigma> k |;| fill \<sigma> \<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr><|V k|>|;|fill \<sigma>\<rparr> |:| A" |
   has_type_LetPattern:
-    "coherent p B \<Longrightarrow> Lmatch_Gnl p t1 \<sigma> \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>fill \<sigma>1 t1|;| fill \<sigma>1\<rparr> |:| B \<Longrightarrow>
+    "coherent p B \<Longrightarrow> Lmatch_Gnl p t1 \<sigma> \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t1|;| fill \<sigma>1\<rparr> |:| B \<Longrightarrow>
      \<Gamma> \<turnstile> \<lparr>t2|;|((fill \<sigma>1) \<circ> \<sigma>)\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|fill \<sigma>1\<rparr> |:| A" |
   has_type_Inl:
     "\<Gamma> \<turnstile> \<lparr>t1|;|fill \<sigma>1\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>inl t1 as A|+|B |;|fill \<sigma>1\<rparr> |:| A|+|B" |
@@ -278,8 +281,8 @@ lemma inversion:
                                     (\<forall>i. 0\<le>i \<longrightarrow> i< length LT \<longrightarrow> \<Gamma> \<turnstile> \<lparr> (LT ! i)|;| \<sigma>\<rparr> |:| (TL ! i)) " 
   "\<Gamma> \<turnstile> \<lparr> (ProjR l t)|;| \<sigma>\<rparr> |:| R \<Longrightarrow>\<exists>m L TL. \<Gamma> \<turnstile> \<lparr>t |;| \<sigma>\<rparr> |:| \<lparr>L|:|TL\<rparr> \<and> index L l = m \<and> TL ! m = R \<and> distinct L \<and> length L = length TL
                               \<and> l \<in> set L"
-  "\<Gamma> \<turnstile> \<lparr><|V k|>|;|\<sigma>\<rparr> |:| R \<Longrightarrow> \<exists>n. \<Gamma> \<turnstile> \<lparr>\<sigma> (<|V k|>)|;| \<sigma>\<rparr> |:| R"
-  "\<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|\<sigma>1\<rparr> |:| R \<Longrightarrow>\<exists>\<sigma> B. coherent p B\<and> Lmatch_Gnl p t1 \<sigma>  \<and> \<Gamma> \<turnstile> \<lparr>\<sigma>1 t1|;|\<sigma>1\<rparr> |:| B \<and>
+  "\<Gamma> \<turnstile> \<lparr><|V k|>|;|\<sigma>\<rparr> |:| R \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>\<sigma> (<|V k|>)|;| \<sigma>\<rparr> |:| R"
+  "\<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|\<sigma>1\<rparr> |:| R \<Longrightarrow>\<exists>\<sigma> B. coherent p B\<and> Lmatch_Gnl p t1 \<sigma>  \<and> \<Gamma> \<turnstile> \<lparr>t1|;|\<sigma>1\<rparr> |:| B \<and>
                                                   \<Gamma> \<turnstile> \<lparr>t2|;|(\<sigma>1 \<circ> \<sigma>)\<rparr> |:| R" 
   "\<Gamma> \<turnstile> \<lparr>inl t as R|;|\<sigma>1\<rparr> |:| R \<Longrightarrow>\<exists>A B. R = A|+|B \<and> \<Gamma> \<turnstile> \<lparr>t|;|\<sigma>1\<rparr> |:| A"
   "\<Gamma> \<turnstile> \<lparr>inr t as R|;|\<sigma>1\<rparr> |:| R \<Longrightarrow>\<exists>A B. R = A|+|B \<and> \<Gamma> \<turnstile> \<lparr>t|;|\<sigma>1\<rparr> |:| B"
@@ -295,7 +298,7 @@ proof -
     by fastforce 
 next
   assume H1: "\<Gamma> \<turnstile> \<lparr>Let pattern p := t1 in t2|;|\<sigma>1\<rparr> |:| R"
-  show "\<exists>\<sigma> B. coherent p B\<and> Lmatch_Gnl p t1 \<sigma>  \<and> \<Gamma> \<turnstile> \<lparr>\<sigma>1 t1|;|\<sigma>1\<rparr> |:| B \<and> \<Gamma> \<turnstile> \<lparr>t2|;|(\<sigma>1 \<circ> \<sigma>)\<rparr> |:| R"
+  show "\<exists>\<sigma> B. coherent p B\<and> Lmatch_Gnl p t1 \<sigma>  \<and> \<Gamma> \<turnstile> \<lparr>t1|;|\<sigma>1\<rparr> |:| B \<and> \<Gamma> \<turnstile> \<lparr>t2|;|(\<sigma>1 \<circ> \<sigma>)\<rparr> |:| R"
     using has_type_LetPE[OF H1]
     by metis
 next
@@ -384,14 +387,14 @@ proof (rule)
 qed
 
 lemma lmatchGnl_gives_fill:
-  "Lmatch_Gnl p t \<sigma> \<Longrightarrow> \<exists>\<sigma>1. fill \<sigma>1 = \<sigma> \<or> \<sigma>=id" 
-proof (induction rule: Lmatch_Gnl.induct)
+  "Lmatch_Gnl p t \<sigma> \<Longrightarrow> coherent p A \<Longrightarrow> \<exists>\<sigma>1. fill \<sigma>1 = \<sigma>" 
+proof (induction arbitrary: A rule: Lmatch_Gnl.induct)
   case (M_RCD L F PL t)
     show ?case
-      using M_RCD(2,3,5)
-      proof (induction F arbitrary:PL L)
+      using M_RCD(2,3,5,6)
+      proof (induction F arbitrary:PL L A)
         case Nil
-          thus ?case by auto
+          thus ?case by (auto simp: coherent.simps[of "RCD \<emptyset> _", simplified])
       next
         case (Cons f F)
           obtain p PL' where unfold_PL:"PL = p#PL'"
@@ -400,19 +403,33 @@ proof (induction rule: Lmatch_Gnl.induct)
           then obtain l L' where unfold_L: "L= l#L'"
             using Cons(3) length_Suc_conv
             by metis
-          obtain \<Sigma> where BigCirc_\<Sigma>:"fill \<Sigma> = \<Odot> F \<or> \<Odot> F = id"
+          obtain TL where H:"A = \<lparr>(l # L')|:|TL\<rparr>"
+                          "length (p # PL') = length (l # L')"
+                          "length TL = length (l # L')"
+                          "distinct (list_iter op @ \<emptyset> (map Pvars (p # PL')))"
+                          "\<And>x. x<length (p # PL') \<Longrightarrow> coherent ((p # PL') ! x) (TL ! x)"
+            using Cons(5)[unfolded unfold_L unfold_PL coherent.simps[of "RCD _ _", simplified]]
+            by auto
+          obtain \<Sigma> where BigCirc_\<Sigma>:"L'\<noteq>[] \<Longrightarrow>fill \<Sigma> = \<Odot> F"
             using Cons(1)[OF  Cons(2)[unfolded unfold_PL, simplified]
-                              Cons(3)[unfolded unfold_L unfold_PL, simplified]           
+                              Cons(3)[unfolded unfold_L unfold_PL, simplified],
+                          of "\<lparr>L'|:| (drop 1 TL)\<rparr>"
                           ]                   
-                  Cons(4)[of "_+1", unfolded unfold_PL unfold_L, simplified] 
-            by force      
-            
-          obtain \<sigma>1 where "fill \<sigma>1 = f \<or> f=id"
-            using Cons(4)[of 0] Cons(2)
+                  Cons(4)[of "_+1", unfolded unfold_PL unfold_L, simplified]
+                  "coherent.intros"(2)[of L' PL' "drop 1 TL"]      
+                  length_drop[of 1 TL] H(2,3,4)[simplified] nth_drop[of 1 _ TL, symmetric, simplified]
+                  H(5)[of "_+1", simplified]
+             by fastforce
+          obtain \<sigma>1 where "fill \<sigma>1 = f"
+            using Cons(4)[of 0 "_!0"] Cons(2) 
+                  Cons(5)[unfolded coherent.simps[of "RCD _ _", simplified]]
             by force
           with BigCirc_\<Sigma> show ?case
             using fill_fill_comp[of \<sigma>1 \<Sigma>]
-            by fastforce
+                  Cons(2,3)[unfolded unfold_L]
+            by (cases "L'=[]")
+               (metis BigCirc.simps(1) BigCirc.simps(2) comp_id length_0_conv length_Cons nat.simps(1),
+                 auto)
       qed
 qed auto
 
@@ -483,15 +500,15 @@ next
 next
   case (has_type_LetPattern p B t1 \<sigma>1 \<Gamma> \<sigma>2 t2 A \<sigma>3 n)
     note hyps=this
-    obtain \<sigma>' where fill_\<sigma>1:"\<sigma>1 = fill \<sigma>' \<or> \<sigma>1 = id"
-      using lmatchGnl_gives_fill[OF has_type_LetPattern(2)]
+    obtain \<sigma>' where fill_\<sigma>1:"\<sigma>1 = fill \<sigma>'"
+      using lmatchGnl_gives_fill[OF has_type_LetPattern(2,1)]
       by auto
       
     show ?case
       using fill_\<sigma>1
       apply auto
       apply rule
-      using hyps(1,2)
+      using hyps(1)
       apply force
       defer
       using hyps(4)[OF hyps(7,8), unfolded shift_fill[symmetric] hyps(7)]

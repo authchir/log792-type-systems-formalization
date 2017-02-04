@@ -190,7 +190,7 @@ proof (induction t T rule: has_type_L.induct)
     note hyps=this
     show ?case
       using hyps(3-4)[OF hyps(5)]           
-      by (metis eval1_L.intros(1-3) canonical_forms(2)[OF _ hyps(1)])+
+      by (metis eval1_L.intros(1-3) canonical_forms(2)[OF _ hyps(1)])
 next
   case (has_type_Ref \<Gamma> \<Sigma> t T1)
     note hyps=this
@@ -217,7 +217,7 @@ qed (simp_all add: is_value_L.intros)
 lemma shift_down:
   "insert_nth n U \<Gamma>|;|\<Sigma> \<turnstile> t |:| T \<Longrightarrow> n \<le> length \<Gamma> \<Longrightarrow>
    (\<And>x. x \<in> FV t \<Longrightarrow> x \<noteq> n) \<Longrightarrow> \<Gamma>|;|\<Sigma> \<turnstile> shift_L (- 1) n t |:| T"
-proof (induction "insert_nth n U \<Gamma>" \<Sigma> t T arbitrary: \<Gamma> n rule: has_type_L.induct)
+proof (induction "insert_nth n U \<Gamma>" \<Sigma> t T arbitrary: \<Gamma> n rule: has_type_L.induct)     
   case (has_type_LAbs V t T)
     from this(1,3,4) show ?case
       by (fastforce intro: has_type_L.intros has_type_LAbs.hyps(2)[where n="Suc n"])+
