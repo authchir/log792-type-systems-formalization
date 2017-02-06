@@ -225,9 +225,6 @@ lemma preservation_step:
   "star eval1_L t t' \<Longrightarrow> \<Gamma> \<turnstile> t |:| T \<Longrightarrow> \<Gamma> \<turnstile> t' |:| T"
 by (induction rule: star.induct, auto intro: preservation)
 
-theorem type_unique:
-  "\<Gamma> \<turnstile> t |:| T  \<Longrightarrow> \<Gamma> \<turnstile> t |:| B \<Longrightarrow> T=B" sorry
-
 lemma shift_only_FV:
   "(\<forall>x\<in>FV t. x < c) \<Longrightarrow> shift_L d c t = t" 
 proof (induction t arbitrary: d c)
@@ -237,10 +234,17 @@ proof (induction t arbitrary: d c)
             LAbs(1)[of "Suc c" d]
       by force
 qed auto
+(*
+fun nbinder::"lterm \<Rightarrow> nat" where
+"nbinder (LAbs _ t)   = Suc (nbinder t)"|
+"nbinder (LApp t1 t2) = nbinder t1 + nbinder t2"|
+"nbinder _ = 0" 
+
 
 lemma FV_neg_shift:
-  "d<0 \<Longrightarrow> FV (shift_L d c t) \<subseteq> {0} \<Longrightarrow> FV t = {} \<or> FV t ={0} \<or> (\<forall>x\<in>FV t. x=0 \<or> nat(int x + d) = 0)"
-proof (induction t arbitrary: d c)
+  "d<0 \<Longrightarrow> FV (shift_L d c t) \<subseteq> {a} \<Longrightarrow> FV t = {} \<or> FV t = {a} \<or> 
+                                        (\<forall>x\<in>FV t. x = a \<or> nat(int x + d) = a \<or> nat(int x + d)< nbinder t)"
+proof (induction t arbitrary: d c a)
   case (LVar k)
     show ?case
       using subset_singletonD[OF LVar(2)]
@@ -248,26 +252,42 @@ proof (induction t arbitrary: d c)
 next
   case (LApp t1 t2)
     have 1: "closed (shift_L d c t1) \<and> closed (shift_L d c t2) \<Longrightarrow> ?case"
-      using LApp(1,2)[OF LApp(3), of c]
+      using LApp(1,2)[OF LApp(3), of c a]
       by force
-    have 2:"FV (shift_L d c t1) \<union> FV (shift_L d c t2) = {0} \<Longrightarrow> 
-            FV (shift_L d c t1)\<subseteq>{0} \<and> FV (shift_L d c t2) \<subseteq> {0}"
+    have 2:"FV (shift_L d c t1) \<union> FV (shift_L d c t2) = {a} \<Longrightarrow> 
+            FV (shift_L d c t1)\<subseteq>{a} \<and> FV (shift_L d c t2) \<subseteq> {a}"
       by blast
     show ?case 
       by (rule disjE[OF subset_singletonD[OF LApp(4), simplified], of ?case])
-          (insert 1 LApp(1,2)[OF LApp(3), of c] 2, fastforce+)
+          (insert 1 LApp(1,2)[OF LApp(3), of c a] 2, fastforce+)
 next
   case (LAbs T t)
-    show ?case
-      apply (cases "Suc 0 < Suc c")
-      using LAbs(1)[OF LAbs(2), of "Suc c"]
-            LAbs(3)[simplified, unfolded image_subset_iff, simplified]      
-            shift_only_FV[of t]
-      sorry
+    have 1:"0 \<notin> FV (shift_L d (Suc c) t) \<Longrightarrow> ?case"
+      proof -
+        assume "0 \<notin> FV (shift_L d (Suc c) t)"
+        hence "FV (shift_L d (Suc c) t) \<subseteq> {Suc a}"
+          using LAbs(3)[simplified, unfolded image_subset_iff, simplified]
+          by (cases "\<forall>x\<in> FV (shift_L d (Suc c) t) - {0}. x > 0") fastforce+          
+        then show ?case
+          using LAbs(1)[OF LAbs(2), of "Suc c" "Suc a"]
+          by fastforce
+      qed
+    have "0 \<in> FV (shift_L d (Suc c) t) \<Longrightarrow> ?case"
+      proof -
+        assume "0 \<in> FV (shift_L d (Suc c) t)"
+        hence "FV (shift_L d (Suc c) t) \<subseteq> {0,Suc a}"
+          using LAbs(3)[simplified, unfolded image_subset_iff, simplified]
+          by (cases "\<forall>x\<in> FV (shift_L d (Suc c) t) - {0}. x > 0") force+
+        then show ?case
+          
+          sorry
+      qed
+    with 1 show ?case
+      by blast
 qed auto
 
 lemma closed_shift:
-  "closed (shift_L d c t) \<Longrightarrow> FV t={} \<or> (\<forall>x\<in>FV t. nat (int x + d) = 0)"
+  "closed (shift_L d c t) \<Longrightarrow> FV t={} \<or> (\<forall>x\<in>FV t. nat (int x + d) = 0 \<or> nat(int x + d)< nbinder t)"
 proof (induction t arbitrary: d c)
   case (LApp t1 t2)
     show ?case
@@ -282,7 +302,7 @@ next
             FV_neg_shift[OF _ LAbs(2)[simplified]]
       by (cases "d\<ge>0") (fastforce+)
 qed auto
-
+*)
 
 
 lemma closedness_preservation1:
@@ -291,24 +311,14 @@ proof (induction rule: eval1_L.induct)
   case (eval1_LApp_LAbs v T t)
     note hyps=this
     show ?case
-      apply (simp add: FV_subst[of 0 "shift_L 1 0 v" t] FV_shift[of 1 0 v, simplified])
       apply rule
-      using subset_singletonD[of "FV t" 0]
-      apply simp
-      apply (rule disjE[of " closed t" " FV t = {0}"])
-      apply simp
-      using  shift_only_FV[of "subst_L 0 (shift_L 1 0 v) t" 0 "-1"] 
-             FV_subst[of 0 "shift_L 1 0 v" t] FV_shift[of 1 0 v, simplified]
+      using hyps(1) subset_singletonD[of "FV t" 0] disjE[of " closed t" " FV t = {0}"]
+            FV_subst[of 0 "shift_L 1 0 v" t] FV_shift[of 1 0 v, simplified]            
+            shift_only_FV[of "subst_L 0 (shift_L 1 0 v) t" 0 "-1"] 
       apply force
-      using  shift_only_FV[of "subst_L 0 (shift_L 1 0 v) t" 0 "-1"] 
-             FV_subst[of 0 "shift_L 1 0 v" t] FV_shift[of 1 0 v, simplified]
-      apply force
-      using closed_shift[of "-1" 0 "(subst_L 0 (shift_L 1 0 v) t)", simplified]
-            FV_subst[of 0 "shift_L 1 0 v" t]
-      
+      apply simp
       sorry       
 qed auto
-
 
 
 lemma closedness_preservation:
@@ -362,56 +372,47 @@ proof -
 qed  
 
 lemma eval_preserves_R:
-  "\<Gamma> \<turnstile> t|:|T \<Longrightarrow> eval1_L t t' \<Longrightarrow> t \<in>\<^sub>R T \<Longrightarrow> t'\<in>\<^sub>R T"
-proof (induction T arbitrary: \<Gamma> t t')
+  "\<emptyset> \<turnstile> t|:|T \<Longrightarrow> eval1_L t t' \<Longrightarrow> t \<in>\<^sub>R T = t'\<in>\<^sub>R T"
+proof (induction T arbitrary: t t')
   case (A)
     then show ?case 
-      using R\<^sub>A[OF A(3), unfolded halting_eval[OF A(2)]]
-            preservation[of \<emptyset> t A t']
-            closedness_preservation
+      using halting_eval[OF A(2)]
+            preservation[OF A]
+            closedness_preservation[OF star_step1[of "eval1_L",OF A(2)]]
       by auto
 next
   case (Fun T1 T2)
     note hyps=this
-    have "(\<forall>s. s\<in>\<^sub>RT1 \<longrightarrow> LApp t' s\<in>\<^sub>RT2)" 
-      using hyps(2)[of \<emptyset>, OF _ eval1_LApp1[OF hyps(4)]]
-            hyps(5)[simplified]
-            R_def[of "LApp t _" T2]
-      by blast
+    have "\<forall>s. s\<in>\<^sub>RT1 \<longrightarrow> ( LApp t' s\<in>\<^sub>RT2 = LApp t s\<in>\<^sub>RT2)" 
+      proof (rule, rule)
+        fix s
+        assume Rs: "s\<in>\<^sub>RT1"
+        have "LApp t' s\<in>\<^sub>RT2 \<Longrightarrow> LApp t s\<in>\<^sub>RT2"
+          using hyps(2)[OF _ eval1_LApp1[OF hyps(4)],of s]
+                has_type_L.simps[of \<emptyset> "LApp t s"] hyps(3) R_def[OF Rs]
+          by auto
+        then show "LApp t' s\<in>\<^sub>RT2 = LApp t s\<in>\<^sub>RT2"
+          using hyps(2)[OF _ eval1_LApp1[OF hyps(4)],of s]
+                R_def[of "LApp t s" T2]
+          by fast
+      qed
     then show ?case
-      using hyps(5)[simplified, unfolded halting_eval[OF hyps(4)]]
-            preservation[OF _ hyps(4)] closedness_preservation1[OF hyps(4)]
+      using halting_eval[OF hyps(4)]
+            preservation[OF hyps(3,4)] 
+            hyps(3)
+            closedness_preservation1[OF hyps(4)]
       by auto
 qed
 
-(*
-lemma  eval_preserves_R2:
-  "\<Gamma> \<turnstile> t|:|T \<Longrightarrow> eval1_L t t' \<Longrightarrow> t' \<in>\<^sub>R T \<Longrightarrow> t\<in>\<^sub>R T"
-proof (induction T arbitrary: \<Gamma> t t')
-  case (A)
-    have 1:"\<And>B. \<emptyset> \<turnstile> t |:| B \<Longrightarrow> B=A"
-      using preservation[of \<emptyset>,OF _ A(2)]
-            A(3)[simplified, THEN conjunct2, THEN conjunct1]
-            type_unique[of \<emptyset> t' A]
-      by fast
-    show ?case 
-      using A(3)[simplified, unfolded halting_eval[OF A(2), symmetric]]
-            closedness_preservation1[OF A(2), symmetric] A(2)
-      apply auto
-      
-next
-  case (Fun T1 T2)
-    note hyps=this
-    have "(\<forall>s. s\<in>\<^sub>RT1 \<longrightarrow> LApp t s\<in>\<^sub>RT2)" 
-      using hyps(2)[of \<emptyset>, OF _ eval1_LApp1[OF hyps(4)]]
-            hyps(5)[unfolded R_fun[symmetric], THEN conjunct2]
-            R_def[of "LApp t' _" T2] 
-      sorry
-    then show ?case
-      using R_fun[of t T1 T2]
-            hyps(5)[unfolded R_fun[symmetric] halting_eval[OF hyps(4),symmetric]]
+lemma star_eval_preserves_R:
+  "star eval1_L t t' \<Longrightarrow> \<emptyset> \<turnstile> t|:|T \<Longrightarrow> t \<in>\<^sub>R T = t'\<in>\<^sub>R T"
+proof (induction rule: star.induct)
+  case (step x y z)
+    show ?case
+      using eval_preserves_R[OF step(4,1)]
+            step(3) preservation[OF step(4,1)]
       by auto
-qed*)
+qed auto
 
 fun subst_all :: "nat \<Rightarrow> lterm list \<Rightarrow> lterm \<Rightarrow> lterm" where
   "subst_all n V ValA = ValA" |
@@ -425,10 +426,6 @@ by (induction t arbitrary: n, auto)
 
 lemma subst_free_var_only: "x\<notin>FV t \<Longrightarrow> subst_L x t1 t = t"
 by (induction t arbitrary:t1 x, force+)
-
-lemma subst_all_shift:
-  "shift_L d c (subst_all n V t) = subst_all n (map (shift_L d c) V) t"
-sorry
 
 lemma subst_comp_subst_all:
   "subst_L n v (subst_all (Suc n) (map (shift_L ((int n) + 1) 0) V) t) = subst_all n (v#map (shift_L ((int n) + 1) 0) V) t"
@@ -463,24 +460,33 @@ next
 qed auto
 
 lemma substitution_all:
-  "\<Gamma> \<turnstile> t |:| T \<Longrightarrow>  (\<And>i. i<length V \<Longrightarrow> \<Gamma> \<turnstile> LVar (i+k) |:| (\<Gamma>!i) \<and> \<Gamma> \<turnstile> (V!i) |:| (\<Gamma>!i)) \<Longrightarrow> 
+  "\<Gamma> \<turnstile> t |:| T \<Longrightarrow>  (\<And>i. i<length V \<Longrightarrow> \<Gamma> \<turnstile> LVar (i+k) |:| (\<Gamma>!(i+k)) \<and> \<Gamma> \<turnstile> (V!i) |:| (\<Gamma>!(i+k))) \<Longrightarrow> 
     \<Gamma> \<turnstile> subst_all k V t |:| T"
-proof (induction \<Gamma> t T arbitrary: s n k V rule: has_type_L.induct)
+proof (induction \<Gamma> t T arbitrary: k V rule: has_type_L.induct)
   case (has_type_LAbs \<Gamma> T1 t T2)
     note H=this
-    show ?case
-      apply simp
-      apply rule
+    have "\<And>i. i < length V \<Longrightarrow>
+          \<Gamma> |,| T1 \<turnstile> LVar (Suc (i + k)) |:| (\<Gamma> ! (i + k)) \<and> \<Gamma> |,| T1 \<turnstile> shift_L 1 0 (V ! i) |:| (\<Gamma> ! (i + k))"
+      proof -
+        fix i
+        assume inf_len: "i < length V"
+        show "\<Gamma> |,| T1 \<turnstile> LVar (Suc (i + k)) |:| (\<Gamma> ! (i + k)) \<and> \<Gamma> |,| T1 \<turnstile> shift_L 1 0 (V ! i) |:| (\<Gamma> ! (i + k))"
+          using  H(3)[OF inf_len] 
+                 has_type_L.simps[of \<Gamma> "LVar (i + k)" "\<Gamma>!(i+k)", simplified]
+                 weakening[where n=0, unfolded insert_nth_def nat.rec]
+                 "has_type_L.intros"(2)[of "Suc (i + k)" "\<Gamma> ! (i + k)" "\<Gamma>|,|T1", simplified]
+          by blast
+      qed
+    then show ?case
       using H(2)[of "map (shift_L 1 0) V" "Suc k", simplified]
-            H(3)
-      sorry
+      by (auto intro: "has_type_L.has_type_LAbs")
 next
-  case (has_type_LVar) thus ?case sorry
-  (*by (fastforce
-    intro: has_type_L.intros weakening[where n=0, unfolded insert_nth_def nat.rec]
-    simp: has_type_L.simps[of _ "LVar n" _, simplified])*)
-qed (auto intro!: has_type_L.intros 
-          simp: has_type_L.simps[of _ "LVar _" _, simplified])
+  case (has_type_LVar k1 A \<Gamma>) 
+    note H=this
+    show ?case
+      using H(2)[of "k1-k"] H(1)
+      by (auto intro: has_type_L.intros)
+qed (auto intro!: has_type_L.intros simp: has_type_L.simps[of _ "LVar _" _, simplified])
 
 lemma  subst_R:
   "\<Gamma> \<turnstile> t |:| T \<Longrightarrow> length V = length \<Gamma> \<Longrightarrow> (\<And>i. i<length V \<Longrightarrow>is_value_L (V!i) \<and> (V!i) \<in>\<^sub>R (\<Gamma>!i)) \<Longrightarrow> 
@@ -518,21 +524,29 @@ next
               thus ?case using eval_preserves_R R_def
                 by force
           qed force
-        have "shift_L (-1) 0 \<circ> shift_L 1 0 = id"
-          proof
-            fix x
-            show "(shift_L (-1) 0 \<circ> shift_L 1 0) x = id x"
-              using shift_shift_invert[of 1, simplified]
-              by auto
-          qed
-        hence ev1:"star eval1_L (LApp (LAbs T1 (subst_all (Suc 0) (map (shift_L 1 0) V) t)) v) 
-                             (subst_all 0 (v # V) t)"
-          using eval1_LApp_LAbs[OF v_prop(1),of T1 "subst_all (Suc 0) (map (shift_L 1 0) V) t"]
-                subst_comp_subst_all[of 0 "shift_L 1 0 v" V t, simplified]
-                subst_all_shift[of "-1" 0 0 _ t]
-                shift_shift_invert[of 1, simplified]
+
+        have R_sub:"subst_all 0 (v # V) t\<in>\<^sub>RT2"
+          using v_prop(1) Rv hyps(4)[unfolded hyps(3)]
+                hyps(2)[of "v#V", simplified, OF hyps(3)] 
+                less_Suc_eq_0_disj nth_Cons_0 nth_Cons_Suc 
           by force
-        have "star eval1_L (LApp (LAbs T1 (subst_all (Suc 0) (map (shift_L 1 0) V) t)) s)
+
+        have V_no_shift: "map (shift_L 1 0) V = V"
+          using shift_only_FV[of _ 0 1, simplified]
+                R_def[OF hyps(4)[THEN conjunct2], THEN conjunct1]
+          by (simp add: nth_equalityI)
+        have ev1:"star eval1_L (LApp (LAbs T1 (subst_all (Suc 0) (map (shift_L 1 0) V) t)) v) 
+                             (subst_all 0 (v # V) t)"
+          using eval1_LApp_LAbs[OF v_prop(1),of T1 "subst_all (Suc 0) (map (shift_L 1 0) V) t", unfolded
+                subst_comp_subst_all[of 0 "shift_L 1 0 v" V t, simplified]]
+                shift_only_FV[of "subst_all 0 (v # V) t" 0 "-1",
+                               simplified]
+                R_def[OF R_sub, THEN conjunct1]
+                shift_only_FV[of _ 0 1, simplified, OF R_def[OF Rv, THEN conjunct1]]
+                V_no_shift
+          by simp    
+            
+        have ev0:"star eval1_L (LApp (LAbs T1 (subst_all (Suc 0) (map (shift_L 1 0) V) t)) s)
                 (LApp (LAbs T1 (subst_all (Suc 0) (map (shift_L 1 0) V) t)) v)"
           using v_prop(2,1)
           proof (induction rule: star.induct)
@@ -546,26 +560,13 @@ next
                             (subst_all 0 (v # V) t)"
           using star_trans[of "eval1_L"]
           by meson
-        have type: "\<emptyset> \<turnstile> LApp (LAbs T1 (subst_all (Suc 0) (map (shift_L 1 0) V) t)) v |:| T2"
-          using R_def[of "subst_all 0 (v # V) t" T2,THEN conjunct2]
-                substitution[OF hyps(1), of _ "(\<Gamma>|,|T1)!_" "shift_L 1 0 (V!_)"]
-                hyps(4)
-                weakening[of \<emptyset> "V!_" "\<Gamma>!_" 0 T1, simplified]
-                R_def[OF Rv, THEN conjunct2]
-                has_type_L.intros(3,4)
-                has_type_L.simps[of "\<Gamma> |,| T1" "LVar _", simplified]
-          sorry
-        thm hyps(2)[of "v#V",simplified]
+        have type: "\<emptyset> \<turnstile> LApp (LAbs T1 (subst_all (Suc 0) (map (shift_L 1 0) V) t)) s |:| T2"
+          using B R_def[OF Rs, simplified]
+          by (auto intro: "has_type_L.intros")
+        
         show "LApp (LAbs T1 (subst_all (Suc 0) (map (shift_L 1 0) V) t)) s\<in>\<^sub>RT2"
-          using v_prop(1) 
-                R_def[OF Rs, THEN conjunct2] value_characterisation
-                hyps(2)[of "v# V", simplified]
-                
-                eval
-                
-                
-                
-          sorry
+          using star_eval_preserves_R[OF star_trans[OF ev0 ev1] type] R_sub
+          by metis
       qed
     
     then show ?case
@@ -578,8 +579,5 @@ theorem Normalization:
   "\<emptyset>\<turnstile> t |:| T \<Longrightarrow> halts t"
 using subst_R[of \<emptyset> t T \<emptyset>] R_halts[of t T]
 by auto  
-
-
-
 
 end
