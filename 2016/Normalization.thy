@@ -3,6 +3,8 @@ imports
   Main
   "~~/src/HOL/IMP/Star"
   "$AFP/List-Index/List_Index"
+  "~~/src/HOL/Eisbach/Eisbach"
+  "~~/src/HOL/Eisbach/Eisbach_Tools"
 begin
 
 datatype ltype=
@@ -234,91 +236,81 @@ proof (induction t arbitrary: d c)
             LAbs(1)[of "Suc c" d]
       by force
 qed auto
-(*
-fun nbinder::"lterm \<Rightarrow> nat" where
-"nbinder (LAbs _ t)   = Suc (nbinder t)"|
-"nbinder (LApp t1 t2) = nbinder t1 + nbinder t2"|
-"nbinder _ = 0" 
 
-
-lemma FV_neg_shift:
-  "d<0 \<Longrightarrow> FV (shift_L d c t) \<subseteq> {a} \<Longrightarrow> FV t = {} \<or> FV t = {a} \<or> 
-                                        (\<forall>x\<in>FV t. x = a \<or> nat(int x + d) = a \<or> nat(int x + d)< nbinder t)"
-proof (induction t arbitrary: d c a)
-  case (LVar k)
-    show ?case
-      using subset_singletonD[OF LVar(2)]
-      by (cases "k<c", auto)
-next
-  case (LApp t1 t2)
-    have 1: "closed (shift_L d c t1) \<and> closed (shift_L d c t2) \<Longrightarrow> ?case"
-      using LApp(1,2)[OF LApp(3), of c a]
-      by force
-    have 2:"FV (shift_L d c t1) \<union> FV (shift_L d c t2) = {a} \<Longrightarrow> 
-            FV (shift_L d c t1)\<subseteq>{a} \<and> FV (shift_L d c t2) \<subseteq> {a}"
-      by blast
-    show ?case 
-      by (rule disjE[OF subset_singletonD[OF LApp(4), simplified], of ?case])
-          (insert 1 LApp(1,2)[OF LApp(3), of c a] 2, fastforce+)
-next
-  case (LAbs T t)
-    have 1:"0 \<notin> FV (shift_L d (Suc c) t) \<Longrightarrow> ?case"
-      proof -
-        assume "0 \<notin> FV (shift_L d (Suc c) t)"
-        hence "FV (shift_L d (Suc c) t) \<subseteq> {Suc a}"
-          using LAbs(3)[simplified, unfolded image_subset_iff, simplified]
-          by (cases "\<forall>x\<in> FV (shift_L d (Suc c) t) - {0}. x > 0") fastforce+          
-        then show ?case
-          using LAbs(1)[OF LAbs(2), of "Suc c" "Suc a"]
-          by fastforce
-      qed
-    have "0 \<in> FV (shift_L d (Suc c) t) \<Longrightarrow> ?case"
-      proof -
-        assume "0 \<in> FV (shift_L d (Suc c) t)"
-        hence "FV (shift_L d (Suc c) t) \<subseteq> {0,Suc a}"
-          using LAbs(3)[simplified, unfolded image_subset_iff, simplified]
-          by (cases "\<forall>x\<in> FV (shift_L d (Suc c) t) - {0}. x > 0") force+
-        then show ?case
-          
-          sorry
-      qed
-    with 1 show ?case
-      by blast
-qed auto
-
-lemma closed_shift:
-  "closed (shift_L d c t) \<Longrightarrow> FV t={} \<or> (\<forall>x\<in>FV t. nat (int x + d) = 0 \<or> nat(int x + d)< nbinder t)"
+lemma FV_neg:
+  "d<0 \<Longrightarrow> FV (shift_L d c t) = 
+    {k. \<exists>b. k+b \<in> FV t \<and> k+b\<ge>c \<and> nat (-d) \<ge> b} \<union> {k1. k1<c \<and> k1\<in>FV t}"
 proof (induction t arbitrary: d c)
-  case (LApp t1 t2)
-    show ?case
-      using LApp(3)[simplified]
-            LApp(1,2)[of d c]
-      by auto
-next
   case (LAbs T t)
     show ?case
-      using LAbs(2)[simplified] FV_shift[of "nat d" "Suc c" t, simplified]
-            LAbs(1)[of d "Suc c"]
-            FV_neg_shift[OF _ LAbs(2)[simplified]]
-      by (cases "d\<ge>0") (fastforce+)
+      by (force simp: image_iff LAbs(1)[OF LAbs(2), of "Suc c"])+
+next
+  case (LVar k)
+    thus ?case sorry
 qed auto
-*)
+
+method invert_type = (match premises in H:"\<emptyset> \<turnstile> Te |:| B" for Te::lterm and B::ltype\<Rightarrow>
+                      \<open> insert has_type_L.simps[of \<emptyset> Te B, simplified]\<close>)
 
 
 lemma closedness_preservation1:
-  "eval1_L t t' \<Longrightarrow> closed t = closed t'"
-proof (induction rule: eval1_L.induct)
+  "eval1_L t t' \<Longrightarrow> \<emptyset> \<turnstile> t |:| B \<Longrightarrow> closed t = closed t'"
+proof (induction arbitrary: B rule: eval1_L.induct)
   case (eval1_LApp_LAbs v T t)
     note hyps=this
+    
+    have closed_v:"closed v"
+      using hyps(2)[unfolded "has_type_L.simps"[of \<emptyset> "LApp _ _"], simplified]
+            
+      sorry
+    have 1:"closed (shift_L (- 1) 0 (subst_L 0 (shift_L 1 0 v) t)) \<Longrightarrow> FV t \<subseteq> {0}"
+      proof
+        fix \<alpha>
+        assume H: " closed (shift_L (- 1) 0 (subst_L 0 (shift_L 1 0 v) t))"
+                  "\<alpha> \<in> FV t"
+        obtain \<alpha>1 where Suc\<alpha>:"\<alpha>>0 \<Longrightarrow> \<alpha>=Suc \<alpha>1"
+          using gr0_conv_Suc by blast
+        hence "\<alpha>>0 \<Longrightarrow> \<alpha>1 + (Suc 0) \<in> (FV t - {0} \<union> Suc ` FV v)"
+          using H(2)
+          by auto
+        hence 1:"\<alpha>>0 \<Longrightarrow> 0\<in>FV t\<Longrightarrow> (\<forall>x b. x + b \<in> (if 0 \<in> FV t then FV t - {0} \<union> Suc ` FV v else FV t) \<longrightarrow>
+          \<not> b \<le> Suc 0) \<Longrightarrow> False"
+          proof -
+            assume hyps1:"\<alpha>>0" "0\<in>FV t"
+                         "\<forall>x b. x + b \<in> (if 0 \<in> FV t then FV t - {0} \<union> Suc ` FV v else FV t) \<longrightarrow> \<not> b \<le> Suc 0"
+                         "\<alpha>>0 \<Longrightarrow> \<alpha>1 + (Suc 0) \<in> (FV t - {0} \<union> Suc ` FV v)"
+            show "False"
+              using hyps1(3)[simplified hyps1(2) if_True]
+                    hyps1(4)[OF hyps1(1)]
+              by blast
+          qed
+        have 2: "\<alpha>>0 \<Longrightarrow> 0\<notin>FV t\<Longrightarrow> (\<forall>x b. x + b \<in> (if 0 \<in> FV t then FV t - {0} \<union> Suc ` FV v else FV t) \<longrightarrow>
+          \<not> b \<le> Suc 0) \<Longrightarrow> False"
+          proof -
+            assume hyps1:"\<alpha>>0" "0\<notin>FV t"
+                         "\<forall>x b. x + b \<in> (if 0 \<in> FV t then FV t - {0} \<union> Suc ` FV v else FV t) \<longrightarrow> \<not> b \<le> Suc 0"
+            show "False"
+              using hyps1(3)[simplified hyps1(2) if_False]
+                    Suc\<alpha>[OF hyps1(1)] H(2)
+              by force
+          qed
+        show "\<alpha>\<in>{0}"
+          using H(1)[unfolded
+                FV_neg[of "-1" 0, simplified, of "subst_L 0 (shift_L 1 0 v) t",
+                    unfolded FV_subst[of 0 "shift_L 1 0 v" t, unfolded FV_shift[of 1 0 v, simplified]]                  
+                   ], simplified]
+                1 2
+          by (cases "0\<in>FV t") auto
+      qed    
+          
     show ?case
-      apply rule
       using hyps(1) subset_singletonD[of "FV t" 0] disjE[of " closed t" " FV t = {0}"]
             FV_subst[of 0 "shift_L 1 0 v" t] FV_shift[of 1 0 v, simplified]            
             shift_only_FV[of "subst_L 0 (shift_L 1 0 v) t" 0 "-1"] 
-      apply force
-      apply simp
-      sorry       
-qed auto
+            1 closed_v
+      by force+
+             
+qed (invert_type, force)+
 
 
 lemma closedness_preservation:
