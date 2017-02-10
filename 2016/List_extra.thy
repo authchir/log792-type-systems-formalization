@@ -81,7 +81,7 @@ proof -
             using H
             by fastforce
       with H show ?thesis
-        by (simp add: H1 min_def, auto)(simp add: H Suc_diff_le take_drop)
+        by (simp add: H1 min_def)(simp add: H Suc_diff_le take_drop)
     qed
   with 1 show "?Q" by linarith
 qed
@@ -90,13 +90,10 @@ lemma rep_ins2:
   "n<n1 \<Longrightarrow> n1\<le> length W \<Longrightarrow> insert_nth n1 S (replace n A W) = replace n A (insert_nth n1 S W)" (is "?P\<Longrightarrow> ?R \<Longrightarrow> ?Q")
 proof -
   assume H: "?R" "?P"
-  from H show "?Q"
-    proof (simp add: min_def, auto)
-      have "Suc n \<le> n1"
+  have "Suc n \<le> n1"
         by (metis (no_types) H(2) Suc_leI)
-      then show "take (n1 - n) (A # drop (Suc n) W) @ S # drop (n1 - n) (A # drop (Suc n) W) = A # drop (Suc n) (take n1 W) @ S # drop n1 W"
-        by (simp add: drop_Cons' drop_take take_Cons')
-    qed
+  with H show "?Q"
+    by (simp add: drop_Cons' drop_take take_Cons' min_def) 
 qed      
 
 lemma len_fst_extract[simp]:
@@ -328,22 +325,26 @@ qed auto
 
 lemma set_list_it_app[simp]:
   "set(list_iter op @ [] L) = (UN l : set L. set l)"
-sorry
+by (induction L, auto)
 
 lemma nth_list_it_app:
   "L\<noteq>[] \<Longrightarrow> (\<forall>sl. sl\<in>set L \<longrightarrow> sl \<noteq>[]) \<Longrightarrow> i<foldr (\<lambda> a r. length a + r) L 0\<Longrightarrow>\<exists>j k. (list_iter op @ [] L) ! i = (L ! j) ! k \<and> k<length(L!j) \<and> j<length L" 
-sorry
+proof (induction L arbitrary:i)
+  case (Cons l L')
+    thus ?case sorry
+qed auto
 
 lemma update_snd_rewrite_fun:
   "(\<forall>i<length L. f (snd (L!i)) = g (snd (L!i))) \<Longrightarrow> update_snd f L = update_snd g L"
-sorry
+by (induction L, force+)
 
 lemma update_snd_comp:
-  "(update_snd F) \<circ> (update_snd G) = update_snd (F \<circ> G)"
-sorry
+  "(update_snd F \<circ> update_snd G) L = update_snd (F \<circ> G) L"
+by (induction L, force+)
 
 lemma fst_map:
-  "fst_extract L = map fst L" sorry
+  "fst_extract L = map fst L"
+by (induction L, auto)
  
 lemma count_rem1:
   "x \<in> set L \<Longrightarrow> count_list L x = count_list (remove1 x L) x + 1"
@@ -426,17 +427,33 @@ proof -
     by auto
 qed
 
+lemma count_rem1_out:
+  "x\<noteq>l1 \<Longrightarrow> count_list (remove1 l1 L) x = count_list L x"
+by (induction L arbitrary: l1, auto) 
+
 lemma count_conv_length:
   "(\<forall>x\<in>set L. count_list L x = count_list L1 x) \<Longrightarrow> set L \<subseteq> set L1 \<Longrightarrow> length L \<le> length L1"
-sorry
+proof (induction L arbitrary:L1)
+  case (Cons l L')
+    have A:"\<forall>x\<in>set L'. count_list L' x = count_list (remove1 l L1) x"
+      using Cons(2,3) count_rem1[of l L1] count_rem1_out
+      by (metis add_diff_cancel_right' count_rem1 remove1.simps(2) set_subset_Cons subsetCE)
+    have "set L' \<subseteq> set (remove1 l L1)"
+      using Cons(3) A count_notin count_rem1 
+      by fastforce
+    then show ?case 
+      using Cons(1)[of "remove1 l L1"] A length_remove1[of l L1]
+            subsetD[OF Cons(3), of l, simplified]
+      by (metis One_nat_def Suc_le_mono Suc_pred length_Cons length_pos_if_in_set)      
+qed force
 
 lemma same_count_set_length:
   "(\<forall>x\<in>set L. count_list L x = count_list L1 x) \<Longrightarrow> set L = set L1 \<Longrightarrow> length L = length L1"
-sorry
+by (metis order_refl count_conv_length le_antisym)
 
 lemma count_list_app[simp]:
   "count_list (L@L1) x = count_list L x + count_list L1 x"
-sorry
+by (induction L arbitrary: L1, auto)
 
 lemma same_count_set_ex_commun_index:
   "(\<forall>x\<in>set L. count_list L x = count_list L1 x) \<Longrightarrow> set L \<subseteq> set L1 \<Longrightarrow> i<length L \<Longrightarrow> \<exists>j. L1!j = L!i \<and> j < length L1"
@@ -480,10 +497,6 @@ proof(induction L arbitrary: x)
       qed
     thus ?case using Cons(2) by auto
 qed auto
-
-lemma UN_int_empty:
-  "(UN l: set P. f l) \<inter> set S = {} \<Longrightarrow> \<forall>l\<in>set P. f l \<inter> set S = {}"
-sorry
 
 
 end

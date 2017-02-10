@@ -9,6 +9,7 @@ datatype ltype=
 Unit | Fun ltype ltype (infixr "\<rightarrow>"  225) | VariantType "string list" "ltype list"("<(_):=(_)>" [201,200]225) |
 Ty string
 
+(*fun join::"ltype\<Rightarrow>ltype\<Rightarrow>ltype"*)  
 
 datatype lterm=
   LVar nat 
@@ -176,8 +177,9 @@ inductive eval1_L1 :: "lterm1 \<Rightarrow> lterm1 \<Rightarrow> bool" where
   eval1_TryRaise:
     "is_value_L1 v \<Longrightarrow> eval1_L1 (try (raise v) with t2) (LApp1 t2 v)"
 
-abbreviation agrees:: "lterm1 \<Rightarrow> ltype \<Rightarrow> bool" where
- "agrees t T \<equiv> (case t of LAbs1 Ta <L:=TL> t' \<Rightarrow> (<L:=TL>)=T | _\<Rightarrow> True)"
+inductive agrees:: "lterm1 \<Rightarrow> ltype \<Rightarrow> bool" where
+  "set (zip L' TL') \<subseteq> set (zip L TL) \<Longrightarrow> agrees t (<L':=TL'>) \<Longrightarrow> agrees (LAbs1 T1 <L:=TL> t) (<L':=TL'>)"
+| "(\<And>L TL t1. t\<noteq>(LAbs1 U <L:=TL> t1)) \<Longrightarrow> agrees t (<L1:=TL1>)"
 
 inductive  has_type1_L :: "ltype \<Rightarrow> lcontext \<Rightarrow> lterm1 \<Rightarrow> ltype \<Rightarrow> bool" ("((_)|*|(_)/ \<turnstile>\<^sub>1 (_)/ |:| (_))" [150, 150, 150] 150) where
   has_type1_Lunit:
@@ -276,12 +278,12 @@ proof (induction T\<alpha> \<Gamma> t T arbitrary: n rule: has_type1_L.induct)
 qed (auto simp: nth_append min_def intro: has_type1_L.intros)
 
 lemma substitution:
-  "T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 t |:| T \<Longrightarrow> T\<alpha>1|*|\<Gamma> \<turnstile>\<^sub>1 LVar1 n |:| U \<Longrightarrow> T\<alpha>1|*|\<Gamma> \<turnstile>\<^sub>1 s |:| U \<Longrightarrow> T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 subst_L1 n s t |:| T"  
+  "T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 t |:| T \<Longrightarrow> T\<alpha>1|*|\<Gamma> \<turnstile>\<^sub>1 LVar1 n |:| U \<Longrightarrow> T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 s |:| U \<Longrightarrow> T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 subst_L1 n s t |:| T"  
 proof (induction T\<alpha> \<Gamma> t T arbitrary: T\<alpha>1 s n rule: has_type1_L.induct)
   case (has_type1_LAbs L t TL \<Gamma> T1 T2 T\<alpha>)
     note hyps=this
     have "agrees (subst_L1 (Suc n) (shift_L1 1 0 s) t) (<L:=TL>)"
-      using hyps(2)
+      using hyps(2,6)
       sorry
       
     then show ?case

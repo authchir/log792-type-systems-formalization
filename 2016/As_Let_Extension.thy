@@ -241,7 +241,4 @@ lemma eval1_L_asE1:
 using eval1_LApp_LAbs[of t1 A "LVar 0"] shift_shift_invert[of 1 0 t1]
 by auto
 
-(*TODO proof same as for derived form sequence*)
-
-
 end

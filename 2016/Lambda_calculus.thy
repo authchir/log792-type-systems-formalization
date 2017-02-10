@@ -1,6 +1,7 @@
 theory Lambda_calculus
   imports Main
           Pure
+          List_extra
           "$AFP/List-Index/List_Index"
 begin
 

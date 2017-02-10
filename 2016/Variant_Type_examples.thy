@@ -23,12 +23,11 @@ lemma emptyTable_well_typed:
    let ?inner_term = "<''none'':= unit> as (Nat option)"
    have H:" \<Gamma> |,| Nat \<turnstile> \<lparr> ?inner_term|;| fill \<delta>\<rparr> |:| Nat option"
      using has_type_Variant[of "\<Gamma>|,|Nat" unit \<delta> "[Unit, Nat]" 0 "[''none'',''some'']"]
-           has_type_LUnit[of "\<Gamma>|,|Nat" \<delta>] fill_id
+           has_type_LUnit[of "\<Gamma>|,|Nat" \<delta>]
      by fastforce
    
    then show ?thesis     
      using has_type_LAbs[of Nat "\<Gamma>" ?inner_term \<delta> "Nat option"]
-           fill_id     
      by auto
 qed
    
@@ -89,7 +88,5 @@ section{* Enumerations*}
 
 abbreviation Weekday :: "ltype" where
   "Weekday \<equiv> <[''monday'',''tuesday'',''wednesday'',''thursday'',''friday'']|,|(replicate 5 Unit)>"
-
-
 
 end

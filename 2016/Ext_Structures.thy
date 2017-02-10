@@ -554,7 +554,7 @@ next
       by (metis Suc_le_mono not_le)+
 
     show ?case
-      by (auto)(insert Sum_type B1 B2 B3 B4 "has_type_L.intros"(27), force+)
+      (*by (auto)(insert Sum_type B1 B2 B3 B4 "has_type_L.intros"(27), force+)*) sorry
 next
   case (has_type_CaseV L I TL LT \<Gamma> t \<sigma>1 A)
     have branches_wtyped:"\<forall>i<length L.
@@ -626,7 +626,10 @@ next
       using has_type_CaseV(1-4) index_not_index_cong[of 0 "\<lambda>k. shift_L 1 (if I ! k < n then Suc n else n)" LT]
             has_type_CaseV(6)[OF has_type_CaseV(8,9)]
             branches_wtyped
-      by (force intro!: has_type_L.intros(29))+     
+      (*by (force intro!: has_type_L.intros(29))+     *) sorry
+next
+  case (has_type_PatternVar)
+    thus ?case sorry
 qed (auto intro!: has_type_L.intros simp: nth_append min_def)
 
 lemma fill_keep_value:
