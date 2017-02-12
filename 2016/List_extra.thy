@@ -35,6 +35,10 @@ fun BigCirc::"('a\<Rightarrow>'a) list \<Rightarrow> ('a\<Rightarrow>'a)" ("\<Od
 "\<Odot> [] = id" |
 "\<Odot> (f#fs) = f \<circ> (\<Odot> fs)"
 
+fun BigCircT::"('a\<rightharpoonup>'b) list \<Rightarrow> ('a\<rightharpoonup>'b)" ("\<Odot>\<^sub>T (_)" [75] 55) where
+"\<Odot>\<^sub>T [] = empty" |
+"\<Odot>\<^sub>T (f#fs) = f ++ (\<Odot>\<^sub>T fs)"
+
 fun indexed_map::"nat \<Rightarrow> (nat\<Rightarrow>'a\<Rightarrow>'b) \<Rightarrow> 'a list \<Rightarrow> 'b list" where
 "indexed_map n f [] = []" |
 "indexed_map n f (x#xs) = f n x # (indexed_map (Suc n) f xs)"
@@ -323,9 +327,9 @@ proof (induction L arbitrary: L1 F)
         by simp                 
 qed auto
 
-lemma set_list_it_app[simp]:
-  "set(list_iter op @ [] L) = (UN l : set L. set l)"
-by (induction L, auto)
+lemma set_foldl_app[simp]:
+  "set(foldl op @ L1 L) = (UN l : set L. set l) \<union> set L1"
+by (induction L arbitrary: L1, auto)
 
 lemma nth_list_it_app:
   "L\<noteq>[] \<Longrightarrow> (\<forall>sl. sl\<in>set L \<longrightarrow> sl \<noteq>[]) \<Longrightarrow> i<foldr (\<lambda> a r. length a + r) L 0\<Longrightarrow>\<exists>j k. (list_iter op @ [] L) ! i = (L ! j) ! k \<and> k<length(L!j) \<and> j<length L" 

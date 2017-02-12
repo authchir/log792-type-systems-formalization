@@ -87,9 +87,9 @@ abbreviation halts :: "lterm \<Rightarrow> bool" where
 
 
 lemma value_characterisation:
-  "\<Gamma> \<turnstile> t |:| T \<Longrightarrow> \<Gamma> = \<emptyset> \<Longrightarrow> \<forall>t1. \<not> eval1_L t t1 \<Longrightarrow> is_value_L t"
-proof (induction rule:"has_type_L.induct")
-  case (has_type_LApp \<Gamma> t1 T1 T2 t2)
+  "\<emptyset> \<turnstile> t |:| T \<Longrightarrow> \<forall>t1. \<not> eval1_L t t1 \<Longrightarrow> is_value_L t"
+proof (induction "\<emptyset>::ltype list" t T rule:"has_type_L.induct")
+  case (has_type_LApp t1 T1 T2 t2)
     have "\<exists>t. eval1_L (LApp t1 t2) t"
       proof (cases "\<exists>t1'. eval1_L t1 t1'")
         case (True)
@@ -98,12 +98,11 @@ proof (induction rule:"has_type_L.induct")
       next
         case (False)
           thus ?thesis
-            using has_type_LApp(3)[OF has_type_LApp(5)]
-                  has_type_LApp(4)[OF has_type_LApp(5)]
+            using has_type_LApp(2-4)                  
                   canonical_forms(2)[OF _ has_type_LApp(1)]
             by (cases "\<exists>t2'. eval1_L t2 t2'", auto intro: eval1_L.intros) 
       qed
-    with has_type_LApp(6) show ?case by blast
+    with has_type_LApp(5) show ?case by blast
 qed (auto intro: "is_value_L.intros")
 
 lemma[simp]: "nat (int x + 1) = Suc x" by simp
@@ -290,7 +289,7 @@ proof -
   assume Rt: "t \<in>\<^sub>R T"
  
   have 1: "\<And>t'. star eval1_L t t' \<Longrightarrow> \<forall>t1. \<not> eval1_L t' t1 \<Longrightarrow> \<exists>v. is_value_L v \<and> star eval1_L t v"
-    using value_characterisation[of \<emptyset> _ T]
+    using value_characterisation[of _ T]
           preservation_step[OF _ R_def[OF Rt, THEN conjunct2]]
     by auto      
   have "\<forall>t1.\<not> eval1_L t t1 \<Longrightarrow> \<exists>v. is_value_L v \<and> star eval1_L t v"

@@ -7,9 +7,7 @@ begin
 
 datatype ltype=
 Unit | Fun ltype ltype (infixr "\<rightarrow>"  225) | VariantType "string list" "ltype list"("<(_):=(_)>" [201,200]225) |
-Ty string
-
-(*fun join::"ltype\<Rightarrow>ltype\<Rightarrow>ltype"*)  
+Ty string  
 
 datatype lterm=
   LVar nat 
@@ -114,6 +112,11 @@ datatype lterm1=
 | S string
 | Variant string lterm1 ("<(_)::=(_)>" [201,200] 220)
 
+inductive agrees:: "lterm1 \<Rightarrow> ltype \<Rightarrow> bool" where
+  "set (zip L' TL') \<subseteq> set (zip L TL) \<Longrightarrow> agrees t (<L':=TL'>) \<Longrightarrow> agrees (LAbs1 T1 <L:=TL> t) (<L':=TL'>)"
+| "(\<And>L TL t1. t\<noteq>(LAbs1 U <L:=TL> t1)) \<Longrightarrow> agrees t (<L1:=TL1>)"
+
+
 fun shift_L1 :: "int \<Rightarrow> nat \<Rightarrow> lterm1 \<Rightarrow> lterm1" where
  "shift_L1 d c (LVar1 k)    = LVar1 (if k < c then k else nat (int k + d))" |
  "shift_L1 d c (LApp1 t t1) = LApp1 (shift_L1 d c t) (shift_L1 d c t1)" |
@@ -124,10 +127,22 @@ fun shift_L1 :: "int \<Rightarrow> nat \<Rightarrow> lterm1 \<Rightarrow> lterm1
  "shift_L1 d c (<s::=t>) = <s::=(shift_L1 d c t)>"|
  "shift_L1 d c t = t"
 
+abbreviation join :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> 'b list \<Rightarrow> ('a\<times>'b)  list" where
+  "join L L' TL TL' \<equiv> 
+    filter (\<lambda>p. fst p \<notin> set L \<inter> set L' \<or> p \<in> set(zip L TL) \<inter> set (zip L' TL'))
+             (zip (L@L') (TL@TL'))"
+
 fun subst_L1 :: "nat \<Rightarrow> lterm1 \<Rightarrow> lterm1 \<Rightarrow> lterm1" where
  "subst_L1 j s (LApp1 t1 t2) = LApp1 (subst_L1 j s t1) (subst_L1 j s t2)" |
  "subst_L1 j s (LVar1 k) = (if k = j then s else LVar1 k)" |
- "subst_L1 j s (LAbs1 T <L:=TL> t) = LAbs1 T <L:=TL> (subst_L1 (Suc j) (shift_L1 1 0 s) t)"|
+ "subst_L1 j s (LAbs1 T <L:=TL> t) = ( 
+   if (agrees s (<L:=TL>)) then
+     LAbs1 T <L:=TL> (subst_L1 (Suc j) (shift_L1 1 0 s) t)
+   else
+    (case s of LAbs1 _ <L':=TL'> _ \<Rightarrow>
+    (let ErrT= (join L L' TL TL') in 
+     LAbs1 T <(map fst ErrT):=(map snd ErrT)> (subst_L1 (Suc j) (shift_L1 1 0 s) t))
+     | _\<Rightarrow> unit1))"|
  "subst_L1 j s unit1 = unit1" |
  "subst_L1 j s (try t with t1) = try (subst_L1 j s t) with (subst_L1 j s t1)"|
  "subst_L1 j s (raise t) = raise (subst_L1 j s t)"|
@@ -177,9 +192,6 @@ inductive eval1_L1 :: "lterm1 \<Rightarrow> lterm1 \<Rightarrow> bool" where
   eval1_TryRaise:
     "is_value_L1 v \<Longrightarrow> eval1_L1 (try (raise v) with t2) (LApp1 t2 v)"
 
-inductive agrees:: "lterm1 \<Rightarrow> ltype \<Rightarrow> bool" where
-  "set (zip L' TL') \<subseteq> set (zip L TL) \<Longrightarrow> agrees t (<L':=TL'>) \<Longrightarrow> agrees (LAbs1 T1 <L:=TL> t) (<L':=TL'>)"
-| "(\<And>L TL t1. t\<noteq>(LAbs1 U <L:=TL> t1)) \<Longrightarrow> agrees t (<L1:=TL1>)"
 
 inductive  has_type1_L :: "ltype \<Rightarrow> lcontext \<Rightarrow> lterm1 \<Rightarrow> ltype \<Rightarrow> bool" ("((_)|*|(_)/ \<turnstile>\<^sub>1 (_)/ |:| (_))" [150, 150, 150] 150) where
   has_type1_Lunit:

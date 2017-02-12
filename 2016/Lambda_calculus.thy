@@ -6,19 +6,19 @@ theory Lambda_calculus
 begin
 
 datatype ltype =
-  Nat  |
   Bool |
   T (num:nat) |
   Unit |
   Prod ltype ltype (infix "|\<times>|" 225)|
   Fun (domain: ltype) (codomain: ltype) (infixr "\<rightarrow>" 225)|
   TupleT "ltype list" ( "\<lparr>_\<rparr>" [150]225) |
-  RecordT "string list" "ltype list" ( "\<lparr>(_)|:|(_)\<rparr>" [151,150] 225) |
+  RecordT "string list" "ltype list" ( "\<lparr>(_)|:|(_)\<rparr>" [101,100] 200) |
   Sum ltype ltype (infix "|+|" 225) |
   TVariant "string list" "ltype list" ( "<(_)|,|(_)>" [151,150] 225)|
   ListT ltype ("\<lambda>List (_)" 225)
   
-datatype Lpattern = V nat | RCD "string list" "Lpattern list" | SV "int list" "nat list" nat
+datatype Lpattern = V nat ltype ("V/ (_)/ as/ (_)" [201,200]220)
+                    | RCD "string list" "Lpattern list"
 
 
 datatype lterm =
@@ -26,10 +26,6 @@ datatype lterm =
   LFalse |
   LIf (bool_expr: lterm) (then_expr: lterm) (else_expr: lterm) |
   LVar nat |
-  LNat int |
-  LPlus lterm lterm |
-  UMinus lterm |
-  IsZero lterm |
   LAbs (arg_type: ltype) (body: lterm) |
   LApp lterm lterm |
   unit |
@@ -68,10 +64,6 @@ fun shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lterm" w
   "shift_L d c LFalse = LFalse" |
   "shift_L d c (LIf t1 t2 t3) = LIf (shift_L d c t1) (shift_L d c t2) (shift_L d c t3)" |
   "shift_L d c (LVar k) = LVar (if k < c then k else nat (int k + d))" |
-  "shift_L d c (LNat n) = LNat n"|
-  "shift_L d c (UMinus t) = UMinus (shift_L d c t)"|
-  "shift_L d c (IsZero t) = IsZero (shift_L d c t)"|
-  "shift_L d c (LPlus t1 t2) = LPlus (shift_L d c t1) (shift_L d c t2)"|
   "shift_L d c (LAbs T' t) = LAbs T' (shift_L d (Suc c) t)" |
   "shift_L d c (LApp t1 t2) = LApp (shift_L d c t1) (shift_L d c t2)" |
   "shift_L d c unit = unit" |
@@ -88,9 +80,7 @@ fun shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lterm" w
   "shift_L d c (\<Pi> i t)   = \<Pi> i (shift_L d c t)" |
   "shift_L d c (Record L LT)  = Record L (map (shift_L d c) LT)" |
   "shift_L d c (ProjR l t) = ProjR l (shift_L d c t)" |
-  "shift_L d c (<|SV d' c' k|>) = <|SV (d#d') (c#c') k|>" |
-  "shift_L d c (<|V k|>) = <|SV [d] [c] k|>" |
-  "shift_L d c (<|RCD L PL|>) = <|RCD L PL|>" |
+  "shift_L d c (<|p|>) = <|p|>" |
   "shift_L d c (Let pattern p := t1 in t2) = (Let pattern p := (shift_L d c t1) in (shift_L d c t2))" |
   "shift_L d c (inl t as T') =  inl (shift_L d c t) as T'" |
   "shift_L d c (inr t as T') =  inr (shift_L d c t) as T'" |
@@ -114,10 +104,6 @@ function subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> l
   "subst_L j s LFalse = LFalse" |
   "subst_L j s (LIf t1 t2 t3) = LIf (subst_L j s t1) (subst_L j s t2) (subst_L j s t3)" |
   "subst_L j s (LVar k) = (if k = j then s else LVar k)" |
-  "subst_L j s (LNat n) = LNat n"|
-  "subst_L j s (UMinus t) = UMinus (subst_L j s t)"|
-  "subst_L j s (IsZero t) = IsZero (subst_L j s t)"|
-  "subst_L j s (LPlus t1 t2) = LPlus (subst_L j s t1) (subst_L j s t2)"|
   "subst_L j s (LAbs T' t) = LAbs T' (subst_L (Suc j) (shift_L 1 0 s) t)" |
   "subst_L j s (LApp t1 t2) = LApp (subst_L j s t1) (subst_L j s t2)" |
   "subst_L j s unit = unit" |
@@ -133,7 +119,7 @@ function subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> l
   "subst_L j s (Tuple L) = Tuple (map (subst_L j s) L)" |
   "subst_L j s (Record L LT) = Record L (map (subst_L j s) LT)" |
   "subst_L j s (ProjR l t) = ProjR l (subst_L j s t)" |
-  "subst_L j s (Pattern p) = Pattern p" |
+  "subst_L j s (<|p|>) = <|p|>" |
   "subst_L j s (Let pattern p := t1 in t2) = (Let pattern p := (subst_L j s t1) in (subst_L j s t2))" |
   "subst_L j s (inl t as T') =  inl (subst_L j s t) as T'" |
   "subst_L j s (inr t as T') =  inr (subst_L j s t) as T'" |
@@ -153,10 +139,10 @@ function subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> l
 by pat_completeness auto
 
 termination
-  by (relation "measure (\<lambda>(j,s,t). size t)", auto)
-      (metis less_add_Suc1 size_list_estimation' set_zip_rightD lessI not_less)+
+  by (relation "measure (\<lambda>(j,s,t). size t)", simp_all)
+      (metis less_add_Suc1 size_list_estimation' set_zip_rightD 
+              lessI not_less prod.collapse)+
   
-
 text{*
       We want to restrict the considered pattern matching and filling to coherent cases, which are
       the cases when a pattern variable can only appear once in a given pattern.\\
@@ -166,24 +152,20 @@ text{*
 *}
 
 fun Pvars :: "Lpattern \<Rightarrow> nat list" where
-"Pvars (V n) = [n]" |
-"Pvars (RCD L PL) = (list_iter (\<lambda>x r. x @ r) [] (map Pvars PL))" |
-"Pvars (SV d c k) = [k]"
+"Pvars (V n as A) = [n]" |
+"Pvars (RCD L PL) = (foldl (\<lambda>x r. x @ r) [] (map Pvars PL))" 
 
 fun patterns::"lterm \<Rightarrow> nat list" where
 "patterns (<|p|>) = Pvars p" |
 "patterns (LIf c t1 t2)               = patterns c @ patterns t1 @ patterns t2" |
-"patterns (LPlus t1 t2)               = patterns t1 @ patterns t2" |
-"patterns (UMinus t)                  = patterns t" |
-"patterns (IsZero t)                  = patterns t" |
 "patterns (LAbs A t1)                 = patterns t1" |
 "patterns (LApp t1 t2)                = patterns t1 @ patterns t2" |
 "patterns (Seq t1 t2)                 = patterns t1 @ patterns t2" |
 "patterns (t1 as A)                   = patterns t1" |
 "patterns (Let var x := t1 in t2)     = patterns t1 @ patterns t2" |
 "patterns (\<lbrace>t1,t2\<rbrace>)                   = patterns t1 @ patterns t2" |
-"patterns (Tuple L)                   = list_iter (\<lambda>e r. e @ r) [] (map (patterns) L)" |
-"patterns (Record L LT)               = list_iter (\<lambda>e r. e @ r) [] (map (patterns) LT)" |
+"patterns (Tuple L)                   = foldl (\<lambda>e r. e @ r) [] (map (patterns) L)" |
+"patterns (Record L LT)               = foldl (\<lambda>e r. e @ r) [] (map (patterns) LT)" |
 "patterns (\<pi>1 t)                      = patterns t" |
 "patterns (\<pi>2 t)                      = patterns t" |
 "patterns (\<Pi> i t)                     = patterns t" |
@@ -193,7 +175,7 @@ fun patterns::"lterm \<Rightarrow> nat list" where
 "patterns (inr t as T') =  patterns t" |
 "patterns (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = patterns t @ patterns t1 @ patterns t2" |
 "patterns (<l:=t> as T') =  patterns t" |
-"patterns (Case t of <L:=I> \<Rightarrow> LT) = patterns t @ list_iter (\<lambda>e r. e @ r) [] (map (patterns) LT)" |
+"patterns (Case t of <L:=I> \<Rightarrow> LT) = patterns t @ foldl (\<lambda>e r. e @ r) [] (map (patterns) LT)" |
 "patterns (Fixpoint t) = patterns t"|
 "patterns (Lisnil A t)                  = patterns t" |
 "patterns (Lhead A t)                  = patterns t" |
@@ -207,7 +189,6 @@ inductive is_value_L :: "lterm \<Rightarrow> bool" where
   VFalse: "is_value_L LFalse" |
   VAbs  :"is_value_L (LAbs T' t)" |
   VUnit :"is_value_L unit" |
-  VNat  : "is_value_L (LNat n)"|
   VPair :"is_value_L v1 \<Longrightarrow> is_value_L v2 \<Longrightarrow> is_value_L (\<lbrace>v1,v2\<rbrace>)" |
   VTuple:"(\<And>i.0\<le>i \<Longrightarrow> i<length L \<Longrightarrow> is_value_L (L!i)) \<Longrightarrow> is_value_L (Tuple L)" |
   VRCD  :"(\<And>i.0\<le>i \<Longrightarrow> i<length LT \<Longrightarrow> is_value_L (LT!i)) \<Longrightarrow> is_value_L (Record L LT)"|
@@ -221,10 +202,6 @@ primrec FV :: "lterm \<Rightarrow> nat set" where
   "FV LFalse = {}" |
   "FV (LIf t1 t2 t3) = FV t1 \<union> FV t2 \<union> FV t3" |
   "FV (LVar x) = {x}" |
-  "FV (LNat n) = {}"|
-  "FV (LPlus t1 t2) = FV t1 \<union> FV t2"|
-  "FV (UMinus t) = FV t"|
-  "FV (IsZero t) = FV t"|
   "FV (LAbs T1 t) = image (\<lambda>x. x - 1) (FV t - {0})" |
   "FV (LApp t1 t2) = FV t1 \<union> FV t2" |
   "FV unit = {}" |
@@ -235,9 +212,9 @@ primrec FV :: "lterm \<Rightarrow> nat set" where
   "FV (\<lbrace>t1,t2\<rbrace>) = FV t1 \<union> FV t2" |
   "FV (\<pi>1 t) =  FV t" |
   "FV (\<pi>2 t) =  FV t" |
-  "FV (Tuple L) = list_iter (\<lambda>x r. x \<union> r) {} (map FV L) "|
+  "FV (Tuple L) = foldl (\<lambda>x r. x \<union> r) {} (map FV L) "|
   "FV (\<Pi> i t) = FV t" |
-  "FV (Record L LT) = list_iter (\<lambda>x r. x \<union> r) {} (map FV LT) "|
+  "FV (Record L LT) = foldl (\<lambda>x r. x \<union> r) {} (map FV LT) "|
   "FV (ProjR l t) = FV t" |
   "FV (Pattern p) = {}" |
   "FV (Let pattern p := t1 in t2) = FV t1 \<union> FV t2" |
@@ -245,7 +222,7 @@ primrec FV :: "lterm \<Rightarrow> nat set" where
   "FV (inr t as A) = FV t" |
   "FV (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = FV t1 \<union> FV t2" |
   "FV (<L:=t> as A) = FV t" |
-  "FV (Case t of <L:=I> \<Rightarrow> LT) = FV t \<union> list_iter (\<lambda>x r. x \<union> r) {} (map FV LT)" |
+  "FV (Case t of <L:=I> \<Rightarrow> LT) = FV t \<union> foldl (\<lambda>x r. x \<union> r) {} (map FV LT)" |
   "FV (Fixpoint t) = FV t"|
   "FV (Lcons A t t') = FV t \<union> FV t'"|
   "FV (Ltail A t) = FV t"|
@@ -267,24 +244,16 @@ text{*
     \end{itemize}
 *}
 
-abbreviation unfold_SV:: "int list \<Rightarrow> nat list \<Rightarrow> (lterm \<Rightarrow> lterm)" where
- "unfold_SV \<equiv> (\<lambda> d c. if (length d = length c) then
-                         rec_nat (id) (\<lambda> n r. r \<circ> shift_L (d!n) (c!n)) (length d)
-                       else id)"   
 
 fun p_instantiate::"(nat\<Rightarrow> lterm) \<Rightarrow> Lpattern \<Rightarrow> lterm" where
-"p_instantiate \<Sigma> (V k) = \<Sigma> k"|
-"p_instantiate \<Sigma> (RCD L PL) = <|RCD L PL|>" |
-"p_instantiate \<Sigma> (SV d c k) = unfold_SV d c (\<Sigma> k)"
+"p_instantiate \<Sigma> (V k as A) = \<Sigma> k"|
+"p_instantiate \<Sigma> (RCD L PL) = <|RCD L PL|>" 
 
 fun fill::"(nat \<Rightarrow> lterm) \<Rightarrow> lterm \<Rightarrow> lterm" where
 "fill \<Sigma> (Pattern p)                 = p_instantiate \<Sigma> p" |
 "fill \<Sigma> (LIf c t1 t2)               = LIf (fill \<Sigma> c) (fill \<Sigma> t1) (fill \<Sigma> t2)" |
 "fill \<Sigma> (LAbs A t1)                 = LAbs A (fill \<Sigma> t1)" |
 "fill \<Sigma> (LApp t1 t2)                = LApp (fill \<Sigma> t1) (fill \<Sigma> t2)" |
-"fill \<Sigma> (LPlus t1 t2)               = LPlus (fill \<Sigma> t1) (fill \<Sigma> t2)" |
-"fill \<Sigma> (UMinus t)                  = UMinus (fill \<Sigma> t)" |
-"fill \<Sigma> (IsZero t)                  = IsZero (fill \<Sigma> t)" |
 "fill \<Sigma> (Seq t1 t2)                 =  Seq (fill \<Sigma> t1) (fill \<Sigma> t2)" |
 "fill \<Sigma> (t1 as A)                   = (fill \<Sigma> t1) as A" |
 "fill \<Sigma> (Let var x := t1 in t2)     = (Let var x := (fill \<Sigma> t1) in (fill \<Sigma> t2))" |
@@ -312,9 +281,6 @@ fun subterms :: "lterm\<Rightarrow>subterm_set" where
 "subterms (LIf c t1 t2)               = Ter c t1 t2" |
 "subterms (LAbs A t1)                 = U t1" |
 "subterms (LApp t1 t2)                = Bi t1 t2" |
-"subterms (LPlus t1 t2)               = Bi t1 t2" |
-"subterms (UMinus t)                  = U t" |
-"subterms (IsZero t)                  = U t" |
 "subterms (Seq t1 t2)                 = Bi t1 t2" |
 "subterms (t1 as A)                   = U t1" |
 "subterms (Let var x := t1 in t2)     = Bi t1 t2" |
@@ -337,6 +303,9 @@ fun subterms :: "lterm\<Rightarrow>subterm_set" where
 "subterms (Ltail A t)                  = U t" |
 "subterms (Lisnil A t)                  = U t" |
 "subterms t = Void"
+
+lemma P_list_conv_nth:"(\<And>x. x\<in> A\<union>set L \<Longrightarrow> P x) \<Longrightarrow> (\<And>i. i<length L \<Longrightarrow> P (L!i))"
+using set_conv_nth by auto
 
 lemma P_pat_subterm_cases:
   "P (patterns t) \<Longrightarrow> (\<exists>t1. subterms t = U t1 \<and> P (patterns t1)) \<or>
