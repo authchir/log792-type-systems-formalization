@@ -1,5 +1,5 @@
 theory Exceptions
-imports Main "$AFP/List-Index/List_Index"
+imports Main "$AFP/List-Index/List_Index" List_extra
 
 begin
 
@@ -113,8 +113,9 @@ datatype lterm1=
 | Variant string lterm1 ("<(_)::=(_)>" [201,200] 220)
 
 inductive agrees:: "lterm1 \<Rightarrow> ltype \<Rightarrow> bool" where
-  "set (zip L' TL') \<subseteq> set (zip L TL) \<Longrightarrow> agrees t (<L':=TL'>) \<Longrightarrow> agrees (LAbs1 T1 <L:=TL> t) (<L':=TL'>)"
-| "(\<And>L TL t1. t\<noteq>(LAbs1 U <L:=TL> t1)) \<Longrightarrow> agrees t (<L1:=TL1>)"
+  agrees_LAbs:"length L = length TL \<Longrightarrow> length L' = length TL' \<Longrightarrow> set (zip L TL) \<subseteq> set (zip L' TL') \<Longrightarrow> 
+                agrees t (<L':=TL'>) \<Longrightarrow> agrees (LAbs1 T1 <L:=TL> t) (<L':=TL'>)"
+| agrees_all:"(\<And>L U TL t1. t\<noteq>(LAbs1 U <L:=TL> t1)) \<Longrightarrow> agrees t (<L1:=TL1>)"
 
 
 fun shift_L1 :: "int \<Rightarrow> nat \<Rightarrow> lterm1 \<Rightarrow> lterm1" where
@@ -140,8 +141,7 @@ fun subst_L1 :: "nat \<Rightarrow> lterm1 \<Rightarrow> lterm1 \<Rightarrow> lte
      LAbs1 T <L:=TL> (subst_L1 (Suc j) (shift_L1 1 0 s) t)
    else
     (case s of LAbs1 _ <L':=TL'> _ \<Rightarrow>
-    (let ErrT= (join L L' TL TL') in 
-     LAbs1 T <(map fst ErrT):=(map snd ErrT)> (subst_L1 (Suc j) (shift_L1 1 0 s) t))
+    (LAbs1 T <(map fst (join L L' TL TL')):=(map snd (join L L' TL TL'))> (subst_L1 (Suc j) (shift_L1 1 0 s) t))
      | _\<Rightarrow> unit1))"|
  "subst_L1 j s unit1 = unit1" |
  "subst_L1 j s (try t with t1) = try (subst_L1 j s t) with (subst_L1 j s t1)"|
@@ -269,19 +269,96 @@ qed auto
 lemma FV1_subst:
   "FV1 (subst_L1 n t u) = (if n \<in> FV1 u then (FV1 u - {n}) \<union> FV1 t else FV1 u)"
 proof (induction u arbitrary: n t rule: lterm1.induct)
-  case (LAbs1 T u)
-  thus ?case 
-    by (auto simp: gr0_conv_Suc image_iff FV1_shift[of 1, unfolded int_1],
-        (metis DiffI One_nat_def UnCI diff_Suc_1 empty_iff imageI insert_iff nat.distinct(1))+)
+  case (LAbs1 T L TL u)
+    have A: "Suc n \<in> FV1 u \<Longrightarrow> \<exists>x\<in>FV1 u - {0}. n = x - Suc 0 \<Longrightarrow>
+              {y. \<exists>x\<in>FV1 u - {Suc n} \<union> {y. \<exists>x\<in>FV1 t. y = Suc x} - {0}. y = x - Suc 0} =
+              {y. \<exists>x\<in>FV1 u - {0}. y = x - Suc 0} - {n} \<union> FV1 t"
+      by (rule, force) 
+          (rule, simp, metis (mono_tags, lifting) Diff_iff Un_iff diff_Suc_Suc 
+                              diff_zero mem_Collect_eq nat.simps(3) singletonD)      
+    have " Suc n \<in> FV1 u \<Longrightarrow>
+          \<forall>x\<in>FV1 u - {0}. n \<noteq> x - Suc 0 \<Longrightarrow>
+          {y. \<exists>x\<in>FV1 u - {Suc n} \<union> {y. \<exists>x\<in>FV1 t. y = Suc x} - {0}. y = x - Suc 0} =
+          {y. \<exists>x\<in>FV1 u - {0}. y = x - Suc 0}"
+      by (rule, rule ,simp , metis (mono_tags, lifting) Diff_iff diff_Suc_Suc diff_zero nat.simps(3) singletonD)+
+    
+    with A LAbs1 have "agrees t (<L:=TL>) \<Longrightarrow> ?case"
+      by (auto simp:gr0_conv_Suc image_iff image_def FV1_shift[of 1, unfolded int_1])      
+        
+    thus ?case 
+      (*by (auto simp: gr0_conv_Suc image_iff FV1_shift[of 1, unfolded int_1],
+          (metis DiffI One_nat_def UnCI diff_Suc_1 empty_iff imageI insert_iff nat.distinct(1))+)*)
+      sorry
 qed (auto simp: gr0_conv_Suc image_iff FV1_shift[of 1, unfolded int_1])
+
+
+lemma not_agrees:
+  "(\<not> agrees s (<L1:=TL1>)) = ((\<exists>T1 L TL t1. s = LAbs1 T1 <L:=TL> t1 \<and> 
+                              (length L\<noteq>length TL \<or> length L1\<noteq>length TL1 \<or>
+                                \<not>(set (zip L TL) \<subseteq> set (zip L1 TL1)) \<or> \<not>agrees t1 (<L1:=TL1>))))"
+unfolding agrees.simps[of s "<L1:=TL1>"]
+by force
+
+lemma agrees_shift: 
+  "agrees t (<L:=TL>) \<Longrightarrow> agrees (shift_L1 d c t) (<L:=TL>)"
+proof (induction t arbitrary: d c L TL)
+  case (LAbs1 T L' TL' t)
+    have "set (zip L' TL') \<subseteq> set (zip L TL) \<and> agrees t (<L:=TL>) \<and> length L' = length TL' \<and>
+          length L = length TL"
+      using LAbs1(2)[unfolded "agrees.simps"[of "LAbs1 T <L':=TL'> t" "<L:=TL>"], simplified]
+      by blast
+    then show ?case
+      using agrees_LAbs[OF _ _ _ LAbs1(1)[of L TL d "Suc c"], of L' TL' T]
+      by auto     
+qed (auto intro: agrees.intros)
+ 
+
+     
+lemma agrees_subst: 
+  "agrees s (<L:=TL>) \<Longrightarrow> agrees t (<L:=TL>) \<Longrightarrow> agrees (subst_L1 j s t) (<L:=TL>)"
+proof (induction t arbitrary: j s L TL)
+  case (LAbs1 T L' TL' t)
+    have A:"set (zip L' TL') \<subseteq> set (zip L TL)" "agrees t (<L:=TL>)" "length L' = length TL'"
+            "length L = length TL"
+      using LAbs1(3)[unfolded "agrees.simps"[of "LAbs1 T <L':=TL'> t" "<L:=TL>"], simplified]
+      by blast+
+
+    have "\<not> agrees s (<L':=TL'>) \<Longrightarrow> ?case "
+      proof -
+        assume H: "\<not> agrees s (<L':=TL'>)"
+        note H1= H[unfolded not_agrees[of s L' TL']]
+        
+        then obtain L1 Ta TL1 t1 where s_unfold:"s = LAbs1 Ta <L1:=TL1> t1"
+          by blast
+        have H2:"set (zip L1 TL1) \<subseteq> set (zip L TL)" "agrees t1 (<L:=TL>)"
+             "length L1=length TL1"
+          using LAbs1(2)[unfolded s_unfold agrees.simps[of "LAbs1 Ta <L1:=TL1> t1", simplified]]
+          by blast+
+        have B:"set (zip (map fst (join L' L1 TL' TL1)) (map snd (join L' L1 TL' TL1))) \<subseteq> set (zip L TL)"
+          using Collect_restrict set_zip_subset_app[OF A(3) H2(3) A(1) H2(1)]
+          by (force simp:fst_map[symmetric] zip_comp[of "join L' L1 TL' TL1",simplified,symmetric]
+                         snd_map[symmetric])
+        have C:"agrees (LAbs1 Ta <L1:=TL1> shift_L1 1 (Suc 0) t1) (<L:=TL>)"
+          using H2(1,3) A(4) agrees_shift[OF H2(2)]
+          by (force intro: agrees.intros(1))
+        from H show ?case
+          using A(4) B
+                LAbs1(1)[OF C A(2),of "Suc j"] 
+          by (auto intro!: agrees.intros(1) simp: s_unfold)
+      qed
+    then show ?case
+      using agrees_LAbs[OF A(3,4,1)] 
+            LAbs1(1)[OF agrees_shift[OF LAbs1(2),of 1 0] A(2),of "Suc j"]   
+      by force
+qed (auto intro: agrees.intros)
 
 lemma weakening1:
   "T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 t |:| T \<Longrightarrow> n \<le> length \<Gamma> \<Longrightarrow> T\<alpha>|*|insert_nth n U \<Gamma> \<turnstile>\<^sub>1 shift_L1 1 n t |:| T"
 proof (induction T\<alpha> \<Gamma> t T arbitrary: n rule: has_type1_L.induct)
   case (has_type1_LAbs L t TL \<Gamma> T1 T2)
     have "agrees (shift_L1 1 (Suc n) t) (<L:=TL>)" 
-      using has_type1_LAbs.hyps(2)
-      by (induction t, auto)
+      using agrees_shift[OF has_type1_LAbs.hyps(2)]
+      by force
 
     with has_type1_LAbs.prems has_type1_LAbs.hyps(1)
       has_type1_LAbs.IH[where n="Suc n"] 
@@ -289,19 +366,27 @@ proof (induction T\<alpha> \<Gamma> t T arbitrary: n rule: has_type1_L.induct)
       by (auto intro: has_type1_L.intros)
 qed (auto simp: nth_append min_def intro: has_type1_L.intros)
 
+
 lemma substitution:
-  "T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 t |:| T \<Longrightarrow> T\<alpha>1|*|\<Gamma> \<turnstile>\<^sub>1 LVar1 n |:| U \<Longrightarrow> T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 s |:| U \<Longrightarrow> T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 subst_L1 n s t |:| T"  
-proof (induction T\<alpha> \<Gamma> t T arbitrary: T\<alpha>1 s n rule: has_type1_L.induct)
+  "T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 t |:| T \<Longrightarrow> T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 LVar1 n |:| U \<Longrightarrow> T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 s |:| U \<Longrightarrow> T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 subst_L1 n s t |:| T"  
+proof (induction T\<alpha> \<Gamma> t T arbitrary: s n rule: has_type1_L.induct)
   case (has_type1_LAbs L t TL \<Gamma> T1 T2 T\<alpha>)
     note hyps=this
-    have "agrees (subst_L1 (Suc n) (shift_L1 1 0 s) t) (<L:=TL>)"
-      using hyps(2,6)
+    have A:"agrees s (<L:=TL>) \<Longrightarrow>agrees (subst_L1 (Suc n) (shift_L1 1 0 s) t) (<L:=TL>)"
+      using hyps(2) agrees_shift[of s L TL 1 0] agrees_subst
+      by force
+    
+    have 1:"agrees s (<L:=TL>) \<Longrightarrow> ?case"
+      using A hyps(4-6) agrees_all[of "LVar1 n" L TL, simplified] 
+            
+            weakening1[where n="0"]
+            "has_type1_L.has_type1_LAbs"[OF hyps(1) A]
       sorry
-      
-    then show ?case
-      using hyps(5-) hyps(4)[of T\<alpha>1 "Suc n"]
-            weakening1[where n=0, unfolded insert_nth_def nat.rec,simplified]
-      by (fastforce intro!: "has_type1_L.intros"(5)[OF hyps(1)])
+
+    have "\<not> agrees s (<L:=TL>) \<Longrightarrow> ?case" 
+      sorry
+    
+    with 1 show ?case by blast
 next
   case (has_type1_LVar x Ta \<Gamma> T\<alpha>)
     thus ?case
@@ -317,17 +402,57 @@ proof (induction T\<alpha> "insert_nth n U \<Gamma>" t T arbitrary: \<Gamma> n r
   case (has_type1_LAbs L t TL V T T\<alpha>)
     note hyps=this
     have "agrees (shift_L1 (- 1) (Suc n) t) (<L:=TL>)"
-      using hyps(2)
-      by (induction t, auto)
+      using hyps(2) agrees_shift
+      by auto
     
     with hyps(1,5-) show ?case
       by (fastforce intro: has_type1_L.intros hyps(4)[of "Suc n" "\<Gamma>|,|V"])     
 qed (fastforce intro: has_type1_L.intros simp: nth_append min_def)+
 
 
+method invert_eval1 = (match premises in H:"eval1_L1 Te Te1" (multi) for Te Te1::lterm1 \<Rightarrow>
+                      \<open> insert eval1_L1.simps[of Te Te1, simplified]\<close>)
+
+method raise_solve = (match conclusion in "Ta|*|\<Gamma>' \<turnstile>\<^sub>1 raise t |:| A"for Ta \<Gamma>' t A \<Rightarrow>
+                        \<open> match premises in H:"Ta|*|\<Gamma>' \<turnstile>\<^sub>1 raise t |:| B" for B \<Rightarrow>
+                           \<open>insert has_type1_L.simps[of Ta \<Gamma>' "raise t" B, simplified]
+                             \<close>\<close>, meson has_type1_L.intros)
 
 lemma preservation:
-  "T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 t |:| T \<Longrightarrow> eval1_L1 t t' \<Longrightarrow> T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 t' |:| T"
-sorry
+  " T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 t |:| T\<Longrightarrow> eval1_L1 t t' \<Longrightarrow> T\<alpha>|*|\<Gamma> \<turnstile>\<^sub>1 t' |:| T"
+proof (induction arbitrary: t' rule: has_type1_L.induct)
+  case (has_type1_try T\<alpha> \<Gamma> t1 T1 t2)
+    note H=this and inv_eval= this(5)[unfolded eval1_L1.simps[of "try t1 with t2", simplified]]
+    thus ?case  
+      by (meson has_type1_L.intros 
+                has_type1_L.simps[of T\<alpha> \<Gamma> "raise _" T1, simplified])
+next
+  case (has_type1_LApp T\<alpha> \<Gamma> t1 T1 T2 t2)
+    note hyps=this
+    have "\<And>L TL T t12. t1 = LAbs1 T <L:=TL> t12 \<Longrightarrow> t'=shift_L1 (-1) 0 (subst_L1 0 (shift_L1 1 0 t2) t12) \<Longrightarrow> ?case"
+      proof -
+        fix L TL T t12
+        assume t'_def:"t' = shift_L1 (- 1) 0 (subst_L1 0 (shift_L1 1 0 t2) t12)"
+               and Abs_t1: "t1 = LAbs1 T <L:=TL> t12"
+        have t12_type:"<L:=TL>|*|\<Gamma> |,| T1 \<turnstile>\<^sub>1 t12 |:| T2"
+          using hyps(1)[unfolded Abs_t1, simplified]
+                has_type1_L.simps[of T\<alpha> \<Gamma> "LAbs1 T <L:=TL> t12" "T1\<rightarrow>T2", simplified]
+          by blast
+        have not_free0:"\<And>x. x \<in> FV1 (subst_L1 0 (shift_L1 1 0 t2) t12) \<Longrightarrow> x \<noteq> 0"
+          using FV1_subst[of 0 "shift_L1 1 0 t2" t12] 
+                FV1_shift[of 1 0 t2, unfolded int_1]
+          by (cases "0\<in>FV1 t12") force+
+        from t'_def show ?case
+          using substitution[OF t12_type, of 0 T1 "shift_L1 1 0 t2"] 
+            shift_down[of _ 0 T1 \<Gamma> _ T2, simplified, unfolded neq0_conv[symmetric]]
+            weakening1[OF hyps(2),of 0 T1, simplified]
+            not_free0
+            "has_type1_L.simps"[of T\<alpha> "\<Gamma>|,|T1" "LVar1 0" T1, simplified]
+          (*by blast  *) sorry
+      qed
+    with has_type1_LApp show ?case
+      by simp (invert_eval1, (meson has_type1_L.intros;(raise_solve|blast)))
+qed (raise_solve|(invert_eval1, meson has_type1_L.intros), (raise_solve?))+
+
 
 end

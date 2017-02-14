@@ -350,6 +350,10 @@ lemma fst_map:
   "fst_extract L = map fst L"
 by (induction L, auto)
  
+lemma snd_map:
+  "snd_extract L = map snd L"
+by (induction L, auto)
+
 lemma count_rem1:
   "x \<in> set L \<Longrightarrow> count_list L x = count_list (remove1 x L) x + 1"
 by(induction L arbitrary: x, auto)
@@ -502,5 +506,45 @@ proof(induction L arbitrary: x)
     thus ?case using Cons(2) by auto
 qed auto
 
+lemma in_set_conv_card_Suc:
+  "finite L \<Longrightarrow> x \<in> L \<Longrightarrow>\<exists>k. card L = Suc k"
+proof -
+  assume H:"x\<in>L" "finite L"
+  have 1:"L = insert x (L - {x}) \<and> x \<notin> (L - {x})" using insert_Diff[OF H(1)] by blast
+  have "card (L - {x}) = 0 \<longrightarrow> (L - {x}) = {}" 
+    using card_eq_0_iff[of "L-{x}"] finite_Diff[OF H(2), of "{x}"]
+    by meson
+  with 1 show "\<exists>k. card L = Suc k"
+    using card_Suc_eq[of L "card(L-{x})"] 
+    by metis      
+qed  
+
+lemma set_zip_subset:
+  "set (zip L TL) \<subseteq> set (zip L' TL') \<Longrightarrow> length L' = length TL' \<Longrightarrow> length L = length TL
+    \<Longrightarrow> set L \<subseteq> set L' \<and> set TL \<subseteq> set TL'"
+proof (induction L arbitrary: TL TL' L')
+  case (Cons l L)
+    obtain t TL1 where "TL = t#TL1"
+      using length_Suc_conv Cons(4)
+      by metis
+    then show ?case
+      using Cons(1)[OF _ Cons(3)] Cons(4,2)
+            in_set_zip[of "(l,t)", simplified]
+      by auto
+qed auto
+
+lemma set_zip_subset_app:
+ "length L=length L1 \<Longrightarrow> length L'=length L1' \<Longrightarrow>
+        set (zip L L1) \<subseteq> A \<Longrightarrow> set (zip L' L1') \<subseteq> A \<Longrightarrow> set (zip (L@L') (L1@L1')) \<subseteq> A"
+proof (induction L arbitrary: L1 L' L1' A)
+  case (Cons l' La)
+    obtain l1 L1a where "L1 = l1#L1a"
+      using Cons(2) length_Suc_conv
+      by metis
+    then show ?case 
+      using Cons(1)[OF _ Cons(3) _ Cons(5),of L1a] 
+            Cons(2,4) 
+      by simp
+qed auto
 
 end

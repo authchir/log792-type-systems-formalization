@@ -178,14 +178,33 @@ theorem preservation:
 proof (induction \<Gamma> t T arbitrary: t' rule: has_type_L.induct)
   case (has_type_LApp \<Gamma> t1 T11 T12 t2)
     note hyps = this and has_T_Abs= has_type_L.simps[of _ "LAbs _ _", simplified]
-         
-    from hyps show ?case  by (auto
-      intro!: has_type_L.intros substitution shift_down
-      dest: weakening[where n=0, unfolded insert_nth_def nat.rec]
-      elim!: eval1_LAppE
-      split: lterm.splits if_splits
-      simp: FV_subst FV_shift[of 1, unfolded int_1] has_T_Abs) 
-        (metis neq0_conv)
+    
+    have "\<And>T' t12.
+        t' = shift_L (- 1) 0 (subst_L 0 (shift_L 1 0 t2) t12)
+        \<Longrightarrow> t1 = LAbs T' t12 \<Longrightarrow> ?case"
+      proof -
+        fix T' t12
+        assume t'_def:"t' = shift_L (- 1) 0 (subst_L 0 (shift_L 1 0 t2) t12)"
+               and Abs_t1: "t1 = LAbs T' t12"
+        have t12_type:"\<Gamma> |,| T11 \<turnstile> t12 |:| T12"
+          using hyps(1)[unfolded Abs_t1 has_T_Abs, simplified]
+          by blast
+        have not_free0:"\<And>x. x \<in> FV (subst_L 0 (shift_L 1 0 t2) t12) \<Longrightarrow> x \<noteq> 0"
+          using FV_subst[of 0 "shift_L 1 0 t2" t12] 
+                FV_shift[of 1 0 t2, unfolded int_1]
+          by (cases "0\<in>FV t12") force+
+        from t'_def show ?case
+          using substitution[OF t12_type, of 0 T11 "shift_L 1 0 t2"] 
+            shift_down[of 0 T11 \<Gamma> _ T12, simplified, unfolded neq0_conv[symmetric]]
+            weakening[OF hyps(2),of 0 T11, simplified]
+            not_free0
+            "has_type_L.simps"[of "\<Gamma>|,|T11" "LVar 0" T11, simplified]
+          by blast  
+      qed
+    then show ?case  
+      using has_type_L.intros(4) 
+            eval1_LAppE[OF hyps(5), of ?case] hyps(1-4)
+      by blast
 qed (auto elim: eval1_L.cases)
 
 
