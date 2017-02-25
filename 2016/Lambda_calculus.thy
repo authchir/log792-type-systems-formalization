@@ -194,6 +194,7 @@ inductive is_value_L :: "lterm \<Rightarrow> bool" where
   VRCD  :"(\<And>i.0\<le>i \<Longrightarrow> i<length LT \<Longrightarrow> is_value_L (LT!i)) \<Longrightarrow> is_value_L (Record L LT)"|
   VSumL :"is_value_L v \<Longrightarrow> is_value_L (inl v as A)"|
   VSumR :"is_value_L v \<Longrightarrow> is_value_L (inr v as A)"|
+  VVa   :"is_value_L v \<Longrightarrow> is_value_L (<l:=v> as A)"|
   VNil  :"is_value_L (Lnil A)"|
   VCons :"is_value_L v1 \<Longrightarrow> is_value_L v2 \<Longrightarrow> is_value_L (Lcons A v1 v2)"
 
