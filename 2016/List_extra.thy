@@ -331,12 +331,9 @@ lemma set_foldl_app[simp]:
   "set(foldl op @ L1 L) = (UN l : set L. set l) \<union> set L1"
 by (induction L arbitrary: L1, auto)
 
-lemma nth_list_it_app:
-  "L\<noteq>[] \<Longrightarrow> (\<forall>sl. sl\<in>set L \<longrightarrow> sl \<noteq>[]) \<Longrightarrow> i<foldr (\<lambda> a r. length a + r) L 0\<Longrightarrow>\<exists>j k. (list_iter op @ [] L) ! i = (L ! j) ! k \<and> k<length(L!j) \<and> j<length L" 
-proof (induction L arbitrary:i)
-  case (Cons l L')
-    thus ?case sorry
-qed auto
+lemma set_foldl_union[simp]:
+  "foldl op \<union> S L = (UN l : set L. l) \<union> S"
+by (induction L arbitrary: S, auto)
 
 lemma update_snd_rewrite_fun:
   "(\<forall>i<length L. f (snd (L!i)) = g (snd (L!i))) \<Longrightarrow> update_snd f L = update_snd g L"
@@ -462,10 +459,6 @@ by (metis order_refl count_conv_length le_antisym)
 lemma count_list_app[simp]:
   "count_list (L@L1) x = count_list L x + count_list L1 x"
 by (induction L arbitrary: L1, auto)
-
-lemma same_count_set_ex_commun_index:
-  "(\<forall>x\<in>set L. count_list L x = count_list L1 x) \<Longrightarrow> set L \<subseteq> set L1 \<Longrightarrow> i<length L \<Longrightarrow> \<exists>j. L1!j = L!i \<and> j < length L1"
-sorry
 
 lemma distinct_fst_imp_count_1:
   "distinct (fst_extract L) \<Longrightarrow> (\<forall>x\<in>set L. count_list L x = 1)"

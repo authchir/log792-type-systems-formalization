@@ -53,7 +53,7 @@ datatype lterm =
   Lhead ltype lterm |
   Ltail ltype lterm
 
-datatype subterm_set = U lterm | Bi lterm lterm | Ter lterm lterm lterm | Comp lterm "lterm list" |UList "lterm list" | Void
+datatype subterm_set = Unary lterm | Bi lterm lterm | Ter lterm lterm lterm | Comp lterm "lterm list" |UList "lterm list" | Void
 
 
 definition letR :: "ltype\<Rightarrow>lterm\<Rightarrow>lterm\<Rightarrow>lterm" ("letrec/ x:(_) =(_)/ in/ (_)" [100,100,100]200) where
@@ -111,7 +111,7 @@ function subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> l
   "subst_L j s (t as A) = (subst_L j s t) as A" |
   "subst_L j s (Let var x := t in t1) = 
   (if j=x then Let var x := subst_L j s t in t1
-    else  (Let var x := (subst_L j s t) in (subst_L j s t1))) " |
+    else  (Let var x := (subst_L j s t) in (subst_L (if j > x then Suc j else j) (shift_L 1 x s) t1))) " |
   "subst_L j s (\<lbrace>t1,t2\<rbrace>) = \<lbrace>subst_L j s t1, subst_L j s t2\<rbrace>" |
   "subst_L j s (\<pi>1 t) = \<pi>1 (subst_L j s t)" |
   "subst_L j s (\<pi>2 t) = \<pi>2 (subst_L j s t)" |
@@ -208,8 +208,7 @@ primrec FV :: "lterm \<Rightarrow> nat set" where
   "FV unit = {}" |
   "FV (Seq t1 t2) = FV t1 \<union> FV t2" |
   "FV (t as A) = FV t" |
-  "FV (Let var x := t in t1) = 
-    (if x \<in> FV t1 then (FV t1 - {x}) \<union> FV t else FV t1)" |
+  "FV (Let var x := t in t1) = FV t1 \<union> FV t \<union> {x}" |
   "FV (\<lbrace>t1,t2\<rbrace>) = FV t1 \<union> FV t2" |
   "FV (\<pi>1 t) =  FV t" |
   "FV (\<pi>2 t) =  FV t" |
@@ -221,9 +220,9 @@ primrec FV :: "lterm \<Rightarrow> nat set" where
   "FV (Let pattern p := t1 in t2) = FV t1 \<union> FV t2" |
   "FV (inl t as A) = FV t" |
   "FV (inr t as A) = FV t" |
-  "FV (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = FV t1 \<union> FV t2" |
+  "FV (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = FV t1 \<union> FV t2 \<union> FV t \<union> {x,y}" |
   "FV (<L:=t> as A) = FV t" |
-  "FV (Case t of <L:=I> \<Rightarrow> LT) = FV t \<union> foldl (\<lambda>x r. x \<union> r) {} (map FV LT)" |
+  "FV (Case t of <L:=I> \<Rightarrow> LT) = FV t \<union> foldl (\<lambda>x r. x \<union> r) {} (map FV LT) \<union> set I" |
   "FV (Fixpoint t) = FV t"|
   "FV (Lcons A t t') = FV t \<union> FV t'"|
   "FV (Ltail A t) = FV t"|
@@ -280,36 +279,36 @@ fun fill::"(nat \<Rightarrow> lterm) \<Rightarrow> lterm \<Rightarrow> lterm" wh
 
 fun subterms :: "lterm\<Rightarrow>subterm_set" where
 "subterms (LIf c t1 t2)               = Ter c t1 t2" |
-"subterms (LAbs A t1)                 = U t1" |
+"subterms (LAbs A t1)                 = Unary t1" |
 "subterms (LApp t1 t2)                = Bi t1 t2" |
 "subterms (Seq t1 t2)                 = Bi t1 t2" |
-"subterms (t1 as A)                   = U t1" |
+"subterms (t1 as A)                   = Unary t1" |
 "subterms (Let var x := t1 in t2)     = Bi t1 t2" |
 "subterms (\<lbrace>t1,t2\<rbrace>)                   = Bi t1 t2" |
 "subterms (Tuple L)                   = UList L" |
 "subterms (Record L LT)               = UList LT" |
-"subterms (\<pi>1 t)                      = U t" |
-"subterms (\<pi>2 t)                      = U t" |
-"subterms (\<Pi> i t)                     = U t" |
-"subterms (ProjR l t)                 = U t" |
+"subterms (\<pi>1 t)                      = Unary t" |
+"subterms (\<pi>2 t)                      = Unary t" |
+"subterms (\<Pi> i t)                     = Unary t" |
+"subterms (ProjR l t)                 = Unary t" |
 "subterms (Let pattern p := t1 in t2) = Bi t1 t2" |
-"subterms (inl t as A) = U t"|
-"subterms (inr t as A) = U t"|
+"subterms (inl t as A) = Unary t"|
+"subterms (inr t as A) = Unary t"|
 "subterms (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = Ter t t1 t2"|
-"subterms (<l:=t> as A) =  U t"|
+"subterms (<l:=t> as A) =  Unary t"|
 "subterms (Case t of <L:=I> \<Rightarrow> LT) = Comp t LT"|
-"subterms (Fixpoint t) = U t" |
+"subterms (Fixpoint t) = Unary t" |
 "subterms (Lcons A t1 t2)               = Bi t1 t2" |
-"subterms (Lhead A t)                  = U t" |
-"subterms (Ltail A t)                  = U t" |
-"subterms (Lisnil A t)                  = U t" |
+"subterms (Lhead A t)                  = Unary t" |
+"subterms (Ltail A t)                  = Unary t" |
+"subterms (Lisnil A t)                  = Unary t" |
 "subterms t = Void"
 
 lemma P_list_conv_nth:"(\<And>x. x\<in> A\<union>set L \<Longrightarrow> P x) \<Longrightarrow> (\<And>i. i<length L \<Longrightarrow> P (L!i))"
 using set_conv_nth by auto
 
 lemma P_pat_subterm_cases:
-  "P (patterns t) \<Longrightarrow> (\<exists>t1. subterms t = U t1 \<and> P (patterns t1)) \<or>
+  "P (patterns t) \<Longrightarrow> (\<exists>t1. subterms t = Unary t1 \<and> P (patterns t1)) \<or>
     (\<exists>t1 t2. subterms t = Bi t1 t2 \<and> P (patterns t1) \<and> P (patterns t2)) \<or>
     (\<exists>t1 t2 t3. subterms t = Ter t1 t2 t3 \<and> P (patterns t1) \<and> P (patterns t2) \<and> P (patterns t3)) \<or>
     (\<exists>t1 L. subterms t = Comp t1 L \<and> P (patterns t1) \<and> (\<forall>i<length L. P (patterns (L!i)))) \<or>
