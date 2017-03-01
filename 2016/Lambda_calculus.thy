@@ -125,8 +125,8 @@ function subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> l
   "subst_L j s (inr t as T') =  inr (subst_L j s t) as T'" |
   "subst_L j s (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = 
     (Case (subst_L j s t) of 
-        Inl x \<Rightarrow> (if j=x then t1 else subst_L j s t1)
-      | Inr y \<Rightarrow> (if j=y then t2 else subst_L j s t2))" |
+        Inl x \<Rightarrow> (if j=x then t1 else subst_L (if j > x then Suc j else j) (shift_L 1 x s) t1)
+      | Inr y \<Rightarrow> (if j=y then t2 else subst_L (if j > y then Suc j else j) (shift_L 1 y s) t2))" |
   "subst_L j s (<l:=t> as T') =  <l:=subst_L j s t> as T'" |
   "subst_L j s (Case t of <L:=I> \<Rightarrow> LT) = 
     (Case (subst_L j s t) of <L:=I> \<Rightarrow> map (\<lambda>p. if j=fst p then snd p else subst_L j s (snd p)) (zip I LT))" |
