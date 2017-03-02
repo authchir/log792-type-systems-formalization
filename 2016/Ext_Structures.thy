@@ -228,9 +228,9 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> pcontext \<R
       \<Gamma> \<turnstile> \<lparr> <(L!i):=t> as <L|,|TL> |;|\<sigma>,f \<rparr> |:| <L|,|TL>" |
   has_type_CaseV:
     " L\<noteq>\<emptyset> \<Longrightarrow> length I = length L \<Longrightarrow> length L = length TL \<Longrightarrow> 
-      length L = length LT \<Longrightarrow>
+      length L = length LT \<Longrightarrow> 
       \<Gamma> \<turnstile> \<lparr> t |;| \<sigma>,f \<rparr> |:| <L|,|TL> \<Longrightarrow> 
-      (\<forall>i<length L. insert_nth (I!i) (TL!i) \<Gamma> \<turnstile> \<lparr>(LT!i)|;| \<sigma>,f\<rparr> |:| A) \<Longrightarrow>
+      (\<forall>i<length L. insert_nth (I!i) (TL!i) \<Gamma> \<turnstile> \<lparr>(LT!i)|;| \<sigma>,f\<rparr> |:| A \<and> I!i\<le>length \<Gamma>) \<Longrightarrow>
       \<Gamma> \<turnstile> \<lparr> Case t of <L:=I> \<Rightarrow> LT |;| \<sigma>,f\<rparr> |:| A" |
   has_type_Fix:
     "\<Gamma> \<turnstile> \<lparr> t |;| \<sigma>,f\<rparr> |:| A\<rightarrow>A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr> fix t |;| \<sigma>,f\<rparr> |:| A"|
@@ -288,7 +288,7 @@ lemma inversion:
                                                           insert_nth x A \<Gamma> \<turnstile> \<lparr>t1|;|\<sigma>1,f\<rparr> |:| C \<and> insert_nth y B \<Gamma> \<turnstile> \<lparr>t2|;|\<sigma>1,f\<rparr> |:| C"
    "\<Gamma> \<turnstile> \<lparr> <l:=t> as R1 |;| \<sigma>1,f \<rparr> |:| R \<Longrightarrow>R=R1 \<and> (\<exists>L TL i. R=<L|,|TL> \<and> \<Gamma> \<turnstile> \<lparr> t |;| \<sigma>1,f \<rparr> |:| (TL!i) \<and> l = L!i \<and> i<length L \<and> length L = length TL)" 
     " \<Gamma> \<turnstile> \<lparr> Case t of <L1:=I> \<Rightarrow> LT |;| \<sigma>1,f\<rparr> |:| A \<Longrightarrow>\<exists>TL. L1\<noteq>\<emptyset> \<and> length I = length L1 \<and> length L1 = length TL \<and> length L1 = length LT \<and>
-      \<Gamma> \<turnstile> \<lparr> t |;| \<sigma>1,f \<rparr> |:| <L1|,|TL> \<and> (\<forall>i<length L1. insert_nth (I!i) (TL!i) \<Gamma> \<turnstile> \<lparr>(LT!i)|;| \<sigma>1,f\<rparr> |:| A)"
+      \<Gamma> \<turnstile> \<lparr> t |;| \<sigma>1,f \<rparr> |:| <L1|,|TL> \<and> (\<forall>i<length L1. insert_nth (I!i) (TL!i) \<Gamma> \<turnstile> \<lparr>(LT!i)|;| \<sigma>1,f\<rparr> |:| A \<and> I!i\<le>length \<Gamma>)"
    "\<Gamma> \<turnstile> \<lparr> fix t |;| \<sigma>,f\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr> t |;| \<sigma>,f\<rparr> |:| A\<rightarrow>A"
    "\<Gamma> \<turnstile> \<lparr> Lnil A |;| \<sigma>,f\<rparr> |:| R \<Longrightarrow> R = (\<lambda>List A) \<and> f=False"
    "\<Gamma> \<turnstile> \<lparr> Lhead A t |;| \<sigma>,f\<rparr> |:| R \<Longrightarrow> R = A \<and> \<Gamma> \<turnstile> \<lparr> t |;| \<sigma>, True\<rparr> |:| \<lambda>List A"
@@ -319,9 +319,9 @@ next
 next
   assume H5: "\<Gamma> \<turnstile> \<lparr>Case t of <L1:=I> \<Rightarrow> LT|;|\<sigma>1,f\<rparr> |:| A"
   show "\<exists>TL. L1\<noteq>\<emptyset> \<and> length I = length L1 \<and> length L1 = length TL \<and> length L1 = length LT \<and>
-      \<Gamma> \<turnstile> \<lparr> t |;| \<sigma>1,f \<rparr> |:| <L1|,|TL> \<and> (\<forall>i<length L1. insert_nth (I!i) (TL!i) \<Gamma> \<turnstile> \<lparr>(LT!i)|;| \<sigma>1,f\<rparr> |:| A)"
-    using has_type_CaseVE[OF H5]
-    by (metis append_Cons append_Nil insert_nth_take_drop)
+      \<Gamma> \<turnstile> \<lparr> t |;| \<sigma>1,f \<rparr> |:| <L1|,|TL> \<and> (\<forall>i<length L1. insert_nth (I!i) (TL!i) \<Gamma> \<turnstile> \<lparr>(LT!i)|;| \<sigma>1,f\<rparr> |:| A \<and> I!i\<le>length \<Gamma>)"
+    using has_type_CaseVE[OF H5] insert_nth_take_drop append_Cons append_Nil 
+    by metis
 next
   assume H: "\<Gamma> \<turnstile> \<lparr> (ProjR l t)|;| \<sigma>,f\<rparr> |:| R"
   show "\<exists>m L TL. \<Gamma> \<turnstile> \<lparr>t |;| \<sigma>,f\<rparr> |:| \<lparr>L|:|TL\<rparr> \<and> index L l = m \<and> TL ! m = R \<and> distinct L \<and> length L = length TL
@@ -330,12 +330,10 @@ next
     by metis
 qed (auto elim: has_type_L.cases has_type_ProjTE)
 
-
 lemma[simp]: "nat (int x + 1) = Suc x" by simp
 lemma[simp]: "nat (1 + int x) = Suc x" by simp
 
 lemma[simp]: "nat (int x - 1) = x - 1" by simp 
-
 
 lemma fill_fill_comp:
   "fill \<sigma> \<circ> fill \<sigma>1 = fill (fill \<sigma> \<circ> \<sigma>1)"
@@ -448,7 +446,8 @@ next
   case (has_type_CaseV L I TL LT \<Gamma> t \<sigma>1 f A)
     have branches_wtyped:"\<forall>i<length L.
        insert_nth (map (\<lambda>x. if n \<le> x then nat (int x + 1) else x) I ! i) (TL ! i) (take n \<Gamma> @ drop n \<Gamma> |,| S)
-       \<turnstile> \<lparr>((indexed_map 0 (\<lambda>k. shift_L 1 (if (I!k)<n then Suc n else n)) LT) ! i)|;| \<sigma>1,f\<rparr> |:| A"
+       \<turnstile> \<lparr>((indexed_map 0 (\<lambda>k. shift_L 1 (if (I!k)<n then Suc n else n)) LT) ! i)|;| \<sigma>1,f\<rparr> |:| A \<and>  map (\<lambda>x. if n \<le> x then nat (int x + 1) else x) I ! i
+       \<le> length (insert_nth n S \<Gamma>)"
       proof (rule+)
         fix i
         assume H:"i<length L"
@@ -510,18 +509,26 @@ next
         with 1 show "insert_nth (map (\<lambda>x. if n \<le> x then nat (int x + 1) else x) I ! i) (TL ! i) (take n \<Gamma> @ drop n \<Gamma> |,| S)
          \<turnstile> \<lparr>((indexed_map 0 (\<lambda>k. shift_L 1 (if (I!k)<n then Suc n else n)) LT) ! i)|;| \<sigma>1,f\<rparr> |:| A"
           by blast
+      next
+        fix i
+        assume H:"i<length L"
+        show " map (\<lambda>x. if n \<le> x then nat (int x + 1) else x) I ! i
+         \<le> length (insert_nth n S \<Gamma>)"
+         using has_type_CaseV(2,7) H nth_map[of i I "\<lambda>x. if n \<le> x then nat (int x + 1) else x"]
+         by force
       qed 
+
     show ?case
       using has_type_CaseV(1-4) index_not_index_cong[of 0 "\<lambda>k. shift_L 1 (if I ! k < n then Suc n else n)" LT]
             has_type_CaseV(6)[OF has_type_CaseV(8)]
             branches_wtyped            
-      by (force intro!: has_type_L.intros(24))
+      by ((force intro!: has_type_L.intros(24))+)
+      
 qed (auto intro!: has_type_L.intros simp: nth_append min_def)
 
 lemma fill_keep_value:
   "is_value_L v \<Longrightarrow> is_value_L (fill \<sigma> v)"
 by(induction v rule: is_value_L.induct, auto intro: "is_value_L.intros" )
-
 
 lemma Lmatch_Type_det:
   "Lmatch_Type p \<sigma> \<Longrightarrow> Lmatch_Type p \<sigma>1 \<Longrightarrow> \<sigma> = \<sigma>1"
@@ -872,7 +879,7 @@ next
   case (has_type_CaseV L I TL LT t \<sigma> f A)   
     have branches_wtyped:"\<forall>i<length L.
        insert_nth (map (\<lambda>x. if n \<le> x then nat (int x + - 1) else x) I ! i) (TL ! i) \<Gamma>
-       \<turnstile> \<lparr>(indexed_map 0 (\<lambda>k. shift_L (- 1) (if I ! k < n then Suc n else n)) LT ! i)|;|\<sigma>,f\<rparr> |:| A"
+       \<turnstile> \<lparr>(indexed_map 0 (\<lambda>k. shift_L (- 1) (if I ! k < n then Suc n else n)) LT ! i)|;|\<sigma>,f\<rparr> |:| A \<and> map (\<lambda>x. if n \<le> x then nat (int x + - 1) else x) I ! i \<le> length \<Gamma>"
       proof (rule+)
         fix i
         assume H:"i<length L"
@@ -939,9 +946,15 @@ next
               
           qed
 
-       with 1 show "insert_nth (map (\<lambda>x. if n \<le> x then nat (int x + - 1) else x) I ! i) (TL ! i) \<Gamma>
-       \<turnstile> \<lparr>(indexed_map 0 (\<lambda>k. shift_L (- 1) (if I ! k < n then Suc n else n)) LT ! i)|;|\<sigma>,f\<rparr> |:| A"
-         by fast
+        with 1 show "insert_nth (map (\<lambda>x. if n \<le> x then nat (int x + - 1) else x) I ! i) (TL ! i) \<Gamma>
+        \<turnstile> \<lparr>(indexed_map 0 (\<lambda>k. shift_L (- 1) (if I ! k < n then Suc n else n)) LT ! i)|;|\<sigma>,f\<rparr> |:| A"
+          by fast
+      next
+        fix i
+        assume H:"i<length L"
+        show "map (\<lambda>x. if n \<le> x then nat (int x + - 1) else x) I ! i \<le> length \<Gamma>"
+          using has_type_CaseV(2,7,8) H nth_map[of i I "\<lambda>x. if n \<le> x then nat (int x + - 1) else x"]
+          by (cases "n\<le>I!i") (force, presburger)
       qed 
     show ?case
       using has_type_CaseV(1-4) index_not_index_cong[of 0 "\<lambda>k. shift_L (-1) (if I ! k < n then Suc n else n)" LT]
@@ -985,25 +998,43 @@ next
     show ?case using hyps(1-4,6,7) by (force intro!: has_type_L.intros)
 qed (force intro: has_type_L.intros simp: nth_append min_def)+
 
+abbreviation af::"lterm \<Rightarrow> bool \<Rightarrow> bool" where
+"af t f \<equiv> (case t of Lhead _ _ \<Rightarrow> f=True|Ltail _ _\<Rightarrow> f=True|_\<Rightarrow>True)"
+
+inductive agrees_flag::"lterm \<Rightarrow> bool \<Rightarrow> bool" where
+ A_Unary: "subterms t = Unary t1 \<Longrightarrow> af t f \<Longrightarrow> agrees_flag t1 f \<Longrightarrow> agrees_flag t f"|
+ A_Binary: "subterms t = Bi t1 t2 \<Longrightarrow> agrees_flag t1 f \<Longrightarrow> agrees_flag t2 f \<Longrightarrow> agrees_flag t f"|
+ A_Ternary: "subterms t = Ter t1 t2 t3\<Longrightarrow> agrees_flag t1 f \<Longrightarrow> agrees_flag t2 f \<Longrightarrow> 
+              agrees_flag t3 f  \<Longrightarrow> agrees_flag t f"|
+ A_Comp: "subterms t = Comp t1 L\<Longrightarrow> agrees_flag t1 f \<Longrightarrow> (\<forall>i<length L. agrees_flag (L!i) f) \<Longrightarrow>
+            agrees_flag t f"|
+ A_List: "subterms t = UList L\<Longrightarrow> (\<forall>i<length L. agrees_flag (L!i) f) \<Longrightarrow>
+            agrees_flag t f"|
+ A_Void: "subterms t = Void \<Longrightarrow> agrees_flag t f"
+
+
+method inv_agrees_f= (match premises in H:"agrees_flag t f" for t and f\<Rightarrow>
+                      \<open>insert "agrees_flag.simps"[of t f, simplified]\<close>)
+
 lemma substitution:
-  "\<Gamma> \<turnstile> \<lparr>t|;|\<sigma>,f\<rparr> |:| A \<Longrightarrow>  \<Gamma> \<turnstile> \<lparr>LVar n|;|\<sigma>,f\<rparr> |:| S \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>s|;|\<sigma>,f\<rparr> |:| S \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>subst_L n s t|;|\<sigma>,f\<rparr> |:| A"
-proof (induction \<Gamma> t \<sigma> f A arbitrary: s n rule: has_type_L.induct)
+  "\<Gamma> \<turnstile> \<lparr>t|;|\<sigma>,f\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>LVar n|;|\<sigma>,f\<rparr> |:| S \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>s|;|\<sigma>,f\<rparr> |:| S \<Longrightarrow>agrees_flag t f \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>subst_L n s t|;|\<sigma>,f\<rparr> |:| A"
+proof (induction \<Gamma> t \<sigma> f A arbitrary: s n rule: has_type_L.induct; inv_agrees_f)
   case (has_type_LAbs \<Gamma> T1 t \<sigma> f T2)
     note hyps=this
     show ?case 
       using weakening[where n=0, unfolded insert_nth_def nat.rec]
-            inversion(4) hyps(2)[of "Suc n" "shift_L 1 0 s"]
-            hyps(3,4) 
+            inversion(4) hyps(2)[of "Suc n"  "shift_L 1 0 s"]
+            hyps(3,4) hyps(5)[unfolded "agrees_flag.simps"[of "LAbs _ _", simplified]]
       by (fastforce intro!: has_type_L.intros)
 next
   case (has_type_ProjT i TL \<Gamma> t \<sigma> f)
     note hyps=this
     show ?case
-      using has_type_L.intros(15)[OF hyps(1,2)] hyps(4-)
-      by force
+      using has_type_L.intros(15)[OF hyps(1,2)] hyps(4-) 
+      by (simp, inv_agrees_f, force)
 next
   case (has_type_Let x \<Gamma> t1 \<sigma> f A t2 B)
-    note hyps=this
+    note hyps=this and ag = this(8)[unfolded "agrees_flag.simps"[of "Let var _:= _ in _",simplified]]
     have "x \<noteq> n \<Longrightarrow> x < n\<Longrightarrow> (Suc n, S) |\<in>| insert_nth x A \<Gamma>"
       proof -
         assume H: "x \<noteq> n" "x < n"
@@ -1020,38 +1051,38 @@ next
         with 1 show ?thesis by simp
       qed
     hence A: " x \<noteq> n \<Longrightarrow> x < n \<longrightarrow> \<Gamma> \<turnstile> \<lparr>Let var x := subst_L n s t1 in subst_L (Suc n) (shift_L 1 x s) t2|;|\<sigma>,f\<rparr> |:| B"
-      using hyps(4)[of n s] hyps(5)[of "Suc n"] hyps(1,6-)
+      using hyps(4)[of n  s] hyps(5)[of "Suc n" ] hyps(1,6,7) ag
             weakening[where n=x,OF _ hyps(1)]
-            inversion(4)[OF hyps(6)] hyps(5)[of "Suc n" "shift_L 1 x s"] hyps(7,1)          
+            inversion(4)[OF hyps(6)] hyps(5)[of "Suc n"  "shift_L 1 x s"] hyps(7,1)          
       by (force intro!: has_type_L.intros(4,10))
      
     have "x \<noteq> n \<Longrightarrow> \<not> x < n \<longrightarrow> \<Gamma> \<turnstile> \<lparr>Let var x := subst_L n s t1 in subst_L n (shift_L 1 x s) t2|;|\<sigma>,f\<rparr> |:| B"
-      using hyps(4)[of n s] hyps(5)[of "Suc n"] hyps(1,6-)
+      using hyps(4)[of n  s] hyps(5)[of "Suc n" ] hyps(1,6-) ag
             weakening[where n=x,OF _ hyps(1)]
-            inversion(4)[OF hyps(6)] hyps(5)[of _ "shift_L 1 x s"] 
+            inversion(4)[OF hyps(6)] hyps(5)[of _  "shift_L 1 x s"] 
             not_less[of x n] nth_take[of n x \<Gamma>] nth_append[of "take x \<Gamma>" _ n, simplified]            
       by (force intro!: has_type_L.intros(4,10))
 
     with A show ?case
-      using hyps(4)[of x s] hyps(1,3,6-)
+      using hyps(4)[of x s] hyps(1,3,6-) ag
       by (force intro!: has_type_L.intros(10))
       
 next
   case (has_type_LetPattern p B \<sigma> \<sigma>1 \<Gamma> t1 f t2 A)
-    note hyps=this
+    note hyps=this and ag = this(10)[unfolded "agrees_flag.simps"[of "Let pattern p := t1 in t2",simplified]]
     
     show ?case
       apply simp
       apply rule
       using hyps(1,2,3)
       apply simp+
-      using hyps(6)[of n s] hyps(8-)
+      using hyps(6)[of n  s] hyps(8,9) ag
       apply force
-      using hyps(7)[of n s] hyps(8-)
+      using hyps(7)[of n  s] hyps(8,9) ag has_type_LVar inversion(4) weaking_pattern[OF hyps(9)]
       sorry
 next
   case (has_type_Case x \<Gamma> y t \<sigma>1 f A B t1 C t2)
-    note hyps=this
+    note hyps=this and ag= this(11)[unfolded "agrees_flag.simps"[of "Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2",simplified]]
     
      have V_shifty:"y < n\<Longrightarrow> (Suc n, S) |\<in>| insert_nth y B \<Gamma>"
        proof -
@@ -1100,12 +1131,12 @@ next
          assume H: "n = x" "n \<noteq> y"
           
          from V_shifty have A:"n = x \<Longrightarrow> x \<noteq> y \<Longrightarrow> y < x \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Case subst_L x s t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> subst_L (Suc x) (shift_L 1 y s) t2|;|\<sigma>1,f\<rparr> |:| C"
-           using hyps(8)[of "Suc x" "shift_L 1 y s"] hyps(9-) hyps(1,2,4) hyps(6)[of x s] 
+           using hyps(8)[of "Suc x"  "shift_L 1 y s"] hyps(9-) hyps(1,2,4) hyps(6)[of x  s] ag
                  weakening[OF hyps(10) hyps(2)] has_type_L.intros(4)
            by (force intro!: has_type_L.intros(22))
     
          have "n = x \<Longrightarrow> x \<noteq> y \<Longrightarrow> \<not> y < x \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Case subst_L x s t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> subst_L x (shift_L 1 y s) t2|;|\<sigma>1,f\<rparr> |:| C"
-           using hyps(1,2,4) hyps(6)[OF hyps(9-)] hyps(8)[of x "shift_L 1 y s"]  
+           using hyps(1,2,4) hyps(6)[OF hyps(9,10)] hyps(8)[of x  "shift_L 1 y s"] ag 
                  weakening[OF hyps(10) hyps(2)] Vy[OF H(2)]
            by (force intro!: has_type_L.intros(4,22))
          with A H show ?thesis by force
@@ -1116,11 +1147,11 @@ next
         assume H: "n \<noteq> x" "n = y"
 
         from V_shiftx have A:" n \<noteq> x \<Longrightarrow> x < n \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Case subst_L y s t of Inl x \<Rightarrow> subst_L (Suc y) (shift_L 1 x s) t1 | Inr y \<Rightarrow> t2|;|\<sigma>1,f\<rparr> |:| C"
-          using hyps(6)[OF hyps(9-)] hyps(1,2,5) H  hyps(7)[of "Suc n" "shift_L 1 x s"]
+          using hyps(6)[OF hyps(9,10)] hyps(1,2,5) H  hyps(7)[of "Suc n"  "shift_L 1 x s"] ag
                 weakening[OF hyps(10) hyps(1)]
           by (force intro!: has_type_L.intros(4,22))
         have "n \<noteq> x \<Longrightarrow> \<not> x < n \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Case subst_L y s t of Inl x \<Rightarrow> subst_L y (shift_L 1 x s) t1 | Inr y \<Rightarrow> t2|;|\<sigma>1,f\<rparr> |:| C"
-          using hyps(1,2,5) H hyps(6)[OF hyps(9-)] hyps(7)[of y "shift_L 1 x s"]  
+          using hyps(1,2,5) H hyps(6)[OF hyps(9,10)] hyps(7)[of y  "shift_L 1 x s"] ag 
                 weakening[OF hyps(10) hyps(1)] Vx[OF H(1)]
           by (force intro!: has_type_L.intros(4,22))
         
@@ -1133,26 +1164,26 @@ next
       
         have C1: "n \<noteq> x \<Longrightarrow> n \<noteq> y \<Longrightarrow> x < n \<Longrightarrow> y < n \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Case subst_L n s t of Inl x \<Rightarrow> subst_L (Suc n) (shift_L 1 x s) t1 | Inr y \<Rightarrow>
            subst_L (Suc n) (shift_L 1 y s) t2|;|\<sigma>1,f\<rparr> |:| C"
-          using hyps(1,2) hyps(6)[OF hyps(9-)]
-                hyps(7,8)[of "Suc n" "shift_L 1 _ s"] weakening[OF hyps(10)]
+          using hyps(1,2) hyps(6)[OF hyps(9,10)] ag
+                hyps(7,8)[of "Suc n"  "shift_L 1 _ s"] weakening[OF hyps(10)]
                 has_type_L.intros(4)[OF V_shiftx]  has_type_L.intros(4)[OF V_shifty]
           by (force intro!: has_type_L.intros(22))
         have C2: "n \<noteq> x \<Longrightarrow> n \<noteq> y \<Longrightarrow> x < n \<Longrightarrow> \<not>y < n \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Case subst_L n s t of Inl x \<Rightarrow> subst_L (Suc n) (shift_L 1 x s) t1 | Inr y \<Rightarrow>
            subst_L n (shift_L 1 y s) t2|;|\<sigma>1,f\<rparr> |:| C"
-          using hyps(7,8)[of _ "shift_L 1 _ s"] weakening[OF hyps(10)]  hyps(1,2) hyps(6)[OF hyps(9-)]
-                has_type_L.intros(4)[OF V_shiftx]  has_type_L.intros(4)[OF V_shifty]
+          using hyps(7,8)[of _  "shift_L 1 _ s"] weakening[OF hyps(10)]  hyps(1,2) hyps(6)[OF hyps(9,10)]
+                has_type_L.intros(4)[OF V_shiftx]  has_type_L.intros(4)[OF V_shifty] ag
                 has_type_L.intros(4)[OF Vx] has_type_L.intros(4)[OF Vy]
           by (force intro!: has_type_L.intros(22))
         have C3: "n \<noteq> x \<Longrightarrow> n \<noteq> y \<Longrightarrow> \<not>x < n \<Longrightarrow> y < n \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Case subst_L n s t of Inl x \<Rightarrow> subst_L n (shift_L 1 x s) t1 | Inr y \<Rightarrow>
            subst_L (Suc n) (shift_L 1 y s) t2|;|\<sigma>1,f\<rparr> |:| C"
-          using hyps(7,8)[of _ "shift_L 1 _ s"] weakening[OF hyps(10)]  hyps(1,2) hyps(6)[OF hyps(9-)]
+          using hyps(7,8)[of _  "shift_L 1 _ s"] weakening[OF hyps(10)]  hyps(1,2) hyps(6)[OF hyps(9,10)] ag
                 has_type_L.intros(4)[OF V_shiftx]  has_type_L.intros(4)[OF V_shifty]
                 has_type_L.intros(4)[OF Vx] has_type_L.intros(4)[OF Vy]
           by (force intro!: has_type_L.intros(22))
 
         have "n \<noteq> x \<Longrightarrow> n \<noteq> y \<Longrightarrow> \<not>x < n \<Longrightarrow> \<not>y < n \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Case subst_L n s t of Inl x \<Rightarrow> subst_L n (shift_L 1 x s) t1 | Inr y \<Rightarrow>
            subst_L n (shift_L 1 y s) t2|;|\<sigma>1,f\<rparr> |:| C"
-          using hyps(7,8)[of _ "shift_L 1 _ s"] weakening[OF hyps(10)]  hyps(1,2) hyps(6)[OF hyps(9-)]
+          using hyps(7,8)[of _  "shift_L 1 _ s"] weakening[OF hyps(10)] ag hyps(1,2) hyps(6)[OF hyps(9,10)]
                 has_type_L.intros(4)[OF Vx] has_type_L.intros(4)[OF Vy]
           by (force intro!: has_type_L.intros(22))
 
@@ -1160,21 +1191,151 @@ next
       qed
     
     with B1 B2 show ?case
-      using hyps(6)[of x s] hyps(9-) hyps(1,2,4,5) 
+      using hyps(6)[of x  s] hyps(9-) hyps(1,2,4,5) ag
       by (cases "n=x"; cases "n=y") (force intro: has_type_L.intros(22))
     
+next
+  case (has_type_CaseV L I TL LT \<Gamma> t \<sigma> f A)
+    note hyps=this and ag= this(10)[unfolded "agrees_flag.simps"[of "Case t of <L:=I> \<Rightarrow> LT",simplified]]
+    have " \<forall>i<length L. insert_nth (I ! i) (TL ! i) \<Gamma> \<turnstile> 
+          \<lparr>(map (\<lambda>p. if n = fst p then snd p else subst_L (if n>fst p then Suc n else n) (shift_L 1 (fst p) s) (snd p)) (zip I LT)!i)|;|\<sigma>,f\<rparr>|:| A"
+      proof (rule+)
+        fix i
+        assume H1: "i<length L"
+        have P:"\<And>n s . insert_nth (I ! i) (TL ! i) \<Gamma> \<turnstile> \<lparr>LVar n|;|\<sigma>,f\<rparr> |:| S \<Longrightarrow>
+               insert_nth (I ! i) (TL ! i) \<Gamma> \<turnstile> \<lparr>s|;|\<sigma>,f\<rparr> |:| S \<Longrightarrow> agrees_flag (LT ! i) f \<Longrightarrow>
+               insert_nth (I ! i) (TL ! i) \<Gamma> \<turnstile> \<lparr>subst_L n s (LT ! i)|;|\<sigma>,f\<rparr> |:| A"
+               "I ! i \<le> length \<Gamma>"
+          using hyps(7) H1
+          by blast+
+        
+        have "n = I ! i \<Longrightarrow> insert_nth (I ! i) (TL ! i) \<Gamma> \<turnstile> \<lparr>(LT ! i)|;|\<sigma>,f\<rparr> |:| A" 
+          using hyps(7) H1
+          by blast
+
+        moreover have "n \<noteq> I ! i \<Longrightarrow> insert_nth (I ! i) (TL ! i) \<Gamma> \<turnstile> \<lparr>subst_L (if n > I!i  then Suc n else n) (shift_L 1 (I!i) s) (LT ! i)|;|\<sigma>,f\<rparr> |:| A"
+          proof -
+            assume H:"n \<noteq> I ! i"
+            have V_shift:"I!i < n\<Longrightarrow> (Suc n, S) |\<in>| insert_nth (I!i) (TL!i) \<Gamma>"
+              proof -
+                assume H: "I!i < n"
+                have 1:"Suc n < length (insert_nth (I!i) (TL!i) \<Gamma>)"
+                  using inversion(4)[OF hyps(8), simplified] P(2)
+                  by force
+                have "(insert_nth (I!i) (TL!i) \<Gamma>) ! (Suc n) = S"
+                  proof -
+                    have "(insert_nth (I!i) (TL!i) \<Gamma>) ! (Suc n) =  (drop (I!i) \<Gamma> |,| (TL!i)) ! (Suc n - I!i)"
+                      using nth_append[of "take (I!i) \<Gamma>" "drop (I!i) \<Gamma> |,| (TL!i)" "Suc n", unfolded length_take,  simplified]
+                            not_less[of "Suc n" "I!i"] less_imp_le[OF less_SucI[OF H]] P(2)
+                      by (simp add: min.commute min_def) 
+                    moreover have "... = drop (I!i) \<Gamma> ! (n - I!i)"
+                      using nth_Cons[of "TL!i" "drop (I!i) \<Gamma>" "Suc n-(I!i)", simplified] 
+                            less_SucI[OF H]
+                      by force
+                    ultimately show ?thesis
+                      using nth_drop[of "I!i" "n-I!i" \<Gamma>] inversion(4)[OF hyps(8), simplified]
+                            H
+                      by force
+                  qed
+                with 1 show ?thesis by simp
+              qed
+
+            have ag_i: "agrees_flag (LT!i) f"
+              using ag H1 has_type_CaseV(4)
+              by force
+
+            have "n\<le>I!i \<Longrightarrow>  insert_nth (I ! i) (TL ! i) \<Gamma> \<turnstile> \<lparr>subst_L  n (shift_L 1 (I!i) s) (LT ! i)|;|\<sigma>,f\<rparr> |:| A"
+              using P(1)[of n ] inversion(4)[OF hyps(8)] has_type_LVar[of n S "insert_nth (I!i) (TL!i) \<Gamma>" _ ]
+                    weakening[OF hyps(9), of "I!i" "TL!i"] H P(2) ag_i
+                    nth_take[of n "I!i" \<Gamma>] nth_append[of "take (I!i) \<Gamma>" _ n, simplified]
+              by force
+
+            moreover have "\<not> n\<le>I!i \<Longrightarrow>  insert_nth (I ! i) (TL ! i) \<Gamma> \<turnstile> \<lparr>subst_L (Suc n) (shift_L 1 (I!i) s) (LT ! i)|;|\<sigma>,f\<rparr> |:| A"
+              using P(1)[of "Suc n" ] has_type_LVar[OF V_shift] not_le[of n "I!i"] ag_i
+                    weakening[OF hyps(9), of "I!i" "TL!i"] P(2)
+              by presburger
+            ultimately show "insert_nth (I ! i) (TL ! i) \<Gamma> \<turnstile> \<lparr>subst_L (if n > I!i  then Suc n else n) (shift_L 1 (I!i) s) (LT ! i)|;|\<sigma>,f\<rparr> |:| A"
+              by simp
+          qed
+        ultimately show "insert_nth (I ! i) (TL ! i) \<Gamma> \<turnstile> 
+          \<lparr>(map (\<lambda>p. if n = fst p then snd p else subst_L (if n > fst p then Suc n else n) (shift_L 1 (fst p) s) (snd p)) (zip I LT)!i)|;|\<sigma>,f\<rparr>|:| A"
+          using nth_map[of i "(zip I LT)" "(\<lambda>p. if n = fst p then snd p else subst_L (if n > fst p then Suc n else n) (shift_L 1 (fst p) s) (snd p))"]
+                hyps(2,4) H1
+          by simp
+      qed
+
+    then show ?case
+      using hyps(1-4,6,7,8-) ag
+      by (force intro!: has_type_L.intros(24))      
+next
+  case (has_type_tail \<Gamma> t \<sigma> A f)
+    note hyps=this and ag = this(5)[unfolded "agrees_flag.simps"[of "Ltail _ _", simplified]]
+    show ?case
+      using hyps(2) hyps(3,4) ag
+      by (force intro!: has_type_L.intros)
+next
+  case (has_type_head)
+    note hyps=this and ag = this(5)[unfolded "agrees_flag.simps"[of "Lhead _ _", simplified]]
+    show ?case
+      using hyps(2) hyps(3,4) ag
+      by (force intro!: has_type_L.intros)
+qed (auto intro!: has_type_L.intros dest: inversion(4))
+
+method inv_eval = (match premises in H:"eval1_L t t1" for t and t1 \<Rightarrow>
+                    \<open>insert eval1_L.simps[of t t1, simplified]\<close>)
+
+theorem Preservation:
+  "\<Gamma> \<turnstile> \<lparr>t|;|\<sigma>,f\<rparr> |:| A \<Longrightarrow> eval1_L t t1 \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t1|;|\<sigma>,f\<rparr> |:| A"
+proof (induction \<Gamma> t \<sigma> f A arbitrary: t1 rule: has_type_L.induct)
+  case (has_type_LApp)
+    note hyps=this
+    show ?case sorry
+next
+  case (has_type_Let)
+    note hyps=this
+    show ?case sorry
+next
+  case (has_type_Tuple)
+    note hyps=this
+    show ?case sorry
+next
+  case (has_type_ProjT i TL \<Gamma> t \<sigma> f)
+    note hyps=this and inv=this(5)[unfolded eval1_L.simps[of "\<Pi> _ _" _,simplified]] 
+    show ?case
+      using hyps inv 
+      by (force intro!:has_type_L.intros(15)[of i, simplified] dest: inversion(14))
+next
+  next
+  case (has_type_RCD)
+    note hyps=this
+    show ?case sorry
+
+next
+  case (has_type_LetPattern)
+    note hyps=this
+    show ?case sorry
+next
+  case (has_type_Case)
+    note hyps=this
+    show ?case sorry
 next
   case (has_type_CaseV)
     note hyps=this
     show ?case sorry
 next
-  case (has_type_tail)
+  case (has_type_Fix)
     note hyps=this
     show ?case sorry
 next
-  case (has_type_head)
+  case (has_type_head \<Gamma> t)
+    note hyps=this and inv=this(3)[unfolded eval1_L.simps[of "Lhead _ _", simplified]]
+    show ?case
+      using inv hyps(1,2) inversion(30)
+      sorry
+next
+  case (has_type_tail)
     note hyps=this
     show ?case sorry
-qed (auto intro!: has_type_L.intros dest: inversion(4))
+qed (inv_eval, force intro!: "has_type_L.intros" dest: inversion(11,12,14,16))+
 
 end

@@ -129,7 +129,7 @@ function subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> l
       | Inr y \<Rightarrow> (if j=y then t2 else subst_L (if j > y then Suc j else j) (shift_L 1 y s) t2))" |
   "subst_L j s (<l:=t> as T') =  <l:=subst_L j s t> as T'" |
   "subst_L j s (Case t of <L:=I> \<Rightarrow> LT) = 
-    (Case (subst_L j s t) of <L:=I> \<Rightarrow> map (\<lambda>p. if j=fst p then snd p else subst_L j s (snd p)) (zip I LT))" |
+    (Case (subst_L j s t) of <L:=I> \<Rightarrow> map (\<lambda>p. if j=fst p then snd p else subst_L (if j > fst p  then Suc j else j) (shift_L 1 (fst p) s) (snd p)) (zip I LT))" |
   "subst_L j s (Fixpoint t) = Fixpoint (subst_L j s t)"|
   "subst_L j s (Lnil A) = Lnil A"|
   "subst_L j s (Lisnil A t) = Lisnil A (subst_L j s t)"|
