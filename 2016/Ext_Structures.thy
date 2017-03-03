@@ -268,7 +268,7 @@ lemma inversion:
   "\<Gamma> \<turnstile> \<lparr> LApp t1 t2 |;| \<sigma>,f\<rparr> |:| R \<Longrightarrow> \<exists>T11. \<Gamma> \<turnstile> \<lparr>t1|;|\<sigma>,f\<rparr> |:| T11 \<rightarrow> R \<and> \<Gamma> \<turnstile> \<lparr>t2|;| \<sigma>,f\<rparr> |:| T11"
   "\<Gamma> \<turnstile> \<lparr> unit|;| \<sigma>,f\<rparr> |:| R \<Longrightarrow> R = Unit"
   "\<Gamma> \<turnstile> \<lparr> Seq t1 t2 |;| \<sigma>,f\<rparr> |:| R \<Longrightarrow> \<exists>A. R = A \<and> \<Gamma> \<turnstile> \<lparr>t2|;| \<sigma>,f\<rparr> |:| A \<and> \<Gamma> \<turnstile> \<lparr>t1|;| \<sigma>,f\<rparr> |:| Unit"
-  "\<Gamma> \<turnstile> \<lparr> t as A |;| \<sigma>,f\<rparr> |:| R \<Longrightarrow> R = A"
+  "\<Gamma> \<turnstile> \<lparr> t as A |;| \<sigma>,f\<rparr> |:| R \<Longrightarrow> R = A \<and> \<Gamma> \<turnstile> \<lparr> t |;| \<sigma>,f\<rparr> |:| A"
   "\<Gamma> \<turnstile> \<lparr> Let var x := t in t1 |;| \<sigma>,f\<rparr> |:| R \<Longrightarrow> \<exists>A B. R = B \<and> \<Gamma> \<turnstile> \<lparr> t|;| \<sigma>,f\<rparr> |:| A \<and> x\<le>length \<Gamma> \<and> (insert_nth x A \<Gamma>) \<turnstile> \<lparr>t1|;| \<sigma>,f\<rparr> |:| B"
   "\<Gamma> \<turnstile> \<lparr> \<lbrace>t1,t2\<rbrace>|;| \<sigma>,f\<rparr> |:| R \<Longrightarrow> \<exists>A B. \<Gamma> \<turnstile> \<lparr> t1|;| \<sigma>,f\<rparr> |:| A \<and> \<Gamma> \<turnstile> \<lparr> t2|;| \<sigma>,f\<rparr> |:| B \<and> R = A |\<times>| B"
   "\<Gamma> \<turnstile> \<lparr> \<pi>1 t|;| \<sigma>,f1\<rparr> |:| R \<Longrightarrow> \<exists>A B f. f=f1 \<and> \<Gamma> \<turnstile> \<lparr> t|;| \<sigma>,f\<rparr> |:| A |\<times>| B \<and> R = A"
@@ -617,7 +617,7 @@ proof (induction arbitrary:t \<Gamma> \<sigma> f rule:coherent.induct)
                         THEN conjunct2, THEN conjunct2, THEN conjunct2, THEN conjunct2]
       
     have "\<exists>F. (\<forall>i<length PL. Lmatch (PL ! i) (LT ! i) (F!i)) \<and> length F = length PL"
-      using lenTL_LT TL_types H(1)[unfolded is_value_L.simps[of "Record L LT", simplified]]
+      using lenTL_LT TL_types H(1)[unfolded is_value_L.simps[of "Record L LT", simplified], THEN conjunct1]
             hyps(3)[symmetric] hyps(5)[of _ \<Gamma> "LT!_" \<sigma> f]
       proof (induction PL arbitrary: TL LT)
         case (Cons p PL')
@@ -715,8 +715,8 @@ next
       proof (induction LT arbitrary: L TL)
         case Nil
           show ?case 
-            using "is_value_L.intros"(7)[of \<emptyset>, simplified]
-            by blast
+            using "is_value_L.intros"(7)[of \<emptyset>, simplified] Nil(3)
+            by (simp add: length_0_conv)
       next
         case (Cons a LT')
           obtain l L' t TL' where l_prop:"L = l#L'" "length L' = length LT'"
@@ -727,16 +727,18 @@ next
           note dist_L' = Cons(2)[unfolded l_prop(1) distinct.simps(2)[of l L'], THEN conjunct2]
 
           have "is_value_L a\<Longrightarrow> ?case"
-            using Cons(1)[OF dist_L' l_prop(4,2) Cons(5)[of "Suc _", simplified], simplified] 
+            using Cons(1)[OF dist_L' l_prop(4,2) Cons(5)[of "Suc _", simplified], simplified]
             by meson (metis Suc_less_eq nth_Cons_0 nth_Cons_Suc old.nat.exhaust length_Cons,
-                      metis One_nat_def Suc_less_eq Suc_pred le_neq_implies_less length_Cons nth_Cons'
-                            "is_value_L.intros"(7) "is_value_L.simps"[of "Record L' LT'", simplified])              
+                      fastforce simp: "is_value_L.simps"[of "Record L (a#LT')", simplified] 
+                                      less_Suc_eq_0_disj Cons(4)[simplified]
+                                      "is_value_L.simps"[of "Record L' LT'", simplified])
           then show ?case
             using Cons(5)[of 0, simplified]
             by fastforce
       qed 
     then show ?case
       using eval1_L_RCD[of _ LT L] "is_value_L.intros"(7)[of "take _ LT" "take _ L", simplified]
+            hyps(4)
       by force
 next
   case (has_type_ProjT i TL t)
@@ -1283,6 +1285,114 @@ qed (auto intro!: has_type_L.intros dest: inversion(4))
 
 method inv_eval = (match premises in H:"eval1_L t t1" for t and t1 \<Rightarrow>
                     \<open>insert eval1_L.simps[of t t1, simplified]\<close>)
+
+
+inductive contains::"lterm\<Rightarrow>lterm\<Rightarrow> bool" where
+ C_eq : "contains s s"|
+ C_Unary: "subterms t = Unary t1 \<Longrightarrow> contains s t1 \<Longrightarrow> contains s t"|
+ A_Binary: "subterms t = Bi t1 t2 \<Longrightarrow> contains s t1 \<or> contains s t2 \<Longrightarrow> contains s t"|
+ A_Ternary: "subterms t = Ter t1 t2 t3\<Longrightarrow> contains s t1 \<or> contains s t2 \<or> contains s t3 
+              \<Longrightarrow> contains s t"|
+ A_Comp: "subterms t = Comp t1 L\<Longrightarrow> contains s t1 \<or> (\<exists>i<length L. contains s (L!i)) \<Longrightarrow>
+            contains s t"|
+ A_List: "subterms t = UList L\<Longrightarrow> (\<exists>i<length L. contains s (L!i)) \<Longrightarrow>
+            contains s t"
+ 
+method inv_contains = (match premises in H:"contains s t" for s t \<Rightarrow>
+                        \<open>insert "contains.simps"[of s t, simplified]\<close>)
+
+method m1 = (match premises in "\<not>contains (Lnil B) t" for t B\<Rightarrow> 
+              \<open>insert "contains.simps"[of "Lnil _" t, simplified]\<close>)
+
+lemma Flagged_contains_not_nil:
+  "\<Gamma> \<turnstile> \<lparr>t|;|\<sigma>,True\<rparr> |:| A \<Longrightarrow> \<not> contains (Lnil B) t"
+by (induction \<Gamma> t \<sigma> "True" A arbitrary: B rule: has_type_L.induct)
+     ((rule notI, inv_contains, force)+)
+
+lemma shift_contains:"FV s ={} \<Longrightarrow> contains s (shift_L d c t) \<Longrightarrow> contains s t" sorry 
+lemma subst_contains:"FV s ={} \<Longrightarrow> contains s (subst_L j t1 t) \<Longrightarrow> contains s t \<or> contains s t1" sorry
+
+lemma Nil_preservation:
+  "eval1_L t t1 \<Longrightarrow> \<not> contains (Lnil B) t \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t|;|\<sigma>,f\<rparr> |:| A \<Longrightarrow> \<not> contains (Lnil B) t1"
+proof(induction t t1 arbitrary: B f \<sigma> A rule: eval1_L.induct)
+  case (eval1_L_ProjRCD)
+    thus ?case
+      using index_less_size_conv[symmetric]
+            is_value_L.simps[of "Record _ _", simplified]
+      by (simp, m1, simp, m1, force)
+next
+  case (eval1_LApp_LAbs v Ta t)
+    note hyps=this
+    
+    show ?case 
+      using shift_contains[of "Lnil B", simplified] 
+            subst_contains[of "Lnil B", simplified]
+            hyps(2)[rule_format, unfolded contains.simps[of _ "LApp _ _", simplified]
+            contains.simps[of _ "LAbs _ _", simplified]]
+      by meson
+next
+  case (eval1_L_FixBeta t t')
+    note hyps=this
+    show ?case 
+      using shift_contains[of "Lnil B", simplified] 
+            subst_contains[of "Lnil B", simplified]
+            hyps(1)[rule_format, unfolded contains.simps[of _ "fix _", simplified]
+            contains.simps[of _ "LAbs _ _", simplified]]
+            hyps(1)
+      by meson
+next
+  case (eval1_L_CaseInl v A x t1 y t2)
+    note hyps=this
+    show ?case 
+      using subst_contains[of "Lnil B", simplified]
+            hyps(2)[rule_format, unfolded contains.simps[of _ "CaseSum _ _ _ _ _", simplified]
+            contains.simps[of _ "inl _ as _", simplified]]
+      by meson
+    
+next
+  case (eval1_L_CaseInr)
+    note hyps=this
+    show ?case 
+      using subst_contains[of "Lnil B", simplified]
+            hyps(2)[rule_format, unfolded contains.simps[of _ "CaseSum _ _ _ _ _", simplified]
+            contains.simps[of _ "inr _ as _", simplified]]
+      by meson
+next
+  case (eval1_L_LetPV p v1 \<sigma> t2)
+    note hyps=this
+    
+    
+    show ?case 
+      sorry
+next
+  case (eval1_L_LetV v1 x t2)
+    note hyps=this
+    show ?case 
+      using subst_contains[of "Lnil B", simplified]
+            hyps(2)[rule_format, unfolded contains.simps[of _ "LetBinder  _ _ _", simplified]]
+      by meson
+next
+  case (eval1_L_CaseVar l L i v B I LT)
+    note hyps=this and invT=this(3)[unfolded has_type_L.simps[of _ "CaseVar _ _ _ _", simplified]
+                                             has_type_L.simps[of _ "Variant _ _ _", simplified], simplified]
+    show ?case 
+      using subst_contains[of "Lnil B", simplified]
+            hyps(2)[rule_format, unfolded contains.simps[of _ "CaseVar  _ _ _ _", simplified]
+            contains.simps[of _ "Variant _ _ _", simplified]]
+      sorry
+next
+  case (eval1_L_Tuple j L t1)
+    note hyps=this
+    show ?case
+      using nth_replace[of _ L "j-1" t1] hyps(6)[rule_format, unfolded contains.simps[of _ "Tuple _", simplified]]
+            hyps(5)[of B] hyps(2)
+            contains.simps[of "Lnil B" "Tuple _", simplified]            
+      by (metis hyps(7) inversion(14) less_Suc_eq_le replace_inv_length zero_less_Suc)
+qed (rule, m1, inv_contains, ((simp, m1, metis inversion)|metis inversion))+
+(*>>> 1min find another solution*)
+lemma No_nil_imp_irr_flag:
+  "(\<forall>B. \<not> contains (Lnil B) t) \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t|;|\<sigma>,f\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t|;|\<sigma>,f1\<rparr> |:| A"
+sorry
 
 theorem Preservation:
   "\<Gamma> \<turnstile> \<lparr>t|;|\<sigma>,f\<rparr> |:| A \<Longrightarrow> eval1_L t t1 \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t1|;|\<sigma>,f\<rparr> |:| A"

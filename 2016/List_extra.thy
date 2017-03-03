@@ -21,6 +21,10 @@ fun replace ::"nat \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list"
   (if length xs \<le> n then xs 
     else (take n xs) @ [x] @ (drop (Suc n) xs))"
 
+fun r1::"nat \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+"r1 0 x xs = x# drop 1 xs"|
+"r1 (Suc n) x [] = []"|
+"r1 (Suc n) x (x1#xs') = x1#(r1 n x xs')"
 
 abbreviation fst_extract::"('a\<times>'b) list \<Rightarrow> 'a list" where
 "fst_extract L \<equiv> (list_iter (\<lambda>p r. fst p # r) [] L)"
@@ -66,6 +70,25 @@ qed auto
 lemma replace_inv_length[simp]:
   "length (replace n x S) = length S"  
 by(induction S arbitrary: x n, auto)
+
+lemma nth_replace[simp]:
+  "i<length L \<Longrightarrow> (replace n x L)!i = (if i=n \<and> n<length L then x else (L!i))"
+unfolding "replace.simps"
+proof (induction L arbitrary: i n)
+  case (Cons l L')
+    have "n=0 \<Longrightarrow> ?case" by simp 
+    moreover have "\<And>n1. n=Suc n1 \<Longrightarrow> length (l # L') \<le> n \<Longrightarrow> ?case"
+      by simp
+    moreover have "\<And>n1. n=Suc n1 \<Longrightarrow>\<not> length (l # L') \<le> n \<Longrightarrow> i = Suc n1 \<Longrightarrow> ?case"
+      using Cons(1)[of "i-1" "n-1", simplified]
+      by fastforce
+    moreover have "\<And>n1. n=Suc n1 \<Longrightarrow>\<not> length (l # L') \<le> n \<Longrightarrow> i \<noteq> Suc n1 \<Longrightarrow> ?case"
+      using Cons(1)[of "i-1" "n-1", simplified]
+            Cons(2)
+      by (cases i, simp+)
+      
+    ultimately show ?case by (metis old.nat.exhaust)      
+qed simp
 
 lemma insert_nth_comp:
   "n\<le> length L \<Longrightarrow> n\<le>n1 \<Longrightarrow> insert_nth n S (insert_nth n1 S1 L) = insert_nth (Suc n1) S1 (insert_nth n S L)"
