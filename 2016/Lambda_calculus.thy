@@ -191,7 +191,7 @@ inductive is_value_L :: "lterm \<Rightarrow> bool" where
   VUnit :"is_value_L unit" |
   VPair :"is_value_L v1 \<Longrightarrow> is_value_L v2 \<Longrightarrow> is_value_L (\<lbrace>v1,v2\<rbrace>)" |
   VTuple:"(\<And>i. 0\<le>i \<Longrightarrow> i<length L \<Longrightarrow> is_value_L (L!i)) \<Longrightarrow> is_value_L (Tuple L)" |
-  VRCD  :"(\<And>i. 0\<le>i \<Longrightarrow> i<length LT \<Longrightarrow> is_value_L (LT!i)) \<Longrightarrow> length L = length LT \<Longrightarrow> is_value_L (Record L LT)"|
+  VRCD  :"(\<And>i. 0\<le>i \<Longrightarrow> i<length LT \<Longrightarrow> is_value_L (LT!i)) \<Longrightarrow>  is_value_L (Record L LT)"|
   VSumL :"is_value_L v \<Longrightarrow> is_value_L (inl v as A)"|
   VSumR :"is_value_L v \<Longrightarrow> is_value_L (inr v as A)"|
   VVa   :"is_value_L v \<Longrightarrow> is_value_L (<l:=v> as A)"|
