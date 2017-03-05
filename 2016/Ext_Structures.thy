@@ -69,7 +69,7 @@ inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (t1 as A) (t1' as A)" |
  -- "Rules relating to evaluation of letbinder"
   eval1_L_LetV:
-    "is_value_L v1 \<Longrightarrow> eval1_L (Let var x := v1 in t2) (subst_L x v1 t2)" |
+    "is_value_L v1 \<Longrightarrow> eval1_L (Let var x := v1 in t2) (subst_L x (shift_L 1 x v1) t2)" |
   eval1_L_Let:
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (Let var x := t1 in t2) (Let var x := t1' in t2)" |
  -- "Rules relating to evaluation of pairs"
@@ -108,9 +108,9 @@ inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (Let pattern p := t1 in t2) (Let pattern p := t1' in t2)" |
  -- "Rules relating to evaluation of Sums"
   eval1_L_CaseInl:
-    "is_value_L v \<Longrightarrow> eval1_L (Case (inl v as A) of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) (subst_L x v t1)" |
+    "is_value_L v \<Longrightarrow> eval1_L (Case (inl v as A) of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) (subst_L x (shift_L 1 x v) t1)" |
   eval1_L_CaseInr:
-    "is_value_L v \<Longrightarrow> eval1_L (Case (inr v as A) of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) (subst_L y v t2)" |
+    "is_value_L v \<Longrightarrow> eval1_L (Case (inr v as A) of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) (subst_L y (shift_L 1 y v) t2)" |
   eval1_L_CaseS:
     "eval1_L t t' \<Longrightarrow> eval1_L (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) (Case t' of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2)" |
   eval1_L_Inl:
@@ -118,7 +118,7 @@ inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
   eval1_L_Inr:
     "eval1_L t t' \<Longrightarrow> eval1_L (inr t as A) (inr t' as A)" |
   eval1_L_CaseVar:
-    "index L l = i \<Longrightarrow> eval1_L (Case (<l:=v> as A) of <L:=I> \<Rightarrow> LT) (subst_L (I!i) v (LT!i))" |
+    "index L l = i \<Longrightarrow> eval1_L (Case (<l:=v> as A) of <L:=I> \<Rightarrow> LT) (subst_L (I!i) (shift_L 1 (I!i) v) (LT!i))" |
   eval1_L_CaseV:
     "eval1_L t t' \<Longrightarrow> eval1_L (Case t of <L:=I> \<Rightarrow> LT) (Case t' of <L:=I> \<Rightarrow> LT)" |
   eval1_L_Variant:
@@ -1021,7 +1021,9 @@ inductive agrees_flag::"lterm \<Rightarrow> bool \<Rightarrow> bool" where
             agrees_flag t f"|
  A_Void: "subterms t = Void \<Longrightarrow> agrees_flag t f"
 
-
+lemma welltyped_agreesf:
+  "\<Gamma> \<turnstile> \<lparr>t|;|\<sigma>,f\<rparr> |:| A \<Longrightarrow> agrees_flag t f"
+sorry
 
 method inv_agrees_f= (match premises in H:"agrees_flag t f" for t and f\<Rightarrow>
                       \<open>insert "agrees_flag.simps"[of t f, simplified]\<close>)
@@ -1320,145 +1322,6 @@ lemma Flagged_contains_not_nil:
 by (induction \<Gamma> t \<sigma> "True" A arbitrary: B rule: has_type_L.induct)
      ((rule notI, inv_contains, force)+)
 
-lemma shift_contains:"FV s ={} \<Longrightarrow> contains s (shift_L d c t) \<Longrightarrow> contains s t" sorry 
-lemma subst_contains:"FV s ={} \<Longrightarrow> contains s (subst_L j t1 t) \<Longrightarrow> contains s t \<or> contains s t1" sorry
-
-lemma Nil_preservation:
-  "eval1_L t t1 \<Longrightarrow> \<not> contains (Lnil B) t \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t|;|\<sigma>,f\<rparr> |:| A \<Longrightarrow> contains (Lnil B) t1 \<Longrightarrow> False"
-proof(induction t t1 arbitrary: B f \<sigma> A rule: eval1_L.induct)
-  case (eval1_L_ProjRCD l L LT)
-    note hyps=this
-    show ?case
-      using index_less_size_conv[symmetric] hyps(5)
-            is_value_L.simps[of "Record _ _", simplified]
-            hyps(3)[unfolded "contains.simps"[of "Lnil B" "ProjR _ _", simplified]
-                             "contains.simps"[of "Lnil B" "Record _ _", simplified]]
-            hyps(1) hyps(4)[unfolded "has_type_L.simps"[of _ "ProjR _ _", simplified]
-                                     "has_type_L.simps"[of _ "Record _ _", simplified]]
-      by metis      
-next
-  case (eval1_LApp_LAbs v Ta t)
-    note hyps=this
-    
-    show ?case 
-      using shift_contains[of "Lnil B", simplified] hyps(3-) 
-            subst_contains[of "Lnil B", simplified]
-            hyps(2)[rule_format, unfolded contains.simps[of _ "LApp _ _", simplified]
-            contains.simps[of _ "LAbs _ _", simplified]]
-      by meson
-next
-  case (eval1_L_FixBeta t t')
-    note hyps=this
-    show ?case 
-      using shift_contains[of "Lnil B", simplified] hyps(2-)
-            subst_contains[of "Lnil B", simplified]
-            hyps(1)[rule_format, unfolded contains.simps[of _ "fix _", simplified]
-            contains.simps[of _ "LAbs _ _", simplified]]
-            hyps(1)
-      by meson
-next
-  case (eval1_L_CaseInl v A x t1 y t2)
-    note hyps=this
-    show ?case 
-      using subst_contains[of "Lnil B", simplified] hyps(3-)
-            hyps(2)[rule_format, unfolded contains.simps[of _ "CaseSum _ _ _ _ _", simplified]
-            contains.simps[of _ "inl _ as _", simplified]]
-      by meson
-    
-next
-  case (eval1_L_CaseInr)
-    note hyps=this
-    show ?case 
-      using subst_contains[of "Lnil B", simplified] hyps(3-)
-            hyps(2)[rule_format, unfolded contains.simps[of _ "CaseSum _ _ _ _ _", simplified]
-            contains.simps[of _ "inr _ as _", simplified]]
-      by meson
-next
-  case (eval1_L_LetPV p v1 \<sigma> t2)
-    note hyps=this
-    
-    
-    show ?case 
-      sorry
-next
-  case (eval1_L_LetV v1 x t2)
-    note hyps=this
-    show ?case 
-      using subst_contains[of "Lnil B", simplified] hyps
-            hyps(2)[rule_format, unfolded contains.simps[of _ "LetBinder  _ _ _", simplified]]
-      by meson
-next
-  case (eval1_L_CaseVar L l i v B1 I LT)
-    note hyps=this and invT=this(3)[unfolded has_type_L.simps[of _ "CaseVar _ _ _ _", simplified]
-                                             has_type_L.simps[of _ "Variant _ _ _", simplified], simplified]
-    have "distinct L" "length L = length LT" "\<exists>j. l=L!j \<and> j<length L"
-      using invT
-      by force+
-   
-    hence "i<length LT"
-      using hyps(1) index_nth_id
-      by auto
-
-    then show ?case 
-      using subst_contains[of "Lnil B" "I!i" v "LT!i", simplified] hyps
-            hyps(2)[rule_format, unfolded contains.simps[of _ "CaseVar  _ _ _ _", simplified]
-            contains.simps[of _ "Variant _ _ _", simplified], simplified]
-      by force 
-next
-  case (eval1_L_Tuple j L t1)
-    note hyps=this
-    show ?case
-      using nth_replace[of _ L "j-1" t1] hyps(6)[rule_format, unfolded contains.simps[of _ "Tuple _", simplified]]
-            hyps(5)[of B] hyps
-            contains.simps[of "Lnil B" "Tuple _", simplified]            
-      by (metis hyps(7) inversion(14) less_Suc_eq_le replace_inv_length zero_less_Suc)
-next
-  case (eval1_Lhead_cons)
-    note hyps=this
-    show ?case
-      using hyps(3)[unfolded contains.simps[of _ "Lhead  _ _", simplified]
-            contains.simps[of _ "Lcons _ _ _", simplified]] hyps
-      by meson
-next
-  case (eval1_Ltail_cons)
-    note hyps=this
-    show ?case
-      using hyps(3)[unfolded contains.simps[of _ "Ltail  _ _", simplified]
-            contains.simps[of _ "Lcons _ _ _", simplified]] hyps
-      by meson
-next
-  case (eval1_L_PairBeta1)
-    note hyps=this
-    show ?case
-      using hyps(3)[unfolded contains.simps[of _ "\<pi>1  _ _", simplified]
-            contains.simps[of _ "Pair _ _", simplified]] hyps
-      by meson
-next
-  case (eval1_L_PairBeta2)
-    note hyps=this
-    show ?case
-      using hyps(3)[unfolded contains.simps[of _ "\<pi>2  _ _", simplified]
-            contains.simps[of _ "Pair _ _", simplified]] hyps
-      by meson
-
-next
-  case (eval1_L_ProjTuple i L)
-    note hyps=this
-    show ?case
-      using hyps(4)[unfolded contains.simps[of _ "\<Pi>  _ _", simplified]
-            contains.simps[of _ "Tuple _", simplified]] hyps(1-3,5-)
-      by force
-next
-  case (eval1_L_RCD m LT L t1)
-    note hyps=this
-    show ?case
-      using hyps(5)[unfolded contains.simps[of _ "Record _ _", simplified]] 
-            hyps(7)[unfolded contains.simps[of _ "Record _ _", simplified]]
-            nth_replace[of _ LT m t1] 
-            hyps(6)[unfolded has_type_L.simps[of _ "Record _ _", simplified]]
-            hyps(1,4) 
-      by (metis lterm.distinct(679) replace_inv_length) 
-qed ((inv_contains, inv_type, ((m1,blast)|(m1, simp, m1, metis)))+)
 
 method m2= (match premises in "\<forall>B. \<not>contains (Lnil B) t" for t\<Rightarrow> 
               \<open>insert "contains.simps"[of "Lnil _" t, simplified]\<close>)
@@ -1482,20 +1345,220 @@ next
 qed  (m2, meson has_type_L.intros contains.simps[of _ "Lhead _ _"] contains.simps[of _ "Ltail _ _"] 
           "contains.simps"[of "Lnil _" "Lnil _", simplified])+
 
+lemma gr_Suc_conv: "Suc x \<le> n \<longleftrightarrow> (\<exists>m. n = Suc m \<and> x \<le> m)"
+  by (cases n) auto
+
+lemma FV_shift:
+  "FV (shift_L (int d) c t) = image (\<lambda>x. if x \<ge> c then x + d else x) (FV t)"
+proof (induction t arbitrary: c rule: lterm.induct)
+  case (LAbs T t)
+    thus ?case  by (auto simp: gr_Suc_conv image_iff) force+
+next
+  case (LetBinder x t1 t2)
+    note hyps=this
+    show ?case
+      apply simp
+      apply rule
+      apply (simp add: hyps[of c])
+      apply auto[1]
+      apply (simp add: hyps(1)[of c] hyps(2)[of "Suc c"])
+      
+      sorry
+next
+  case (CaseSum t x t1 y t2)
+    note hyps=this
+    
+    have 1:"(\<lambda>x. x + d) ` FV t1 \<inter> (\<lambda>x. x + d) ` Collect (op \<le> (Suc c)) = (\<lambda>x. x + d) ` FV t1 \<inter> (\<lambda>x. x + d) ` Collect (op \<le> c)"
+      sorry
+    have 2: "FV t1 \<inter> {x. \<not> Suc c \<le> x} = FV t1 \<inter> {x. \<not> c \<le> x}" sorry
+    have C1: "c \<le> y \<Longrightarrow> c \<le> x \<Longrightarrow> ?case"
+      using hyps[of c]
+      by fastforce
+    have C2: "c \<le> y \<Longrightarrow> \<not>c \<le> x \<Longrightarrow> ?case"
+      apply simp      
+      apply (simp add: hyps(1,3)[of c] hyps(2)[of "Suc c"] image_Int[of "\<lambda>x. x + d", simplified] 1 2)
+      apply (simp add: image_Un[of "(\<lambda>x. x + d)"])
+    sorry
+    have C3: "c \<le> x \<Longrightarrow> \<not>c \<le> y \<Longrightarrow> ?case"
+      apply simp      
+      apply (simp add: hyps(1,2)[of c] hyps(3)[of "Suc c"] image_Int[of "\<lambda>x. x + d", simplified])
+      apply (simp add: image_Un[of "(\<lambda>x. x + d)"])
+    sorry
+    have "\<not>c \<le> y \<Longrightarrow> \<not>c \<le> x \<Longrightarrow> ?case"
+      apply simp      
+      apply (simp add: hyps(1)[of c] hyps(2,3)[of "Suc c"] image_Int[of "\<lambda>x. x + d", simplified])
+      apply (simp add: image_Un[of "(\<lambda>x. x + d)"])
+    sorry
+    show ?case
+     sorry
+next
+  case (CaseVar t L I LT)
+    note hyps=this
+    have A:"UNION (set (indexed_map 0 (\<lambda>k. shift_L (int d) (if I ! k < c then Suc c else c)) LT)) FV =
+          (\<lambda>x. x + d) ` ((\<Union>x\<in>set LT. FV x) \<inter> {x. c \<le> x}) \<union> UNION (set LT) FV \<inter> {x. \<not> c \<le> x}"
+          sorry
+    show ?case
+      apply (simp add: hyps(1)[of c])
+      apply (simp add: A)
+      apply rule      
+      apply force
+      sorry
+qed auto
+
+lemma FV_subst:
+  "FV (subst_L n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"
+proof (induction u arbitrary: n t rule: lterm.induct)
+  case (LAbs T u)
+  thus ?case 
+    by (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1],
+        (metis DiffI One_nat_def UnCI diff_Suc_1 empty_iff imageI insert_iff nat.distinct(1))+)
+next
+  case (Record L LT)
+    note hyps=this
+    have "(\<exists>x\<in>set LT. n \<in> FV x) \<longrightarrow> (\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV - {n} \<union> FV t"
+      proof (rule)
+        assume "\<exists>x\<in>set LT. n \<in> FV x"
+        then obtain x where H:"x\<in>set LT" "n\<in>FV x" by blast
+
+        note H1= hyps[OF H(1), of n t, simplified H(2) if_True]
+        
+        have "(\<Union>x\<in>set LT. FV (subst_L n t x)) \<subseteq> UNION (set LT) FV - {n} \<union> FV t"
+          proof (rule,simp)
+            fix y
+            assume "\<exists>xa\<in>set LT. y \<in> FV (subst_L n t xa)"
+            then obtain x1 where A:"x1\<in>set LT" "y \<in> FV (subst_L n t x1)" by blast
+            note H2=A(2)[unfolded hyps[OF A(1), of n t]]
+            show "(\<exists>xa\<in>set LT. y \<in> FV xa) \<and> y \<noteq> n \<or> y \<in> FV t"
+                using H2 A(1)
+                by (cases "n\<in>FV x1") force+
+          qed
+        moreover have "UNION (set LT) FV - {n} \<union> FV t \<subseteq> (\<Union>x\<in>set LT. FV (subst_L n t x))"
+          using hyps[of _ n t] H1 H
+          by auto
+        
+        ultimately show "(\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV - {n} \<union> FV t"
+          by blast
+      qed
+    moreover have "(\<forall>x\<in>set LT. n \<notin> FV x) \<longrightarrow> (\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV"
+      using hyps
+      by simp
+    ultimately show ?case by simp      
+next
+  case (Tuple LT)
+    note hyps= this
+    have "(\<exists>x\<in>set LT. n \<in> FV x) \<longrightarrow> (\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV - {n} \<union> FV t"
+      proof (rule)
+        assume "\<exists>x\<in>set LT. n \<in> FV x"
+        then obtain x where H:"x\<in>set LT" "n\<in>FV x" by blast
+
+        note H1= hyps[OF H(1), of n t, simplified H(2) if_True]
+        
+        have "(\<Union>x\<in>set LT. FV (subst_L n t x)) \<subseteq> UNION (set LT) FV - {n} \<union> FV t"
+          proof (rule,simp)
+            fix y
+            assume "\<exists>xa\<in>set LT. y \<in> FV (subst_L n t xa)"
+            then obtain x1 where A:"x1\<in>set LT" "y \<in> FV (subst_L n t x1)" by blast
+            note H2=A(2)[unfolded hyps[OF A(1), of n t]]
+            show "(\<exists>xa\<in>set LT. y \<in> FV xa) \<and> y \<noteq> n \<or> y \<in> FV t"
+                using H2 A(1)
+                by (cases "n\<in>FV x1") force+
+          qed
+        moreover have "UNION (set LT) FV - {n} \<union> FV t \<subseteq> (\<Union>x\<in>set LT. FV (subst_L n t x))"
+          using hyps[of _ n t] H1 H
+          by auto
+        
+        ultimately show "(\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV - {n} \<union> FV t"
+          by blast
+      qed
+    moreover have "(\<forall>x\<in>set LT. n \<notin> FV x) \<longrightarrow> (\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV"
+      using hyps
+      by simp
+    ultimately show ?case by simp
+next
+  case (LetBinder x t1 t2)
+    note hyps=this
+    show ?case 
+     
+      sorry
+next
+  case (CaseSum )
+    thus ?case sorry
+next
+  case (CaseVar)
+    thus ?case sorry
+qed (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1])
+
+
 theorem Preservation:
   "\<Gamma> \<turnstile> \<lparr>t|;|\<sigma>,f\<rparr> |:| A \<Longrightarrow> eval1_L t t1 \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t1|;|\<sigma>,f\<rparr> |:| A"
 proof (induction \<Gamma> t \<sigma> f A arbitrary: t1 rule: has_type_L.induct)
-  case (has_type_LApp)
-    note hyps=this
+  case (has_type_LApp \<Gamma> ta \<sigma> f T11 T12 tb)
+    note hyps=this(1-4) and inv=this(5)[unfolded eval1_L.simps[of "LApp _ _", simplified]]
+    have " (\<exists>t1'. t1 = LApp t1' tb \<and> eval1_L ta t1') \<or> (\<exists>t2'. t1 = LApp ta t2' \<and> is_value_L ta \<and> eval1_L tb t2')
+            \<Longrightarrow> ?case"
+      using hyps
+      by (force intro!:has_type_L.intros)
+
+    moreover have "(\<exists>T' t12. ta = LAbs T' t12 \<and> t1 = shift_L (- 1) 0 (subst_L 0 (shift_L 1 0 tb) t12) \<and> is_value_L tb)
+                   \<Longrightarrow> ?case"
+      proof -
+        assume "\<exists>T' t12. ta = LAbs T' t12 \<and> t1 = shift_L (- 1) 0 (subst_L 0 (shift_L 1 0 tb) t12) \<and> is_value_L tb"
+        then obtain T' t12 where H:"ta = LAbs T' t12" "t1 = shift_L (- 1) 0 (subst_L 0 (shift_L 1 0 tb) t12)"
+          by blast
+        have "\<Gamma> |,| T11 \<turnstile> \<lparr>subst_L 0 (shift_L 1 0 tb) t12|;|\<sigma>,f\<rparr> |:| T12"
+          using substitution[of "\<Gamma>|,|T11" _ \<sigma> f T12 0 \<sigma> T11 "shift_L 1 0 tb", simplified]
+                hyps(1)[unfolded H(1) has_type_L.simps[of _ "LAbs _ _", simplified]]
+                welltyped_agreesf has_type_L.intros(4)[of 0 T11 "\<Gamma>|,|T11", simplified]
+                weakening[OF hyps(2),of 0 T11, simplified]
+          by blast
+        moreover have "\<And>x. x \<in> (if 0 \<in> FV t12 then FV t12 - {0} \<union> Suc ` FV tb else FV t12) \<Longrightarrow> 0 < x"
+          by (cases "0\<in>FV t12") (fastforce, metis not_gr0) 
+        ultimately show ?case
+          using shift_down[of 0 T11 \<Gamma> "subst_L 0 (shift_L 1 0 tb) t12" \<sigma> f T12, unfolded FV_subst FV_shift[of 1 0,simplified],
+                        simplified] H(2)
+          by blast
+      qed
+
+    ultimately show ?case using inv by blast
+
+next
+  case (has_type_Let x \<Gamma> ta \<sigma> f A tb B)
+    note hyps=this(1-5) and inv=this(6)[unfolded eval1_L.simps[of "LetBinder _ _ _", simplified]]
+      have 1:"(x, A) |\<in>| insert_nth x A \<Gamma>"
+        using nth_append[of "take x \<Gamma>" "drop x \<Gamma>|,|A" x, simplified] 
+              hyps(1)
+        by simp
+      have "t1 = subst_L x (shift_L 1 x ta) tb \<and> is_value_L ta \<Longrightarrow> ?case"
+        using substitution[OF hyps(3) has_type_LVar[OF 1] weakening[OF hyps(2,1), of A], simplified] 
+               welltyped_agreesf[OF hyps(3)]
+              
+        
+        sorry
     show ?case sorry
 next
-  case (has_type_Let)
-    note hyps=this
-    show ?case sorry
-next
-  case (has_type_Tuple)
-    note hyps=this
-    show ?case sorry
+  case (has_type_Tuple L TL \<Gamma> \<sigma> f)
+    note hyps=this(1-4) and inv= this(5)[unfolded eval1_L.simps[of "Tuple _",simplified]]
+    from inv obtain j t' where H: "t1 = Tuple (replace (j-1) t' L)"
+                                  "Suc 0 \<le> j" "j \<le> length L" "is_value_L (Tuple (take (j - Suc 0) L))" 
+                                  "eval1_L (L ! (j - Suc 0)) t'"
+      by auto
+    have "\<And>i. \<not> length L \<le> j - Suc 0 \<Longrightarrow>
+         0 \<le> i \<Longrightarrow>
+         i < length (take (j - Suc 0) L @ t' # drop (Suc (j - Suc 0)) L) \<Longrightarrow>
+         \<Gamma> \<turnstile> \<lparr>((take (j - Suc 0) L @ t' # drop (Suc (j - Suc 0)) L) ! i)|;|\<sigma>,f\<rparr> |:| (TL ! i)"
+      proof -
+        fix i
+        assume Hi:"\<not> length L \<le> j - Suc 0" "0 \<le> i" "i < length (take (j - Suc 0) L @ t' # drop (Suc (j - Suc 0)) L)"
+        show "\<Gamma> \<turnstile> \<lparr>((take (j - Suc 0) L @ t' # drop (Suc (j - Suc 0)) L) ! i)|;|\<sigma>,f\<rparr> |:| (TL ! i)"
+          using hyps(4)[of "j-Suc 0", simplified] H(5) Hi(1)[unfolded not_le]
+                nth_replace[of i L "j-Suc 0" t', simplified] Hi(1) hyps(3)[of i] Hi(2-3)
+          by simp
+      qed
+
+    then show ?case
+      using hyps(1-3) H(1)
+      by (force intro!: has_type_L.intros)
+      
 next
   case (has_type_ProjT i TL \<Gamma> t \<sigma> f)
     note hyps=this and inv=this(5)[unfolded eval1_L.simps[of "\<Pi> _ _" _,simplified]] 
