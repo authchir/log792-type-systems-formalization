@@ -252,11 +252,11 @@ text{*
 *}
 
 
-fun p_instantiate::"(nat\<Rightarrow> lterm) \<Rightarrow> Lpattern \<Rightarrow> lterm" where
-"p_instantiate \<Sigma> (V k as A) = \<Sigma> k"|
+fun p_instantiate::"(nat \<rightharpoonup> lterm) \<Rightarrow> Lpattern \<Rightarrow> lterm" where
+"p_instantiate \<Sigma> (V k as A) = (case \<Sigma> k of Some t' \<Rightarrow> t' | None \<Rightarrow> <|V k as A|>)"|
 "p_instantiate \<Sigma> (RCD L PL) = <|RCD L PL|>" 
 
-fun fill::"(nat \<Rightarrow> lterm) \<Rightarrow> lterm \<Rightarrow> lterm" where
+fun fill::"(nat \<rightharpoonup> lterm) \<Rightarrow> lterm \<Rightarrow> lterm" where
 "fill \<Sigma> (Pattern p)                 = p_instantiate \<Sigma> p" |
 "fill \<Sigma> (LIf c t1 t2)               = LIf (fill \<Sigma> c) (fill \<Sigma> t1) (fill \<Sigma> t2)" |
 "fill \<Sigma> (LAbs A t1)                 = LAbs A (fill \<Sigma> t1)" |
