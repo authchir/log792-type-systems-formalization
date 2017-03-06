@@ -198,7 +198,7 @@ inductive is_value_L :: "lterm \<Rightarrow> bool" where
   VNil  :"is_value_L (Lnil A)"|
   VCons :"is_value_L v1 \<Longrightarrow> is_value_L v2 \<Longrightarrow> is_value_L (Lcons A v1 v2)"
 
-primrec FV :: "lterm \<Rightarrow> nat set" where
+function FV :: "lterm \<Rightarrow> nat set" where
   "FV LTrue = {}" |
   "FV LFalse = {}" |
   "FV (LIf t1 t2 t3) = FV t1 \<union> FV t2 \<union> FV t3" |
@@ -208,7 +208,7 @@ primrec FV :: "lterm \<Rightarrow> nat set" where
   "FV unit = {}" |
   "FV (Seq t1 t2) = FV t1 \<union> FV t2" |
   "FV (t as A) = FV t" |
-  "FV (Let var x := t in t1) = FV t1 \<union> FV t \<union> {x}" |
+  "FV (Let var x := t in t1) = image (\<lambda>y. if (y\<ge>x) then y - 1 else y) (FV t1 -{x}) \<union> FV t \<union> {x}" |
   "FV (\<lbrace>t1,t2\<rbrace>) = FV t1 \<union> FV t2" |
   "FV (\<pi>1 t) =  FV t" |
   "FV (\<pi>2 t) =  FV t" |
@@ -220,16 +220,23 @@ primrec FV :: "lterm \<Rightarrow> nat set" where
   "FV (Let pattern p := t1 in t2) = FV t1 \<union> FV t2" |
   "FV (inl t as A) = FV t" |
   "FV (inr t as A) = FV t" |
-  "FV (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = FV t1 \<union> FV t2 \<union> FV t \<union> {x,y}" |
+  "FV (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = image (\<lambda>y. if (y\<ge>x) then y - 1 else y) (FV t1 -{x}) \<union> 
+                                              image (\<lambda>z. if (z\<ge>y) then z - 1 else z) (FV t2 -{y}) \<union> 
+                                              FV t \<union> {x,y}" |
   "FV (<L:=t> as A) = FV t" |
-  "FV (Case t of <L:=I> \<Rightarrow> LT) = FV t \<union> foldl (\<lambda>x r. x \<union> r) {} (map FV LT) \<union> set I" |
+  "FV (Case t of <L:=I> \<Rightarrow> LT) = FV t \<union> foldl (\<lambda>x r. x \<union> r) {} (indexed_map 0 (\<lambda>k t. image (\<lambda>y. if (y\<ge>I!k) then y - 1 else y) (FV t - {I!k})) LT) \<union> set I" |
   "FV (Fixpoint t) = FV t"|
   "FV (Lcons A t t') = FV t \<union> FV t'"|
   "FV (Ltail A t) = FV t"|
   "FV (Lhead A t) = FV t"|
   "FV (Lisnil A t) = FV t"|
   "FV (Lnil A) = {}"
+by pat_completeness auto
 
+termination
+  by (relation "measure (\<lambda>t. size t)", simp_all)
+      (metis less_add_Suc1 size_list_estimation' set_zip_rightD 
+              lessI not_less prod.collapse)+
 
 text{*
     We implement pattern matching and replacing with the following function and definition:

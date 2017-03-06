@@ -53,7 +53,7 @@ lemma indexed_map_cong[fundef_cong]:
 by (induction L arbitrary: n n1 L1, auto)
 
 
-lemma index_not_index_cong:
+lemma indexed_to_map:
  "indexed_map i f L = 
   map (\<lambda>p. f (fst p) (snd p)) (zip [i..<(i+length L)] L)"
 proof (induction L arbitrary: i) 
@@ -93,7 +93,28 @@ qed simp
 lemma insert_nth_comp:
   "n\<le> length L \<Longrightarrow> n\<le>n1 \<Longrightarrow> insert_nth n S (insert_nth n1 S1 L) = insert_nth (Suc n1) S1 (insert_nth n S L)"
   "n\<le> length L \<Longrightarrow> n>n1 \<Longrightarrow> insert_nth (Suc n) S (insert_nth n1 S1 L) = insert_nth (n1) S1 (insert_nth n S L)"
-sorry
+proof (induction L arbitrary: n n1)
+  case (Cons a L')
+    case (1)
+      have "Suc n1 - n = Suc (n1-n)" using 1(2) by auto
+      hence "S # drop n (take n1 (a # L')) @ S1 # drop n1 (a # L') = take (Suc n1 - n) (S # drop n (a # L')) 
+                @ S1 # drop (Suc n1 - n) (S # drop n (a # L'))"
+        using take_Cons[of "Suc n1 - n" S] drop_Cons[of "Suc n1 - n" S] drop_drop[of "n1-n" n]
+               drop_take[of n n1 "a#L'"]
+        by fastforce
+      then show ?case using 1 by (simp add:min_def)
+        
+next
+  case (Cons a L')   
+    case (2)
+      have "Suc n - n1 = Suc (n-n1)" using 2(2) by auto
+      hence "take (Suc n - n1) (S1 # drop n1 (a # L')) @ S # drop (Suc n - n1) (S1 # drop n1 (a # L')) =
+            S1 # drop n1 (take n (a # L')) @ S # drop n (a # L')"
+        using  take_Cons[of "Suc n - n1" S1] drop_Cons[of "Suc n - n1" S1] drop_drop[of "n-n1" n1]
+                   drop_take[of n1 n "a#L'"] 
+        by fastforce
+      then show ?case using 2 by (simp add: min_def)
+qed simp+  
       
 lemma rep_ins:
   "n\<le>n1 \<Longrightarrow> n\<le> length W \<Longrightarrow> insert_nth n S (replace n1 A W) = replace (Suc n1) A (insert_nth n S W)" (is "?P\<Longrightarrow> ?R \<Longrightarrow> ?Q")
