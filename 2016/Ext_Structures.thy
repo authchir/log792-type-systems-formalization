@@ -335,9 +335,170 @@ lemma[simp]: "nat (1 + int x) = Suc x" by simp
 
 lemma[simp]: "nat (int x - 1) = x - 1" by simp 
 
-lemma fill_fill_comp:
-  "fill \<sigma> \<circ> fill \<sigma>1 = fill (\<sigma> ++ \<sigma>1)"
-sorry
+
+lemma gr_Suc_conv: "Suc x \<le> n \<longleftrightarrow> (\<exists>m. n = Suc m \<and> x \<le> m)"
+  by (cases n) auto
+
+lemma FV_shift:
+  "FV (shift_L (int d) c t) = image (\<lambda>x. if x \<ge> c then x + d else x) (FV t)"
+proof (induction t arbitrary: c rule: lterm.induct)
+  case (LAbs T t)
+    thus ?case  by (auto simp: gr_Suc_conv image_iff) force+
+next
+  case (LetBinder x t1 t2)
+    note hyps=this
+    thm shift_L.simps(10) FV.simps(10)
+    show ?case
+      apply (cases "c\<le>x")
+      apply (simp add: image_def hyps)
+      
+      defer
+      apply (simp add: hyps[of c])
+      
+      sorry
+next
+  case (CaseSum t x t1 y t2)
+    note hyps=this
+    
+    have 1:"(\<lambda>x. x + d) ` FV t1 \<inter> (\<lambda>x. x + d) ` Collect (op \<le> (Suc c)) = (\<lambda>x. x + d) ` FV t1 \<inter> (\<lambda>x. x + d) ` Collect (op \<le> c)"
+      sorry
+    have 2: "FV t1 \<inter> {x. \<not> Suc c \<le> x} = FV t1 \<inter> {x. \<not> c \<le> x}" sorry
+    have C1: "c \<le> y \<Longrightarrow> c \<le> x \<Longrightarrow> ?case"
+      using hyps[of c]
+     sorry
+    have C2: "c \<le> y \<Longrightarrow> \<not>c \<le> x \<Longrightarrow> ?case"
+      apply simp      
+      apply (simp add: hyps(1,3)[of c] hyps(2)[of "Suc c"] image_Int[of "\<lambda>x. x + d", simplified] 1 2)
+      apply (simp add: image_Un[of "(\<lambda>x. x + d)"])
+    sorry
+    have C3: "c \<le> x \<Longrightarrow> \<not>c \<le> y \<Longrightarrow> ?case"
+      apply simp      
+      apply (simp add: hyps(1,2)[of c] hyps(3)[of "Suc c"] image_Int[of "\<lambda>x. x + d", simplified])
+      apply (simp add: image_Un[of "(\<lambda>x. x + d)"])
+    sorry
+    have "\<not>c \<le> y \<Longrightarrow> \<not>c \<le> x \<Longrightarrow> ?case"
+      apply simp      
+      apply (simp add: hyps(1)[of c] hyps(2,3)[of "Suc c"] image_Int[of "\<lambda>x. x + d", simplified])
+      apply (simp add: image_Un[of "(\<lambda>x. x + d)"])
+    sorry
+    show ?case
+     sorry
+next
+  case (CaseVar t L I LT)
+    note hyps=this
+    have A:"UNION (set (indexed_map 0 (\<lambda>k. shift_L (int d) (if I ! k < c then Suc c else c)) LT)) FV =
+          (\<lambda>x. x + d) ` ((\<Union>x\<in>set LT. FV x) \<inter> {x. c \<le> x}) \<union> UNION (set LT) FV \<inter> {x. \<not> c \<le> x}"
+          sorry
+    show ?case
+      
+      sorry
+qed auto
+
+lemma FV_subst:
+  "FV (subst_L n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"
+proof (induction u arbitrary: n t rule: lterm.induct)
+  case (LAbs T u)
+  thus ?case 
+    by (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1],
+        (metis DiffI One_nat_def UnCI diff_Suc_1 empty_iff imageI insert_iff nat.distinct(1))+)
+next
+  case (Record L LT)
+    note hyps=this
+    have "(\<exists>x\<in>set LT. n \<in> FV x) \<longrightarrow> (\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV - {n} \<union> FV t"
+      proof (rule)
+        assume "\<exists>x\<in>set LT. n \<in> FV x"
+        then obtain x where H:"x\<in>set LT" "n\<in>FV x" by blast
+
+        note H1= hyps[OF H(1), of n t, simplified H(2) if_True]
+        
+        have "(\<Union>x\<in>set LT. FV (subst_L n t x)) \<subseteq> UNION (set LT) FV - {n} \<union> FV t"
+          proof (rule,simp)
+            fix y
+            assume "\<exists>xa\<in>set LT. y \<in> FV (subst_L n t xa)"
+            then obtain x1 where A:"x1\<in>set LT" "y \<in> FV (subst_L n t x1)" by blast
+            note H2=A(2)[unfolded hyps[OF A(1), of n t]]
+            show "(\<exists>xa\<in>set LT. y \<in> FV xa) \<and> y \<noteq> n \<or> y \<in> FV t"
+                using H2 A(1)
+                by (cases "n\<in>FV x1") force+
+          qed
+        moreover have "UNION (set LT) FV - {n} \<union> FV t \<subseteq> (\<Union>x\<in>set LT. FV (subst_L n t x))"
+          using hyps[of _ n t] H1 H
+          by auto
+        
+        ultimately show "(\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV - {n} \<union> FV t"
+          by blast
+      qed
+    moreover have "(\<forall>x\<in>set LT. n \<notin> FV x) \<longrightarrow> (\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV"
+      using hyps
+      by simp
+    ultimately show ?case by simp      
+next
+  case (Tuple LT)
+    note hyps= this
+    have "(\<exists>x\<in>set LT. n \<in> FV x) \<longrightarrow> (\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV - {n} \<union> FV t"
+      proof (rule)
+        assume "\<exists>x\<in>set LT. n \<in> FV x"
+        then obtain x where H:"x\<in>set LT" "n\<in>FV x" by blast
+
+        note H1= hyps[OF H(1), of n t, simplified H(2) if_True]
+        
+        have "(\<Union>x\<in>set LT. FV (subst_L n t x)) \<subseteq> UNION (set LT) FV - {n} \<union> FV t"
+          proof (rule,simp)
+            fix y
+            assume "\<exists>xa\<in>set LT. y \<in> FV (subst_L n t xa)"
+            then obtain x1 where A:"x1\<in>set LT" "y \<in> FV (subst_L n t x1)" by blast
+            note H2=A(2)[unfolded hyps[OF A(1), of n t]]
+            show "(\<exists>xa\<in>set LT. y \<in> FV xa) \<and> y \<noteq> n \<or> y \<in> FV t"
+                using H2 A(1)
+                by (cases "n\<in>FV x1") force+
+          qed
+        moreover have "UNION (set LT) FV - {n} \<union> FV t \<subseteq> (\<Union>x\<in>set LT. FV (subst_L n t x))"
+          using hyps[of _ n t] H1 H
+          by auto
+        
+        ultimately show "(\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV - {n} \<union> FV t"
+          by blast
+      qed
+    moreover have "(\<forall>x\<in>set LT. n \<notin> FV x) \<longrightarrow> (\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV"
+      using hyps
+      by simp
+    ultimately show ?case by simp
+next
+  case (LetBinder x t1 t2)
+    note hyps=this
+    have "x < n \<Longrightarrow> ?case"
+      proof (rule; rule)
+        fix x1
+        assume H:"x<n" "x1 \<in> FV (subst_L n t (Let var x := t1 in t2))"
+        have "n\<in>FV (Let var x := t1 in t2) \<Longrightarrow> n = x \<Longrightarrow> x1 \<in> FV (Let var x := t1 in t2) - {n} \<union> FV t"
+          apply simp
+          using H(2)[simplified, unfolded hyps]
+          apply (simp add: hyps)
+          apply (cases "x\<in>FV t1")
+          sorry
+        show "x1 \<in> (if n \<in> FV (Let var x := t1 in t2) then FV (Let var x := t1 in t2) - {n} \<union> FV t
+                 else FV (Let var x := t1 in t2))"
+          sorry
+      next
+        fix x1
+        show "x1 \<in> FV (subst_L n t (Let var x := t1 in t2))" sorry
+      qed
+    show ?case
+      apply (cases "n \<in> FV (Let var x := t1 in t2)")
+      apply (cases "n\<ge>x")
+      apply (cases "n=x")
+      apply (simp del: subst_L.simps)
+      apply rule+
+      apply (simp add: image_iff)
+      
+      sorry
+next
+  case (CaseSum )
+    thus ?case sorry
+next
+  case (CaseVar)
+    thus ?case sorry
+qed (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1])
 
 lemma weakening :
   fixes \<Gamma>::lcontext  and t::lterm and A S::ltype and \<sigma> ::"nat\<rightharpoonup>ltype" and n::nat
@@ -1172,10 +1333,34 @@ next
       by (force intro!: has_type_L.intros)
 qed (inv_agrees_f, force intro: has_type_L.intros simp: nth_append min_def)+
 
-lemma agrees_shift: "agrees_flag s f \<Longrightarrow> agrees_flag (shift_L d c s) f" sorry
+lemma agrees_f_true_imp_all:"agrees_flag t True \<Longrightarrow> agrees_flag t f"
+by (induction t) (inv_agrees_f, agrees_m)+
+
+lemma agrees_shift: "agrees_flag s f \<Longrightarrow> agrees_flag (shift_L d c s) f"
+proof (induction s arbitrary: d c f)
+  case (CaseVar t L I LT)
+    note hyps=this and inv = this(3)[unfolded agrees_flag.simps[of "CaseVar _ _ _ _", simplified]]
+    let ?f = "(\<lambda>k. shift_L d (if I ! k < c then Suc c else c))"
+    let ?L = "indexed_map 0 ?f LT"
+    have "length ?L = length LT"
+      using indexed_to_map[of 0 ?f LT]
+      by force
+    hence "\<forall>i<length ?L. agrees_flag (?L ! i) f"
+      using hyps(2) indexed_to_map[of 0 ?f LT]
+            nth_map[of _ "zip [0..<0 + length LT] LT" "\<lambda>p. ?f (fst p) (snd p)", simplified]
+            nth_zip[of _ "[0..<0 + length LT]" LT, simplified] fst_conv snd_conv inv
+            in_set_conv_nth[of _ LT]
+      by fastforce
+      
+    then show ?case
+      using agrees_flag.intros(4)[of "CaseVar _ _ _ (indexed_map 0 (\<lambda>k. shift_L d (if I ! k < c then Suc c else c)) LT)", simplified]
+            hyps(1) inv
+      by auto      
+qed (inv_agrees_f, agrees_m)+
 
 lemma substitution:
-  "\<Gamma> \<turnstile> \<lparr>t|;|\<sigma>,f\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>LVar n|;|\<sigma>1,f1\<rparr> |:| S \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>s|;|\<sigma>1,f1\<rparr> |:| S \<Longrightarrow>agrees_flag s f\<Longrightarrow> \<sigma>1 \<subseteq>\<^sub>f \<sigma>\<Longrightarrow> \<Gamma> \<turnstile> \<lparr>subst_L n s t|;|\<sigma>,f\<rparr> |:| A"
+  "\<Gamma> \<turnstile> \<lparr>t|;|\<sigma>,f\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>LVar n|;|\<sigma>1,f1\<rparr> |:| S \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>s|;|\<sigma>1,f1\<rparr> |:| S \<Longrightarrow>agrees_flag s f \<Longrightarrow> 
+  \<sigma>1 \<subseteq>\<^sub>f \<sigma>\<Longrightarrow> \<Gamma> \<turnstile> \<lparr>subst_L n s t|;|\<sigma>,f\<rparr> |:| A"
 proof (induction \<Gamma> t \<sigma> f A arbitrary: s n \<sigma>1 f1 rule: has_type_L.induct; inv_agrees_f)
   case (has_type_LAbs \<Gamma> T1 t \<sigma> f T2)
     note hyps=this and s_af= agrees_shift[OF this(5)]
@@ -1407,12 +1592,12 @@ next
 *)
             have "n\<le>I!i \<Longrightarrow>  insert_nth (I ! i) (TL ! i) \<Gamma> \<turnstile> \<lparr>subst_L  n (shift_L 1 (I!i) s) (LT ! i)|;|\<sigma>,f\<rparr> |:| A"
               using P(1)[of n \<sigma>1 f1] inversion(4)[OF hyps(9)] has_type_LVar[of n S "insert_nth (I!i) (TL!i) \<Gamma>" _ ]
-                    weakening[OF hyps(10), of "I!i" "TL!i"] H P(2) ag_i hyps(12)
+                    weakening[OF hyps(10), of "I!i" "TL!i"] H P(2) (*ag_i*) hyps(12) ag
                     nth_take[of n "I!i" \<Gamma>] nth_append[of "take (I!i) \<Gamma>" _ n, simplified]
               by force
 
             moreover have "\<not> n\<le>I!i \<Longrightarrow>  insert_nth (I ! i) (TL ! i) \<Gamma> \<turnstile> \<lparr>subst_L (Suc n) (shift_L 1 (I!i) s) (LT ! i)|;|\<sigma>,f\<rparr> |:| A"
-              using P(1)[of "Suc n" \<sigma>1 f1] has_type_LVar[OF V_shift] not_le[of n "I!i"] ag_i
+              using P(1)[of "Suc n" \<sigma>1 f1] has_type_LVar[OF V_shift] not_le[of n "I!i"] ag
                     weakening[OF hyps(10), of "I!i" "TL!i"] P(2) hyps(12)
               by presburger
             ultimately show "insert_nth (I ! i) (TL ! i) \<Gamma> \<turnstile> \<lparr>subst_L (if n > I!i  then Suc n else n) (shift_L 1 (I!i) s) (LT ! i)|;|\<sigma>,f\<rparr> |:| A"
@@ -1430,24 +1615,22 @@ next
       by (force intro!: has_type_L.intros(24))      
 next
   case (has_type_tail \<Gamma> t \<sigma> A f)
-    note hyps=this and ag = this(5)[unfolded "agrees_flag.simps"[of "Ltail _ _", simplified]]
+    note hyps=this and ag = agrees_shift[OF this(5),of 1]
     show ?case
       using hyps(2)[of n \<sigma>1 f1 s] hyps(3,4-) ag 
-      by (force intro!: has_type_L.intros)
+      (*by (force intro!: has_type_L.intros)*) sorry
 next
   case (has_type_head)
     note hyps=this and ag = this(5)[unfolded "agrees_flag.simps"[of "Lhead _ _", simplified]]
     show ?case
       using hyps(2)[of n \<sigma>1 f1 s] hyps(3,4-) ag 
-      by (force intro!: has_type_L.intros)
+     (* by (force intro!: has_type_L.intros)*) sorry
 next
   case (has_type_LVar x A \<Gamma> \<sigma> f)
     note hyps=this
     show ?case
-      apply simp
-      apply rule
       using hyps(1,2) inversion(4) weakening_pattern_flag[OF hyps(3,5,4)]           
-      try0
+      by (force intro!: has_type_L.intros)
 qed (auto intro!: has_type_L.intros agrees_shift dest: inversion(4))
 
 method inv_eval = (match premises in H:"eval1_L t t1" for t and t1 \<Rightarrow>
@@ -1500,170 +1683,9 @@ next
 qed  (m2, meson has_type_L.intros contains.simps[of _ "Lhead _ _"] contains.simps[of _ "Ltail _ _"] 
           "contains.simps"[of "Lnil _" "Lnil _", simplified])+
 
-lemma gr_Suc_conv: "Suc x \<le> n \<longleftrightarrow> (\<exists>m. n = Suc m \<and> x \<le> m)"
-  by (cases n) auto
 
-lemma FV_shift:
-  "FV (shift_L (int d) c t) = image (\<lambda>x. if x \<ge> c then x + d else x) (FV t)"
-proof (induction t arbitrary: c rule: lterm.induct)
-  case (LAbs T t)
-    thus ?case  by (auto simp: gr_Suc_conv image_iff) force+
-next
-  case (LetBinder x t1 t2)
-    note hyps=this
-    show ?case
-      apply (cases "c\<le>x")
-      apply (simp )
-      defer
-      apply (simp add: hyps[of c])
-      
-      sorry
-next
-  case (CaseSum t x t1 y t2)
-    note hyps=this
-    
-    have 1:"(\<lambda>x. x + d) ` FV t1 \<inter> (\<lambda>x. x + d) ` Collect (op \<le> (Suc c)) = (\<lambda>x. x + d) ` FV t1 \<inter> (\<lambda>x. x + d) ` Collect (op \<le> c)"
-      sorry
-    have 2: "FV t1 \<inter> {x. \<not> Suc c \<le> x} = FV t1 \<inter> {x. \<not> c \<le> x}" sorry
-    have C1: "c \<le> y \<Longrightarrow> c \<le> x \<Longrightarrow> ?case"
-      using hyps[of c]
-     sorry
-    have C2: "c \<le> y \<Longrightarrow> \<not>c \<le> x \<Longrightarrow> ?case"
-      apply simp      
-      apply (simp add: hyps(1,3)[of c] hyps(2)[of "Suc c"] image_Int[of "\<lambda>x. x + d", simplified] 1 2)
-      apply (simp add: image_Un[of "(\<lambda>x. x + d)"])
-    sorry
-    have C3: "c \<le> x \<Longrightarrow> \<not>c \<le> y \<Longrightarrow> ?case"
-      apply simp      
-      apply (simp add: hyps(1,2)[of c] hyps(3)[of "Suc c"] image_Int[of "\<lambda>x. x + d", simplified])
-      apply (simp add: image_Un[of "(\<lambda>x. x + d)"])
-    sorry
-    have "\<not>c \<le> y \<Longrightarrow> \<not>c \<le> x \<Longrightarrow> ?case"
-      apply simp      
-      apply (simp add: hyps(1)[of c] hyps(2,3)[of "Suc c"] image_Int[of "\<lambda>x. x + d", simplified])
-      apply (simp add: image_Un[of "(\<lambda>x. x + d)"])
-    sorry
-    show ?case
-     sorry
-next
-  case (CaseVar t L I LT)
-    note hyps=this
-    have A:"UNION (set (indexed_map 0 (\<lambda>k. shift_L (int d) (if I ! k < c then Suc c else c)) LT)) FV =
-          (\<lambda>x. x + d) ` ((\<Union>x\<in>set LT. FV x) \<inter> {x. c \<le> x}) \<union> UNION (set LT) FV \<inter> {x. \<not> c \<le> x}"
-          sorry
-    show ?case
-      
-      sorry
-qed auto
 
-lemma FV_subst:
-  "FV (subst_L n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"
-proof (induction u arbitrary: n t rule: lterm.induct)
-  case (LAbs T u)
-  thus ?case 
-    by (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1],
-        (metis DiffI One_nat_def UnCI diff_Suc_1 empty_iff imageI insert_iff nat.distinct(1))+)
-next
-  case (Record L LT)
-    note hyps=this
-    have "(\<exists>x\<in>set LT. n \<in> FV x) \<longrightarrow> (\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV - {n} \<union> FV t"
-      proof (rule)
-        assume "\<exists>x\<in>set LT. n \<in> FV x"
-        then obtain x where H:"x\<in>set LT" "n\<in>FV x" by blast
 
-        note H1= hyps[OF H(1), of n t, simplified H(2) if_True]
-        
-        have "(\<Union>x\<in>set LT. FV (subst_L n t x)) \<subseteq> UNION (set LT) FV - {n} \<union> FV t"
-          proof (rule,simp)
-            fix y
-            assume "\<exists>xa\<in>set LT. y \<in> FV (subst_L n t xa)"
-            then obtain x1 where A:"x1\<in>set LT" "y \<in> FV (subst_L n t x1)" by blast
-            note H2=A(2)[unfolded hyps[OF A(1), of n t]]
-            show "(\<exists>xa\<in>set LT. y \<in> FV xa) \<and> y \<noteq> n \<or> y \<in> FV t"
-                using H2 A(1)
-                by (cases "n\<in>FV x1") force+
-          qed
-        moreover have "UNION (set LT) FV - {n} \<union> FV t \<subseteq> (\<Union>x\<in>set LT. FV (subst_L n t x))"
-          using hyps[of _ n t] H1 H
-          by auto
-        
-        ultimately show "(\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV - {n} \<union> FV t"
-          by blast
-      qed
-    moreover have "(\<forall>x\<in>set LT. n \<notin> FV x) \<longrightarrow> (\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV"
-      using hyps
-      by simp
-    ultimately show ?case by simp      
-next
-  case (Tuple LT)
-    note hyps= this
-    have "(\<exists>x\<in>set LT. n \<in> FV x) \<longrightarrow> (\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV - {n} \<union> FV t"
-      proof (rule)
-        assume "\<exists>x\<in>set LT. n \<in> FV x"
-        then obtain x where H:"x\<in>set LT" "n\<in>FV x" by blast
-
-        note H1= hyps[OF H(1), of n t, simplified H(2) if_True]
-        
-        have "(\<Union>x\<in>set LT. FV (subst_L n t x)) \<subseteq> UNION (set LT) FV - {n} \<union> FV t"
-          proof (rule,simp)
-            fix y
-            assume "\<exists>xa\<in>set LT. y \<in> FV (subst_L n t xa)"
-            then obtain x1 where A:"x1\<in>set LT" "y \<in> FV (subst_L n t x1)" by blast
-            note H2=A(2)[unfolded hyps[OF A(1), of n t]]
-            show "(\<exists>xa\<in>set LT. y \<in> FV xa) \<and> y \<noteq> n \<or> y \<in> FV t"
-                using H2 A(1)
-                by (cases "n\<in>FV x1") force+
-          qed
-        moreover have "UNION (set LT) FV - {n} \<union> FV t \<subseteq> (\<Union>x\<in>set LT. FV (subst_L n t x))"
-          using hyps[of _ n t] H1 H
-          by auto
-        
-        ultimately show "(\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV - {n} \<union> FV t"
-          by blast
-      qed
-    moreover have "(\<forall>x\<in>set LT. n \<notin> FV x) \<longrightarrow> (\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV"
-      using hyps
-      by simp
-    ultimately show ?case by simp
-next
-  case (LetBinder x t1 t2)
-    note hyps=this
-    have "x < n \<Longrightarrow> ?case"
-      proof (rule; rule)
-        fix x1
-        assume H:"x<n" "x1 \<in> FV (subst_L n t (Let var x := t1 in t2))"
-        have "n\<in>FV (Let var x := t1 in t2) \<Longrightarrow> n = x \<Longrightarrow> x1 \<in> FV (Let var x := t1 in t2) - {n} \<union> FV t"
-          apply simp
-          using H(2)[simplified, unfolded hyps]
-          apply (simp add: hyps)
-          apply (cases "x\<in>FV t1")
-          sorry
-        show "x1 \<in> (if n \<in> FV (Let var x := t1 in t2) then FV (Let var x := t1 in t2) - {n} \<union> FV t
-                 else FV (Let var x := t1 in t2))"
-          sorry
-      next
-        fix x1
-        show "x1 \<in> FV (subst_L n t (Let var x := t1 in t2))" sorry
-      qed
-    show ?case
-      apply (cases "n \<in> FV (Let var x := t1 in t2)")
-      apply (cases "n\<ge>x")
-      apply (cases "n=x")
-      apply (simp del: subst_L.simps)
-      apply rule+
-      apply (simp add: image_iff)
-      
-      sorry
-next
-  case (CaseSum )
-    thus ?case sorry
-next
-  case (CaseVar)
-    thus ?case sorry
-qed (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1])
-
-lemma agrees_f_true_imp_all:"agrees_flag t True \<Longrightarrow> agrees_flag t f"
-by (induction t) (inv_agrees_f, agrees_m)+
 
 lemma pattern_substitution:
   "\<Gamma> \<turnstile> \<lparr>tb|;|(\<sigma>2 ++ \<sigma>1),f\<rparr> |:| A \<Longrightarrow> (\<forall>x\<in>dom \<sigma>1. \<exists>B t' f1. \<sigma>1 x = Some B \<and> \<sigma> x = Some t' \<and>\<emptyset> \<turnstile> \<lparr>t'|;|\<sigma>2,f1\<rparr> |:| B) \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>fill \<sigma> tb|;|\<sigma>2,f\<rparr> |:| A"
