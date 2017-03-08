@@ -52,7 +52,6 @@ lemma indexed_map_cong[fundef_cong]:
     indexed_map n f L = indexed_map n1 g L1"
 by (induction L arbitrary: n n1 L1, auto)
 
-
 lemma indexed_to_map:
  "indexed_map i f L = 
   map (\<lambda>p. f (fst p) (snd p)) (zip [i..<(i+length L)] L)"
@@ -66,6 +65,14 @@ proof (induction L arbitrary: i)
       using Cons[of "Suc i"]
       by force
 qed auto
+
+lemma indexed_map_0_len[simp]:
+  "length (indexed_map 0 f L) = length L"
+by (force simp: indexed_to_map[of 0 f L])
+
+lemma nth_indexed_map_0[simp]:
+  "i<length L \<Longrightarrow> indexed_map 0 f L ! i = f i (L!i)"
+by (simp add:indexed_to_map[of 0 f L])
 
 lemma replace_inv_length[simp]:
   "length (replace n x S) = length S"  

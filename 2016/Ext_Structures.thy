@@ -118,7 +118,7 @@ inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
   eval1_L_Inr:
     "eval1_L t t' \<Longrightarrow> eval1_L (inr t as A) (inr t' as A)" |
   eval1_L_CaseVar:
-    "index L l = i \<Longrightarrow> eval1_L (Case (<l:=v> as A) of <L:=I> \<Rightarrow> LT) (shift_L (-1) (I!i) (subst_L (I!i) (shift_L 1 (I!i) v) (LT!i)))" |
+    "l\<in>set L \<Longrightarrow> index L l = i \<Longrightarrow> eval1_L (Case (<l:=v> as A) of <L:=I> \<Rightarrow> LT) (shift_L (-1) (I!i) (subst_L (I!i) (shift_L 1 (I!i) v) (LT!i)))" |
   eval1_L_CaseV:
     "eval1_L t t' \<Longrightarrow> eval1_L (Case t of <L:=I> \<Rightarrow> LT) (Case t' of <L:=I> \<Rightarrow> LT)" |
   eval1_L_Variant:
@@ -339,47 +339,236 @@ lemma[simp]: "nat (int x - 1) = x - 1" by simp
 lemma gr_Suc_conv: "Suc x \<le> n \<longleftrightarrow> (\<exists>m. n = Suc m \<and> x \<le> m)"
   by (cases n) auto
 
+
+lemma fill_fill_comp:
+  "(fill \<sigma> \<circ> fill \<sigma>1) t = fill (\<lambda>x. case \<sigma>1 x of None \<Rightarrow> \<sigma> x | Some t \<Rightarrow> Some (fill \<sigma> t)) t"
+proof (induction t arbitrary:)
+  case (Pattern p)
+    show ?case
+      proof (induction p)
+        case (V n A)
+          show ?case  by (cases "n\<notin>dom \<sigma>1") (simp add: domIff, force)+
+      qed simp      
+qed auto 
+
+abbreviation binder_v:: "lterm \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow>bool" where
+"binder_v t c k \<equiv> (case t of LetBinder x _ _ \<Rightarrow> k = (if x < c then Suc c else c) | 
+                               _ \<Rightarrow> True)"
+
 lemma FV_shift:
   "FV (shift_L (int d) c t) = image (\<lambda>x. if x \<ge> c then x + d else x) (FV t)"
 proof (induction t arbitrary: c rule: lterm.induct)
-  case (LAbs T t)
-    thus ?case  by (auto simp: gr_Suc_conv image_iff) force+
+  case (LAbs T t)      
+    thus ?case        
+      by (auto simp: gr_Suc_conv image_iff) force+
 next
   case (LetBinder x t1 t2)
     note hyps=this
-    thm shift_L.simps(10) FV.simps(10)
-    show ?case
-      apply (cases "c\<le>x")
-      apply (simp add: image_def hyps)
-      
-      defer
-      apply (simp add: hyps[of c])
-      
-      sorry
+    have simp_nat:"nat (int x + int d) = x + d" by force
+    let ?S= "{y. \<exists>xa. (xa = x \<or> ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+               xa \<in> FV t2 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1) \<and> c \<le> xa) \<and> y = xa + d} \<union>
+             ({y. \<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t2 - {x}) \<inter> {y. \<not> x < y} \<union> FV t1) \<inter>
+             {x. \<not> c \<le> x}"
+        and ?S1 ="insert (x + d)({y. \<exists>xa. ((\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> xa = x + d) \<or> xa \<in> FV t2 \<and> \<not> c \<le> xa) \<and>
+                  xa \<noteq> x + d \<and> x + d < xa \<and> y = xa - Suc 0} \<union> ({y. \<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> y = x + d} \<union> 
+                  FV t2 \<inter> {x. \<not> c \<le> x} - {x + d}) \<inter> {y. \<not> x + d < y} \<union>
+                  ({y. \<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d} \<union> FV t1 \<inter> {x. \<not> c \<le> x}))"
+    have 1:"x\<ge>c \<Longrightarrow> ?S1 \<subseteq> ?S"
+      proof (rule)
+        fix y
+        assume "y \<in> ?S1" and H2:"x\<ge>c"
+        note H=this(1)[simplified,unfolded not_less] 
+        
+        have "y=x+d \<Longrightarrow> y\<in> ?S" by blast
+        moreover have "\<exists>xa x1. x1 \<in> FV t2 \<and> c \<le> x1 \<and> xa = x1 + d \<and> xa \<noteq> x + d \<and> x + d < xa 
+                        \<and> y = xa - Suc 0 \<Longrightarrow>
+                        y\<in>?S"
+          using H2 le_neq_implies_less[of y "x+d"]
+          proof (simp)
+            assume "\<exists>x1. x1 \<in> FV t2 \<and> c \<le> x1 \<and> x1 \<noteq> x \<and> x < x1 \<and> y = x1 + d - Suc 0" and 
+                    H':"c\<le> x"
+            then obtain x1 where "x1 \<in> FV t2 \<and> c \<le> x1 \<and> x1 \<noteq> x \<and> x < x1 \<and> y = x1 + d - Suc 0"
+              by blast
+            hence "x1 \<in> FV t2 \<and> x1 \<noteq> x \<and> x < x1 \<and> x1 - Suc 0 = x1 - Suc 0 \<and> c \<le> x1 - Suc 0 \<and> 
+                    y = x1 - Suc 0 + d"
+              using Orderings.order_class.dual_order.strict_trans2[OF _ H', of x1]
+              by auto
+            then show "(\<exists>xa. (xa = x \<or> ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or> xa \<in> FV t2 
+                        \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1) \<and> c \<le> xa) \<and> y = xa + d) \<or> ((\<exists>xa. xa \<in> FV t2 \<and>
+                        xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0) \<or> y \<in> FV t2 \<and> y \<noteq> x \<and> \<not> x < y \<or> y \<in> FV t1) \<and>
+                        \<not> c \<le> y"
+              by blast
+          qed
+
+        moreover have "\<exists>xa. xa \<in> FV t2 \<and> \<not> c \<le> xa \<and> xa \<noteq> x + d \<and> x + d < xa \<and> y = xa - Suc 0 \<Longrightarrow>
+                        y\<in>?S"
+          using H2
+          by force
+        moreover have "(\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> y = x + d) \<and> y \<noteq> x + d \<and> y \<le> x + d
+                        \<Longrightarrow> y\<in>?S"
+          using H2 le_neq_implies_less[of y "x+d"]
+          by force
+        moreover have "y \<in> FV t2 \<and> \<not> c \<le> y \<and> y \<noteq> x + d \<and> y \<le> x + d \<Longrightarrow> y\<in>?S"
+          using H2 le_neq_implies_less[of y "x+d"] not_less not_le
+          by simp
+        moreover have "(\<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d) \<or> y \<in> FV t1 \<and> \<not> c \<le> y \<Longrightarrow> y\<in>?S"   
+          using H2 not_le not_less
+          by blast
+        ultimately show "y\<in>?S" using H by smt       
+          
+      qed    
+
+    have "x\<ge>c \<Longrightarrow> ?S \<subseteq> ?S1"
+      proof (rule)
+        fix y
+        assume "y \<in> ?S" and H':"x\<ge>c"
+        note H=this(1)[simplified,unfolded not_less not_le] 
+        have "y=x+d \<Longrightarrow> y\<in> ?S1" by blast
+        moreover have "\<exists>xa xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0 \<and> c \<le> xa \<and> y = xa + d
+                        \<Longrightarrow> y\<in>?S1"
+          using H'
+          proof(simp)
+            assume "\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> c \<le> xb - Suc 0 \<and> y = xb - Suc 0 + d"
+            then obtain xb where  "xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> c \<le> xb - Suc 0 \<and> y = xb - Suc 0 + d"
+              by blast
+            hence "xb\<in>FV t2 \<and> c\<le>xb \<and> xb+d=xb+d \<and> xb+d\<noteq>x+d \<and> x+d < xb+d \<and> y = xb +d - Suc 0"
+              by force
+            then show "y = x + d \<or>(\<exists>xa. ((\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> xa = x + d) \<or> xa \<in> FV t2 \<and> \<not> c \<le> xa) \<and>
+                      xa \<noteq> x + d \<and> x + d < xa \<and> y = xa - Suc 0) \<or> ((\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> y = x + d) \<or> y \<in> FV t2 \<and> \<not> c \<le> y) \<and> y \<noteq> x + d \<and> \<not> x + d < y \<or>
+                      (\<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d) \<or> y \<in> FV t1 \<and> \<not> c \<le> y "
+              by blast
+          qed
+        moreover have "\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> xa \<le> x \<and> c \<le> xa \<and> y = xa + d \<Longrightarrow>
+                        y\<in>?S1"
+          using H' le_neq_implies_less[of _ x] not_less not_le
+          by force
+
+        moreover have "(\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0) \<and> y < c \<Longrightarrow>
+                        y\<in>?S1"
+          using H' by auto              
+          
+        moreover have "y \<in> FV t2 \<and> y \<noteq> x \<and> y \<le> x \<and> y < c \<Longrightarrow> y\<in> ?S1"
+          using H' by auto
+
+        moreover have "\<exists>xa. xa \<in> FV t1 \<and> c \<le> xa \<and> y = xa + d \<Longrightarrow> y\<in>?S1"
+          using H' by force
+        moreover have " y \<in> FV t1 \<and> y < c \<Longrightarrow> y\<in>?S1" by auto
+        ultimately show "y\<in>?S1" using H by smt
+      qed
+
+    with 1 have P1:"x\<ge>c \<Longrightarrow> ?S = ?S1" by fast
+
+    let ?S2 =" insert x ({y. \<exists>xa. ((\<exists>x. x \<in> FV t2 \<and> Suc c \<le> x \<and> xa = x + d) \<or> xa \<in> FV t2 \<and> \<not> Suc c \<le> xa) \<and>
+               xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> ({y. \<exists>x. x \<in> FV t2 \<and> Suc c \<le> x \<and> y = x + d} \<union> FV t2 \<inter> {x. \<not> Suc c \<le> x} - {x}) \<inter> {y. \<not> x < y} \<union>
+               ({y. \<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d} \<union> FV t1 \<inter> {x. \<not> c \<le> x}))"
+        and ?S4 ="insert x
+     ({y. \<exists>xa. ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                xa \<in> FV t2 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1) \<and>
+               c \<le> xa \<and> y = xa + d} \<union>
+      ({y. \<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t2 - {x}) \<inter> {y. \<not> x < y} \<union> FV t1) \<inter>
+      {x. \<not> c \<le> x})"
+    have 3:"x<c \<Longrightarrow> ?S4 \<subseteq> ?S2"
+      proof (rule)
+        fix y
+        assume "y \<in> ?S4" and H2:"x<c"
+        note H=this(1)[simplified,unfolded not_less not_le] 
+        
+        have "y=x \<Longrightarrow> y\<in> ?S2" by blast
+        moreover have "\<exists>xa x1. x1 \<in> FV t2 \<and> x1 \<noteq> x \<and> x < x1 \<and> xa = x1 - Suc 0 \<and>  c \<le> xa \<and> y = xa + d \<Longrightarrow>
+                        y\<in>?S2"
+          using H2 
+          proof (simp add: not_le not_less)
+            assume "\<exists>x1. x1 \<in> FV t2 \<and> x1 \<noteq> x \<and> x < x1 \<and> c \<le> x1 - Suc 0 \<and> y = x1 - Suc 0 + d" and 
+                    H':"c> x"
+            then obtain x1 where "x1 \<in> FV t2 \<and> x1 \<noteq> x \<and> x < x1 \<and> c \<le> x1 - Suc 0 \<and> y = x1 - Suc 0 + d"
+              by blast
+            hence "x1 \<in> FV t2 \<and> Suc c \<le> x1 \<and> x1+d = x1 + d \<and>  x1+d \<noteq> x \<and> x < x1+d \<and> y = x1 + d - Suc 0"
+              using Suc_le_mono[symmetric]
+              by force
+            then show " y = x \<or> (\<exists>xa. ((\<exists>x. x \<in> FV t2 \<and> Suc c \<le> x \<and> xa = x + d) \<or> xa \<in> FV t2 \<and> xa < Suc c) \<and>
+                        xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0) \<or> ((\<exists>x. x \<in> FV t2 \<and> Suc c \<le> x \<and> y = x + d) 
+                        \<or> y \<in> FV t2 \<and> y < Suc c) \<and> y \<noteq> x \<and> y \<le> x \<or> (\<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d)
+                        \<or> y \<in> FV t1 \<and> y < c"
+              by auto
+          qed
+
+        moreover have "\<exists>xa.  xa \<in> FV t2 \<and> xa \<noteq> x \<and> xa \<le> x \<and> c \<le> xa \<and> y = xa + d \<Longrightarrow>
+                        y\<in>?S2"
+          using H2 not_le not_less
+          by force
+
+        moreover have "(\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0) \<and> y < c
+                        \<Longrightarrow> y\<in>?S2"
+          using H2 by force
+         
+        moreover have "y \<in> FV t2 \<and> y \<noteq> x \<and> y \<le> x \<and> y < c \<Longrightarrow> y\<in>?S2"
+          using H2 
+          by (simp add: not_le not_less)
+          
+        moreover have "(\<exists>xa.  xa \<in> FV t1 \<and> c \<le> xa \<and> y = xa + d) \<or> y \<in> FV t1 \<and> y < c \<Longrightarrow> y\<in>?S2"   
+          using H2 
+          by (simp add: not_le not_less)
+          
+        ultimately show "y\<in>?S2" using H by smt        
+          
+      qed    
+
+    have "x<c \<Longrightarrow> ?S2 \<subseteq> ?S4"
+      proof (rule)
+        fix y
+        assume "y \<in> ?S2" and H':"x<c"
+        note H=this(1)[simplified,unfolded not_less not_le] 
+        have "y=x \<Longrightarrow> y\<in> ?S4" by blast
+        moreover have "\<exists>xa xb. xb \<in> FV t2 \<and> Suc c \<le> xb \<and> xa = xb + d \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0
+                        \<Longrightarrow> y\<in>?S4"
+          using H'
+          sorry
+
+        moreover have "\<exists>xa. xa \<in> FV t2 \<and> xa < Suc c \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0 \<Longrightarrow>
+                        y\<in>?S4"
+          using H' 
+          by (auto simp: not_le not_less)
+
+        moreover have "(\<exists>x. x \<in> FV t2 \<and> Suc c \<le> x \<and> y = x + d) \<and> y \<noteq> x \<and> y \<le> x \<Longrightarrow>
+                        y\<in>?S4"
+          using H' sorry           
+          
+        moreover have "y \<in> FV t2 \<and> y < Suc c \<and> y \<noteq> x \<and> y \<le> x \<Longrightarrow> y\<in> ?S4"
+          using H' by auto
+
+        moreover have "(\<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d) \<or> y \<in> FV t1 \<and> y < c \<Longrightarrow> y\<in>?S4"
+          using H' by force
+        
+        ultimately show "y\<in>?S4" using H by smt
+      qed
+  
+    with 3 have P2:"x<c \<Longrightarrow> ?S2 = ?S4" by fast
+
+    show ?case 
+      using P1 P2 not_le
+      by (cases "x\<ge>c")(force simp: hyps image_def Bex_def exI Int_Collect simp_nat)+
 next
   case (CaseSum t x t1 y t2)
     note hyps=this
-    
+    have simp_nat: "nat (int x + int d) = x+d" 
+                   "nat (int y + int d) = y+d"
+      by force+
     have 1:"(\<lambda>x. x + d) ` FV t1 \<inter> (\<lambda>x. x + d) ` Collect (op \<le> (Suc c)) = (\<lambda>x. x + d) ` FV t1 \<inter> (\<lambda>x. x + d) ` Collect (op \<le> c)"
       sorry
     have 2: "FV t1 \<inter> {x. \<not> Suc c \<le> x} = FV t1 \<inter> {x. \<not> c \<le> x}" sorry
     have C1: "c \<le> y \<Longrightarrow> c \<le> x \<Longrightarrow> ?case"
       using hyps[of c]
      sorry
+   
+     
     have C2: "c \<le> y \<Longrightarrow> \<not>c \<le> x \<Longrightarrow> ?case"
-      apply simp      
-      apply (simp add: hyps(1,3)[of c] hyps(2)[of "Suc c"] image_Int[of "\<lambda>x. x + d", simplified] 1 2)
-      apply (simp add: image_Un[of "(\<lambda>x. x + d)"])
+     
     sorry
     have C3: "c \<le> x \<Longrightarrow> \<not>c \<le> y \<Longrightarrow> ?case"
-      apply simp      
-      apply (simp add: hyps(1,2)[of c] hyps(3)[of "Suc c"] image_Int[of "\<lambda>x. x + d", simplified])
-      apply (simp add: image_Un[of "(\<lambda>x. x + d)"])
+      
     sorry
     have "\<not>c \<le> y \<Longrightarrow> \<not>c \<le> x \<Longrightarrow> ?case"
-      apply simp      
-      apply (simp add: hyps(1)[of c] hyps(2,3)[of "Suc c"] image_Int[of "\<lambda>x. x + d", simplified])
-      apply (simp add: image_Un[of "(\<lambda>x. x + d)"])
+      
     sorry
     show ?case
      sorry
@@ -945,7 +1134,7 @@ next
   case (has_type_CaseV L I TL LT t f A)
     note hyps=this
     show ?case
-      using eval1_L.intros(32,33) hyps(7) canonical_forms(7)[OF _ hyps(6)]
+      using eval1_L.intros(32,33) hyps(7) canonical_forms(7)[OF _ hyps(6)] in_set_conv_nth
       by metis
 next
   case (has_type_Case t f A B x t1 C y t2)
@@ -994,8 +1183,8 @@ next
 next
   case (has_type_Let x t1 \<sigma>1 f A t2 B)
     note hyps=this
-    have 1:"(\<And>x. x \<in> FV t1 \<Longrightarrow> x \<noteq> n)" "(\<And>z. (\<exists>y. y\<in>FV t2\<and> y\<noteq>x \<and> x\<le>y \<and> z=y-Suc 0) \<Longrightarrow> z \<noteq> n)" "x\<noteq>n"
-            "\<And>z. z \<in> FV t2 \<and> z \<noteq> x \<and> \<not> x \<le> z \<Longrightarrow> z\<noteq>n"
+    have 1:"(\<And>x. x \<in> FV t1 \<Longrightarrow> x \<noteq> n)" "(\<And>z. (\<exists>y. y\<in>FV t2\<and> y\<noteq>x \<and> x<y \<and> z=y-Suc 0) \<Longrightarrow> z \<noteq> n)" "x\<noteq>n"
+            "\<And>z. z \<in> FV t2 \<and> z \<noteq> x \<and> \<not> x < z \<Longrightarrow> z\<noteq>n"
       using hyps(7)[simplified, unfolded image_iff Bex_def, simplified]
       by blast+
         
@@ -1036,10 +1225,10 @@ next
 next
   case (has_type_Case x y t \<sigma>1 f A B t1 C t2)
     note hyps=this  
-    have FV_t: "x\<noteq>n" "y\<noteq>n" "\<And>z. z\<in>FV t \<Longrightarrow> z\<noteq>n" "\<And>z. z \<in> FV t2 \<and> z \<noteq> y \<and> \<not> y \<le> z \<Longrightarrow> z\<noteq>n"
-               "\<And>z. (\<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y \<le> x \<and> z = x - Suc 0) \<Longrightarrow> z\<noteq>n"
-               "\<And>z. z \<in> FV t1 \<and> z \<noteq> x \<and> \<not> x \<le> z \<Longrightarrow> z\<noteq>n"
-               "\<And>z. (\<exists>y. y \<in> FV t1 \<and> y \<noteq> x \<and> x \<le> y \<and> z = y - Suc 0) \<Longrightarrow> z\<noteq>n"
+    have FV_t: "x\<noteq>n" "y\<noteq>n" "\<And>z. z\<in>FV t \<Longrightarrow> z\<noteq>n" "\<And>z. z \<in> FV t2 \<and> z \<noteq> y \<and> \<not> y < z \<Longrightarrow> z\<noteq>n"
+               "\<And>z. (\<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> z = x - Suc 0) \<Longrightarrow> z\<noteq>n"
+               "\<And>z. z \<in> FV t1 \<and> z \<noteq> x \<and> \<not> x < z \<Longrightarrow> z\<noteq>n"
+               "\<And>z. (\<exists>y. y \<in> FV t1 \<and> y \<noteq> x \<and> x < y \<and> z = y - Suc 0) \<Longrightarrow> z\<noteq>n"
       using hyps(10)[simplified, unfolded image_iff Bex_def, simplified]
       by blast+
 
@@ -1101,58 +1290,22 @@ next
 next
   case (has_type_CaseV L I TL LT t \<sigma> f A)
     note hyps_t=this
-    let ?f = " (\<lambda>k t. (\<lambda>y. y - Suc 0) ` ((FV t - {I ! k}) \<inter> Collect (op \<le> (I ! k))) \<union> (FV t - {I ! k}) \<inter> {y. \<not> I ! k \<le> y})"
+    let ?f = " (\<lambda>k t. (\<lambda>y. y - Suc 0) ` ((FV t - {I ! k}) \<inter> Collect (op < (I ! k))) \<union> (FV t - {I ! k}) \<inter> 
+                {y. \<not> I ! k < y})"
 
-    have A:"length  (indexed_map 0 (\<lambda>k t. (\<lambda>y. y - Suc 0) ` ((FV t - {I ! k}) \<inter> Collect (op \<le> (I ! k))) \<union>
-                                (FV t - {I ! k}) \<inter> {y. \<not> I ! k \<le> y}) LT) = length LT"
-      using indexed_to_map[of 0 ?f LT]
-      by force
-    hence B:"{indexed_map 0 ?f LT ! i |
-              i. i < length (indexed_map 0 (\<lambda>k t. (\<lambda>y. y - Suc 0) ` ((FV t - {I ! k}) \<inter> Collect (op \<le> (I ! k))) \<union>
-                                (FV t - {I ! k}) \<inter> {y. \<not> I ! k \<le> y}) LT)} = {?f i (LT!i)|i. i<length LT}"
-      proof (simp add:A indexed_to_map[of 0 ?f LT])
-        let ?S1 = "{map (\<lambda>p. (\<lambda>y. y - Suc 0) ` ((FV (snd p) - {I ! fst p}) \<inter> Collect (op \<le> (I ! fst p))) \<union>
-                 (FV (snd p) - {I ! fst p}) \<inter> {y. \<not> I ! fst p \<le> y}) (zip [0..<length LT] LT) ! i |i. i < length LT}"
-            and ?S2 =  "{(\<lambda>y. y - Suc 0) ` ((FV (LT ! i) - {I ! i}) \<inter> Collect (op \<le> (I ! i))) \<union>
-                 (FV (LT ! i) - {I ! i}) \<inter> {y. \<not> I ! i \<le> y} |i. i < length LT}"
-        have "?S1 \<subseteq> ?S2"
-          using nth_map[of _ "(zip [0..<0 + length LT] LT)" "\<lambda>p. ?f (fst p) (snd p)"] 
-                nth_zip[of _ "[0..<0 + length LT]" LT, simplified]
-                fst_conv[of "[0..<length LT] !_"] snd_conv[of _ "LT!_"]
-          by force
-        moreover have "?S2 \<subseteq> ?S1"
-          proof (rule,rule, simp)
-            fix x
-            assume " \<exists>i. x = (\<lambda>y. y - Suc 0) ` ((FV (LT ! i) - {I ! i}) \<inter> Collect (op \<le> (I ! i))) \<union>
-                     (FV (LT ! i) - {I ! i}) \<inter> {y. \<not> I ! i \<le> y} \<and>
-                 i < length LT"
-            then obtain i where H:"x = (\<lambda>y. y - Suc 0) ` ((FV (LT ! i) - {I ! i}) \<inter> Collect (op \<le> (I ! i))) \<union>
-                     (FV (LT ! i) - {I ! i}) \<inter> {y. \<not> I ! i \<le> y}" "i < length LT"
-              by blast
-    
-            have "x = map (\<lambda>p. (\<lambda>y. y - Suc 0) ` ((FV (snd p) - {I ! fst p}) \<inter> Collect (op \<le> (I ! fst p))) \<union>
-                              (FV (snd p) - {I ! fst p}) \<inter> {y. \<not> I ! fst p \<le> y})
-                      (zip [0..<length LT] LT) !
-                     i \<and> i < length LT"
-            using nth_map[of i "(zip [0..<0 + length LT] LT)" "\<lambda>p. ?f (fst p) (snd p)"] H
-                  nth_zip[OF _ H(2),of "[0..<0 + length LT]"]
-                  fst_conv[of "[0..<length LT] !i"] snd_conv[of _ "LT!i"]
-            by auto
-    
-            then show "\<exists>i. x = map (\<lambda>p. (\<lambda>y. y - Suc 0) ` ((FV (snd p) - {I ! fst p}) \<inter> Collect (op \<le> (I ! fst p))) \<union>
-                              (FV (snd p) - {I ! fst p}) \<inter> {y. \<not> I ! fst p \<le> y})
-                      (zip [0..<length LT] LT) !
-                     i \<and> i < length LT"
-              by blast
-          qed
-        ultimately show "?S1=?S2" by blast
-     qed
+    have B:"{indexed_map 0 ?f LT ! i |
+              i. i < length (indexed_map 0 (\<lambda>k t. (\<lambda>y. y - Suc 0) ` ((FV t - {I ! k}) \<inter> Collect (op < (I ! k))) \<union>
+                                (FV t - {I ! k}) \<inter> {y. \<not> I ! k < y}) LT)} = {?f i (LT!i)|i. i<length LT}"
+      using nth_indexed_map_0[of _ LT ?f] indexed_map_0_len[of ?f LT]
+      by fastforce
+      
     have FV_t: "\<And>z. z\<in>FV t \<Longrightarrow> z\<noteq>n" "\<And>i. i<length I \<Longrightarrow> I!i\<noteq>n"
-                "\<And>z i. i<length LT \<Longrightarrow> z \<in> FV (LT!i) \<and> z \<noteq> (I!i) \<and> \<not> (I!i) \<le> z \<Longrightarrow> z\<noteq>n"
-                "\<And>z i. i<length LT \<Longrightarrow>(\<exists>y. y \<in> FV (LT!i) \<and> y \<noteq> (I!i) \<and> (I!i) \<le> y \<and> z = y - Suc 0) \<Longrightarrow> z\<noteq>n"
-      using hyps_t(10)[simplified, unfolded Bex_def set_conv_nth]
-            image_iff B
-      by auto
+                "\<And>z i. i<length LT \<Longrightarrow> z \<in> FV (LT!i) \<and> z \<noteq> (I!i) \<and> \<not> (I!i) < z \<Longrightarrow> z\<noteq>n"
+                "\<And>z i. i<length LT \<Longrightarrow>(\<exists>y. y \<in> FV (LT!i) \<and> y \<noteq> (I!i) \<and> (I!i) < y \<and> z = y - Suc 0) \<Longrightarrow> z\<noteq>n"
+      using hyps_t(10)[simplified, unfolded Bex_def set_conv_nth B, simplified]
+            image_iff
+      by blast+
+      
     have branches_wtyped:"\<forall>i<length L.
        insert_nth (map (\<lambda>x. if n \<le> x then nat (int x + - 1) else x) I ! i) (TL ! i) \<Gamma>
        \<turnstile> \<lparr>(indexed_map 0 (\<lambda>k. shift_L (- 1) (if I ! k < n then Suc n else n)) LT ! i)|;|\<sigma>,f\<rparr> |:| A \<and> map (\<lambda>x. if n \<le> x then nat (int x + - 1) else x) I ! i \<le> length \<Gamma>"
@@ -1489,7 +1642,7 @@ next
         assume H: "n \<noteq> x" "n = y"
 
         from V_shiftx have A:" n \<noteq> x \<Longrightarrow> x < n \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Case subst_L y s t of Inl x \<Rightarrow> subst_L (Suc y) (shift_L 1 x s) t1 | Inr y \<Rightarrow> t2|;|\<sigma>2,f\<rparr> |:| C"
-          using hyps(6)[OF hyps(9,10) _ hyps(12)] hyps(1,2,5) H ag weakening[OF hyps(10) hyps(1)]
+          using hyps(6)[OF hyps(9,10-12)] hyps(1,2,5) H ag weakening[OF hyps(10) hyps(1)]
                 hyps(7)[of "Suc n" \<sigma>1 f1 "shift_L 1 x s", OF _ _ _ hyps(12)]                
           by (force intro!: has_type_L.intros(4,22))
         have "n \<noteq> x \<Longrightarrow> \<not> x < n \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Case subst_L y s t of Inl x \<Rightarrow> subst_L y (shift_L 1 x s) t1 | Inr y \<Rightarrow> t2|;|\<sigma>2,f\<rparr> |:| C"
@@ -1506,13 +1659,13 @@ next
       
         have C1: "n \<noteq> x \<Longrightarrow> n \<noteq> y \<Longrightarrow> x < n \<Longrightarrow> y < n \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Case subst_L n s t of Inl x \<Rightarrow> subst_L (Suc n) (shift_L 1 x s) t1 | Inr y \<Rightarrow>
            subst_L (Suc n) (shift_L 1 y s) t2|;|\<sigma>2,f\<rparr> |:| C"
-          using hyps(1,2,12) hyps(6)[OF hyps(9,10)] ag 
+          using hyps(1,2,12) hyps(6)[OF hyps(9-12)] ag 
                 hyps(7,8)[of "Suc n" \<sigma>1 f1 "shift_L 1 _ s", OF _ _ _ hyps(12)] weakening[OF hyps(10)]
                 has_type_L.intros(4)[OF V_shiftx]  has_type_L.intros(4)[OF V_shifty]
           by (force intro!: has_type_L.intros(22))
         have C2: "n \<noteq> x \<Longrightarrow> n \<noteq> y \<Longrightarrow> x < n \<Longrightarrow> \<not>y < n \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Case subst_L n s t of Inl x \<Rightarrow> subst_L (Suc n) (shift_L 1 x s) t1 | Inr y \<Rightarrow>
            subst_L n (shift_L 1 y s) t2|;|\<sigma>2,f\<rparr> |:| C"
-          using hyps(7,8)[of _ \<sigma>1 f1 "shift_L 1 _ s",OF _ _ _ hyps(12)] hyps(6)[OF hyps(9,10) _ hyps(12)]
+          using hyps(7,8)[of _ \<sigma>1 f1 "shift_L 1 _ s",OF _ _ _ hyps(12)] hyps(6)[OF hyps(9,10-12)]
                 weakening[OF hyps(10)]  hyps(1,2)                 
                 has_type_L.intros(4)[OF V_shiftx]  has_type_L.intros(4)[OF V_shifty] ag
                 has_type_L.intros(4)[OF Vx] has_type_L.intros(4)[OF Vy]
@@ -1520,7 +1673,7 @@ next
         have C3: "n \<noteq> x \<Longrightarrow> n \<noteq> y \<Longrightarrow> \<not>x < n \<Longrightarrow> y < n \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Case subst_L n s t of Inl x \<Rightarrow> subst_L n (shift_L 1 x s) t1 | Inr y \<Rightarrow>
            subst_L (Suc n) (shift_L 1 y s) t2|;|\<sigma>2,f\<rparr> |:| C"
           using hyps(7,8)[of _ \<sigma>1 f1 "shift_L 1 _ s"] weakening[OF hyps(10)]  hyps(1,2,12) 
-                hyps(6)[OF hyps(9,10) _ hyps(12)] ag 
+                hyps(6)[OF hyps(9,10-12)] ag 
                 has_type_L.intros(4)[OF V_shiftx]  has_type_L.intros(4)[OF V_shifty]
                 has_type_L.intros(4)[OF Vx] has_type_L.intros(4)[OF Vy]
           by (force intro!: has_type_L.intros(22))
@@ -1528,7 +1681,7 @@ next
         have "n \<noteq> x \<Longrightarrow> n \<noteq> y \<Longrightarrow> \<not>x < n \<Longrightarrow> \<not>y < n \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Case subst_L n s t of Inl x \<Rightarrow> subst_L n (shift_L 1 x s) t1 | Inr y \<Rightarrow>
            subst_L n (shift_L 1 y s) t2|;|\<sigma>2,f\<rparr> |:| C"
           using hyps(7,8)[of _ \<sigma>1 f1 "shift_L 1 _ s"] weakening[OF hyps(10)] ag hyps(1,2,12) 
-                hyps(6)[OF hyps(9,10) _ hyps(12)]
+                hyps(6)[OF hyps(9,10-12)]
                 has_type_L.intros(4)[OF Vx] has_type_L.intros(4)[OF Vy]
           by (force intro!: has_type_L.intros(22))
 
@@ -1711,7 +1864,7 @@ qed (auto intro: has_type_L.intros)
 
 lemma lmatch_coherent_char:
   "Lmatch_Type p \<sigma>1 \<Longrightarrow> coherent p B \<Longrightarrow> Lmatch p t1 (fill \<sigma>) \<Longrightarrow> is_value_L t1\<Longrightarrow>
-    \<Gamma> \<turnstile> \<lparr>t1|;|\<sigma>2,f\<rparr> |:| A \<Longrightarrow>\<forall>x\<in>dom \<sigma>1. \<exists>B t' f1. \<sigma>1 x = Some B \<and> \<sigma> x = Some t' \<and> \<emptyset> \<turnstile> \<lparr>t'|;|\<sigma>2,f1\<rparr> |:| B"
+    \<Gamma> \<turnstile> \<lparr>t1|;|\<sigma>2,f\<rparr> |:| B \<Longrightarrow>\<forall>x\<in>dom \<sigma>1. \<exists>B t' f1. \<sigma>1 x = Some B \<and> \<sigma> x = Some t' \<and> \<emptyset> \<turnstile> \<lparr>t'|;|\<sigma>2,f1\<rparr> |:| B"
 sorry
 
 theorem Preservation:
@@ -1749,17 +1902,38 @@ proof (induction \<Gamma> t \<sigma> f A arbitrary: t1 rule: has_type_L.induct)
 next
   case (has_type_Let x \<Gamma> ta \<sigma> f A tb B)
     note hyps=this(1-5) and inv=this(6)[unfolded eval1_L.simps[of "LetBinder _ _ _", simplified]]
-      have 1:"(x, A) |\<in>| insert_nth x A \<Gamma>"
-        using nth_append[of "take x \<Gamma>" "drop x \<Gamma>|,|A" x, simplified] 
-              hyps(1)
-        by simp
-      have "t1 = subst_L x (shift_L 1 x ta) tb \<and> is_value_L ta \<Longrightarrow> ?case"
-        using substitution[OF hyps(3) has_type_LVar[OF 1] weakening[OF hyps(2,1), of A], simplified] 
-               welltyped_agreesf[OF hyps(3)]
+    have 1:"(x, A) |\<in>| insert_nth x A \<Gamma>"
+      using nth_append[of "take x \<Gamma>" "drop x \<Gamma>|,|A" x, simplified] 
+            hyps(1)
+      by simp
+    
+      
+    have "(\<And>xa. xa \<in> FV (subst_L x (shift_L 1 x ta) tb) \<Longrightarrow> xa \<noteq> x)"
+      proof 
+        fix x1
+        assume H:"x1 \<in> FV (subst_L x (shift_L 1 x ta) tb)" "x1 = x"
+        have "x1\<in>FV (shift_L (int 1) x ta) \<Longrightarrow> False"
+          using FV_shift[of 1 x ta, unfolded image_def Bex_def]
+          proof (simp)
+            assume "\<exists>xa. xa \<in> FV ta \<and> x1 = (if x \<le> xa then xa + 1 else xa)"
+            then obtain x2 where "x2 \<in> FV ta \<and> x1 = (if x \<le> x2 then x2 + 1 else x2)"
+              by blast
+            with H show False
+              by (cases "x\<le>x2")fastforce+
+          qed    
               
-        
-        sorry
-    show ?case sorry
+        then show False 
+          using H(1)[unfolded FV_subst[of x "shift_L 1 x ta" tb] image_iff]
+          by (cases "x\<in>FV tb") (simp add: H(2))+
+      qed
+
+    hence "t1 =shift_L (- 1) x (subst_L x (shift_L 1 x ta) tb) \<and> is_value_L ta \<Longrightarrow> ?case"
+      using substitution[OF hyps(3) has_type_LVar[OF 1] weakening[OF hyps(2,1), of A], simplified] 
+            agrees_shift[OF welltyped_agreesf[OF hyps(2)]] 
+            shift_down[of x A \<Gamma> "(subst_L x (shift_L 1 x ta) tb)" \<sigma> f B, OF _ hyps(1)]
+      by force      
+     
+    with inv show ?case using hyps(1,3,4) has_type_L.intros(10) by fast
 next
   case (has_type_Tuple L TL \<Gamma> \<sigma> f)
     note hyps=this(1-4) and inv= this(5)[unfolded eval1_L.simps[of "Tuple _",simplified]]
@@ -1816,13 +1990,134 @@ next
    
     then show ?case using inv has_type_L.intros(19)[OF hyps(1,2,5,4)] by fast
 next
-  case (has_type_Case)
-    note hyps=this
-    show ?case sorry
+  case (has_type_Case x \<Gamma> y t \<sigma>1 f A B ta C tb)
+    note hyps=this and inv = this(9)[unfolded eval1_L.simps[of "CaseSum _ _ _ _ _" ,simplified]]
+    have "\<exists>v. (\<exists>A. t = inl v as A) \<and> t1 = shift_L (- 1) x (subst_L x (shift_L 1 x v) ta) \<and> is_value_L v \<Longrightarrow>
+          ?case"
+      proof -
+        assume "\<exists>v. (\<exists>A. t = inl v as A) \<and> t1 = shift_L (- 1) x (subst_L x (shift_L 1 x v) ta) \<and> is_value_L v"
+        then obtain v A1 where H:"t = inl v as A1" "t1 = shift_L (- 1) x (subst_L x (shift_L 1 x v) ta)"
+          by blast
+        have "\<And>xa. xa \<in> FV (subst_L x (shift_L 1 x v) ta) \<Longrightarrow> xa \<noteq> x"        
+          proof 
+            fix x1
+            assume H:"x1 \<in> FV (subst_L x (shift_L 1 x v) ta)" "x1 = x"
+            have "x1\<in>FV (shift_L (int 1) x v) \<Longrightarrow> False"
+              using FV_shift[of 1 x v, unfolded image_def Bex_def]
+              proof (simp)
+                assume "\<exists>xa. xa \<in> FV v \<and> x1 = (if x \<le> xa then xa + 1 else xa)"
+                then obtain x2 where "x2 \<in> FV v \<and> x1 = (if x \<le> x2 then x2 + 1 else x2)"
+                  by blast
+                with H show False
+                  by (cases "x\<le>x2")fastforce+
+              qed    
+                  
+            then show False 
+              using H(1)[unfolded FV_subst[of x "shift_L 1 x v" ta] image_iff]
+              by (cases "x\<in>FV ta") (simp add: H(2))+
+          qed
+        with H show ?case 
+          using hyps(1) has_type_LVar[of x A "insert_nth x A \<Gamma>"] 
+                nth_append[of "take x \<Gamma>" "drop x \<Gamma>|,|A" x, simplified]
+                weakening[of \<Gamma> v \<sigma>1 f A _ A,OF _ hyps(1)] 
+                hyps(3)[unfolded H has_type_L.simps[of _ "inl _ as _", simplified]]
+                substitution[OF hyps(4), of x \<sigma>1 f, simplified]
+                agrees_shift[OF welltyped_agreesf[of \<Gamma> v \<sigma>1 f]] 
+                shift_down[of x A \<Gamma> "(subst_L x (shift_L 1 x v) ta)", OF _ hyps(1)]
+          by fastforce
+      qed
+
+    moreover have "\<exists>v. (\<exists>A. t = inr v as A) \<and> t1 = shift_L (- 1) y (subst_L y (shift_L 1 y v) tb) \<and> is_value_L v \<Longrightarrow>
+          ?case"
+      proof -
+        assume "\<exists>v. (\<exists>A. t = inr v as A) \<and> t1 = shift_L (- 1) y (subst_L y (shift_L 1 y v) tb) \<and> is_value_L v"
+        then obtain v A1 where H:"t = inr v as A1" "t1 = shift_L (- 1) y (subst_L y (shift_L 1 y v) tb)"
+          by blast
+        have "\<And>xa. xa \<in> FV (subst_L y (shift_L 1 y v) tb) \<Longrightarrow> xa \<noteq> y"        
+          proof 
+            fix x1
+            assume H:"x1 \<in> FV (subst_L y (shift_L 1 y v) tb)" "x1 = y"
+            have "x1\<in>FV (shift_L (int 1) y v) \<Longrightarrow> False"
+              using FV_shift[of 1 y v, unfolded image_def Bex_def]
+              proof (simp)
+                assume "\<exists>xa. xa \<in> FV v \<and> x1 = (if y \<le> xa then xa + 1 else xa)"
+                then obtain x2 where "x2 \<in> FV v \<and> x1 = (if y \<le> x2 then x2 + 1 else x2)"
+                  by blast
+                with H show False
+                  by (cases "y\<le>x2")fastforce+
+              qed    
+                  
+            then show False 
+              using H(1)[unfolded FV_subst[of y "shift_L 1 y v" tb] image_iff]
+              by (cases "y\<in>FV tb") (simp add: H(2))+
+          qed
+        with H show ?case 
+          using hyps(2) has_type_LVar[of y B "insert_nth y B \<Gamma>"] 
+                nth_append[of "take y \<Gamma>" "drop y \<Gamma>|,|B" y, simplified]
+                weakening[of \<Gamma> v \<sigma>1 f B _ B,OF _ hyps(2)] 
+                hyps(3)[unfolded H has_type_L.simps[of _ "inr _ as _", simplified]]
+                substitution[OF hyps(5), of y \<sigma>1 f, simplified]
+                agrees_shift[OF welltyped_agreesf[of \<Gamma> v \<sigma>1 f]] 
+                shift_down[of y B \<Gamma> "(subst_L y (shift_L 1 y v) tb)", OF _ hyps(2)]
+          by fastforce
+      qed
+
+    ultimately show ?case using inv has_type_L.intros(22)[OF hyps(1,2,6,4,5)] by fast
+      
 next
-  case (has_type_CaseV)
-    note hyps=this
-    show ?case sorry
+  case (has_type_CaseV L I TL LT \<Gamma> t \<sigma> f A)
+    note hyps=this and inv=this(9)[unfolded eval1_L.simps[of "CaseVar _ _ _ _", simplified]]
+    have P:" \<forall>i<length L. I ! i \<le> length \<Gamma> \<and> insert_nth (I ! i) (TL ! i) \<Gamma> \<turnstile> \<lparr>(LT ! i)|;|\<sigma>,f\<rparr> |:| A" 
+      using hyps(8)
+      by blast
+    have "\<exists>l v. l\<in>set L \<and> (\<exists>A. t = <l:=v> as A) \<and>
+           t1 = shift_L (- 1) (I ! index L l)
+                 (subst_L (I ! index L l) (shift_L 1 (I ! index L l) v) (LT ! index L l))
+          \<Longrightarrow> ?case"
+      proof -
+        assume "\<exists>l v. l\<in>set L \<and> (\<exists>A. t = <l:=v> as A) \<and> t1 = shift_L (- 1) (I ! index L l)
+                 (subst_L (I ! index L l) (shift_L 1 (I ! index L l) v) (LT ! index L l))"
+        then obtain v l A1 where H:"l\<in>set L" "t = <l:=v> as A1"
+                                    "t1 = shift_L (- 1) (I!index L l) (subst_L (I!index L l) 
+                                          (shift_L 1 (I!index L l) v) (LT! index L l))"
+          by blast
+        from H(1) obtain i where simps:"l= L!i" "index L (L!i) = i" "i<length L"
+          using in_set_conv_nth[of l L] index_nth_id[OF hyps(2)]
+          by fast
+        note H = H[unfolded simps]
+
+        have "\<And>xa. xa \<in> FV (subst_L (I ! i) (shift_L 1 (I ! i) v) (LT ! i)) \<Longrightarrow> xa \<noteq> (I!i)"        
+          proof 
+            fix x1
+            assume H:"x1 \<in> FV (subst_L (I ! i) (shift_L 1 (I ! i) v) (LT ! i))" "x1 = I!i"
+            have "x1\<in>FV (shift_L (int 1) (I!i) v) \<Longrightarrow> False"
+              using FV_shift[of 1 "I!i" v, unfolded image_def Bex_def]
+              proof (simp)
+                assume "\<exists>xa. xa \<in> FV v \<and> x1 = (if I!i \<le> xa then xa + 1 else xa)"
+                then obtain x2 where "x2 \<in> FV v \<and> x1 = (if I!i \<le> x2 then x2 + 1 else x2)"
+                  by blast
+                with H show False
+                  by (cases "I!i\<le>x2")fastforce+
+              qed    
+                  
+            then show False 
+              using H(1)[unfolded FV_subst[of "I!i" "shift_L 1 (I!i) v" "LT!i"] image_iff]
+              by (cases "(I!i)\<in>FV (LT!i)") (simp add: H(2))+
+          qed
+        moreover have "\<Gamma> \<turnstile> \<lparr>v|;|\<sigma>,f\<rparr> |:| (TL ! i)"
+          using hyps(6)[unfolded H has_type_L.simps[of _ "<_:= _> as _", simplified]]
+                hyps(2) index_nth_id simps(2)
+          by fastforce
+        ultimately show ?case 
+          using P has_type_LVar[of "I!i" "TL!i" "insert_nth (I!i) (TL!i) \<Gamma>"] H(3) simps(3)
+                nth_append[of "take (I!i) \<Gamma>" "drop (I!i) \<Gamma>|,|(TL!i)" "I!i", simplified]
+                weakening[of \<Gamma> v \<sigma> f "TL!i" "I!i" "TL!i"] 
+                substitution[of "insert_nth (I!i) (TL!i) \<Gamma>" "LT!i" \<sigma> f]
+                agrees_shift[OF welltyped_agreesf[of \<Gamma> v \<sigma> f]] 
+                shift_down[of "I!i" "TL!i" \<Gamma> "(subst_L (I!i) (shift_L 1 (I!i) v) (LT!i))"]
+          by fastforce
+      qed
+    with inv show ?case using has_type_L.intros(24)[OF hyps(1-5,7)] hyps(8) by blast
 next
   case (has_type_Fix \<Gamma> t \<sigma> f A t1)
     note hyps=this(1,2) and inv=this(3)[unfolded eval1_L.simps[of "fix t" t1, simplified]]
@@ -1848,7 +2143,13 @@ next
                 has_type_L.intros(5)[OF weakening[of "\<Gamma>|,|A" t' \<sigma> f A "Suc 0" A, simplified]]
                 inversion(5) hyps(1)[unfolded H[THEN conjunct1]] 
           by blast
-        have "agrees_flag t' f" sorry
+        have "agrees_flag (fix LAbs A (shift_L 1 (Suc 0) t')) f"
+          using "agrees_flag.intros"(1)[of "fix LAbs A (shift_L 1 (Suc 0) t')" _ f f, simplified]
+                "agrees_flag.intros"(1)[of "LAbs A (shift_L 1 (Suc 0) t')" _ f f, simplified]
+                agrees_shift[OF welltyped_agreesf[OF hyps(1)[unfolded H[THEN conjunct1]]], simplified]
+                inversion(5) hyps(1)[unfolded H[THEN conjunct1]] 
+          by fast
+
         hence "insert_nth 0 A \<Gamma> \<turnstile> \<lparr>subst_L 0 (fix LAbs A (shift_L 1 (Suc 0) t')) t'|;|\<sigma>,f\<rparr> |:| A"
           using inversion(5)[OF hyps(1)[unfolded H[THEN conjunct1]], simplified]
                 substitution[OF _ _ 2,of t' \<sigma> f A 0,simplified]
