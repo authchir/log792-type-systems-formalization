@@ -349,21 +349,31 @@ proof (induction t arbitrary:)
         case (V n A)
           show ?case  by (cases "n\<notin>dom \<sigma>1") (simp add: domIff, force)+
       qed simp      
-qed auto 
+qed auto  
 
-abbreviation binder_v:: "lterm \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow>bool" where
-"binder_v t c k \<equiv> (case t of LetBinder x _ _ \<Rightarrow> k = (if x < c then Suc c else c) | 
-                               _ \<Rightarrow> True)"
+abbreviation same_Len:: "lterm \<Rightarrow> bool" where 
+"same_Len t \<equiv> (case t of CaseVar _ _ I LT \<Rightarrow> length I = length LT | _\<Rightarrow>True)"
+
+inductive RCons::"lterm \<Rightarrow> bool" where
+"subterms t = Comp t1 L \<Longrightarrow> same_Len t \<Longrightarrow> RCons t1 \<Longrightarrow> (\<And>i. i<length L \<Longrightarrow> RCons (L!i))\<Longrightarrow> RCons t"
+|"subterms t = UList L \<Longrightarrow> (\<And>i. i<length L \<Longrightarrow> RCons (L!i))\<Longrightarrow> RCons t"
+|"subterms t = Ter t1 t2 t3 \<Longrightarrow> RCons t1 \<Longrightarrow>RCons t2 \<Longrightarrow>RCons t3 \<Longrightarrow> RCons t"
+|"subterms t = Bi t1 t2 \<Longrightarrow> RCons t1 \<Longrightarrow>RCons t2  \<Longrightarrow> RCons t"
+|"subterms t = Unary t1 \<Longrightarrow> RCons t1 \<Longrightarrow> RCons t"
+|"subterms t = Void \<Longrightarrow> RCons t"
+
 
 lemma FV_shift:
-  "FV (shift_L (int d) c t) = image (\<lambda>x. if x \<ge> c then x + d else x) (FV t)"
+  "RCons t \<Longrightarrow> FV (shift_L (int d) c t) = image (\<lambda>x. if x \<ge> c then x + d else x) (FV t)"
 proof (induction t arbitrary: c rule: lterm.induct)
   case (LAbs T t)      
-    thus ?case        
+    show ?case 
+      using LAbs(1)[OF LAbs(2)[unfolded RCons.simps[of "LAbs T t", simplified]]]       
       by (auto simp: gr_Suc_conv image_iff) force+
 next
   case (LetBinder x t1 t2)
-    note hyps=this
+    note this(1-2) and inv = this(3)[unfolded RCons.simps[of "LetBinder x t1 t2", simplified]]
+    note hyps=this(1)[OF inv[THEN conjunct1]] this(2)[OF inv[THEN conjunct2]]
     have simp_nat:"nat (int x + int d) = x + d" by force
     let ?S= "{y. \<exists>xa. (xa = x \<or> ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
                xa \<in> FV t2 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1) \<and> c \<le> xa) \<and> y = xa + d} \<union>
@@ -377,8 +387,13 @@ next
       proof (rule)
         fix y
         assume "y \<in> ?S1" and H2:"x\<ge>c"
-        note H=this(1)[simplified,unfolded not_less] 
-        
+        note this(1)[simplified,unfolded not_less]
+        then have H:" y = x + d \<or> (\<exists>xa x1. x1 \<in> FV t2 \<and> c \<le> x1 \<and> xa = x1 + d \<and> xa \<noteq> x + d \<and> x + d < xa 
+                        \<and> y = xa - Suc 0) \<or> 
+                   (\<exists>xa. xa \<in> FV t2 \<and> \<not> c \<le> xa \<and> xa \<noteq> x + d \<and> x + d < xa \<and> y = xa - Suc 0)
+               \<or> (\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> y = x + d) \<and> y \<noteq> x + d \<and> y \<le> x + d \<or>
+               y \<in> FV t2 \<and> \<not> c \<le> y \<and> y \<noteq> x + d \<and> y \<le> x + d \<or> (\<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d) \<or> y \<in> FV t1 \<and> \<not> c \<le> y"
+          by blast
         have "y=x+d \<Longrightarrow> y\<in> ?S" by blast
         moreover have "\<exists>xa x1. x1 \<in> FV t2 \<and> c \<le> x1 \<and> xa = x1 + d \<and> xa \<noteq> x + d \<and> x + d < xa 
                         \<and> y = xa - Suc 0 \<Longrightarrow>
@@ -404,8 +419,7 @@ next
                         y\<in>?S"
           using H2
           by force
-        moreover have "(\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> y = x + d) \<and> y \<noteq> x + d \<and> y \<le> x + d
-                        \<Longrightarrow> y\<in>?S"
+        moreover have "(\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> y = x + d) \<and> y \<noteq> x + d \<and> y \<le> x + d \<Longrightarrow> y\<in>?S"
           using H2 le_neq_implies_less[of y "x+d"]
           by force
         moreover have "y \<in> FV t2 \<and> \<not> c \<le> y \<and> y \<noteq> x + d \<and> y \<le> x + d \<Longrightarrow> y\<in>?S"
@@ -414,7 +428,7 @@ next
         moreover have "(\<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d) \<or> y \<in> FV t1 \<and> \<not> c \<le> y \<Longrightarrow> y\<in>?S"   
           using H2 not_le not_less
           by blast
-        ultimately show "y\<in>?S" using H by smt       
+        ultimately show "y\<in>?S" using H by satx   
           
       qed    
 
@@ -422,7 +436,12 @@ next
       proof (rule)
         fix y
         assume "y \<in> ?S" and H':"x\<ge>c"
-        note H=this(1)[simplified,unfolded not_less not_le] 
+        note this(1)[simplified,unfolded not_less not_le] 
+        then have H:"y=x+d \<or> (\<exists>xa xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0 \<and> c \<le> xa \<and> y = xa + d) \<or>
+              (\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> xa \<le> x \<and> c \<le> xa \<and> y = xa + d) \<or> 
+              (\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0) \<and> y < c \<or>
+              (y \<in> FV t2 \<and> y \<noteq> x \<and> y \<le> x \<and> y < c) \<or> (\<exists>xa. xa \<in> FV t1 \<and> c \<le> xa \<and> y = xa + d) \<or> y \<in> FV t1 \<and> y < c"
+          by blast
         have "y=x+d \<Longrightarrow> y\<in> ?S1" by blast
         moreover have "\<exists>xa xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0 \<and> c \<le> xa \<and> y = xa + d
                         \<Longrightarrow> y\<in>?S1"
@@ -453,7 +472,7 @@ next
         moreover have "\<exists>xa. xa \<in> FV t1 \<and> c \<le> xa \<and> y = xa + d \<Longrightarrow> y\<in>?S1"
           using H' by force
         moreover have " y \<in> FV t1 \<and> y < c \<Longrightarrow> y\<in>?S1" by auto
-        ultimately show "y\<in>?S1" using H by smt
+        ultimately show "y\<in>?S1" using H by satx
       qed
 
     with 1 have P1:"x\<ge>c \<Longrightarrow> ?S = ?S1" by fast
@@ -471,8 +490,12 @@ next
       proof (rule)
         fix y
         assume "y \<in> ?S4" and H2:"x<c"
-        note H=this(1)[simplified,unfolded not_less not_le] 
-        
+        note this(1)[simplified,unfolded not_less not_le] 
+        then have H:"y=x \<or> (\<exists>xa x1. x1 \<in> FV t2 \<and> x1 \<noteq> x \<and> x < x1 \<and> xa = x1 - Suc 0 \<and>  c \<le> xa \<and> y = xa + d)\<or>
+                    (\<exists>xa.  xa \<in> FV t2 \<and> xa \<noteq> x \<and> xa \<le> x \<and> c \<le> xa \<and> y = xa + d) \<or>
+                    (\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0) \<and> y < c \<or>
+                    y \<in> FV t2 \<and> y \<noteq> x \<and> y \<le> x \<and> y < c \<or> (\<exists>xa.  xa \<in> FV t1 \<and> c \<le> xa \<and> y = xa + d) \<or> y \<in> FV t1 \<and> y < c "
+          by blast
         have "y=x \<Longrightarrow> y\<in> ?S2" by blast
         moreover have "\<exists>xa x1. x1 \<in> FV t2 \<and> x1 \<noteq> x \<and> x < x1 \<and> xa = x1 - Suc 0 \<and>  c \<le> xa \<and> y = xa + d \<Longrightarrow>
                         y\<in>?S2"
@@ -497,8 +520,7 @@ next
           using H2 not_le not_less
           by force
 
-        moreover have "(\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0) \<and> y < c
-                        \<Longrightarrow> y\<in>?S2"
+        moreover have "(\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0) \<and> y < c \<Longrightarrow> y\<in>?S2"
           using H2 by force
          
         moreover have "y \<in> FV t2 \<and> y \<noteq> x \<and> y \<le> x \<and> y < c \<Longrightarrow> y\<in>?S2"
@@ -509,7 +531,7 @@ next
           using H2 
           by (simp add: not_le not_less)
           
-        ultimately show "y\<in>?S2" using H by smt        
+        ultimately show "y\<in>?S2" using H by satx        
           
       qed    
 
@@ -517,12 +539,30 @@ next
       proof (rule)
         fix y
         assume "y \<in> ?S2" and H':"x<c"
-        note H=this(1)[simplified,unfolded not_less not_le] 
+        note this(1)[simplified,unfolded not_less not_le] 
+        then have H:"y=x \<or> (\<exists>xa xb. xb \<in> FV t2 \<and> Suc c \<le> xb \<and> xa = xb + d \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0)\<or>
+                   (\<exists>xa. xa \<in> FV t2 \<and> xa < Suc c \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0) \<or> 
+                   (\<exists>x. x \<in> FV t2 \<and> Suc c \<le> x \<and> y = x + d) \<and> y \<noteq> x \<and> y \<le> x \<or>
+                   y \<in> FV t2 \<and> y < Suc c \<and> y \<noteq> x \<and> y \<le> x \<or>(\<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d) \<or> 
+                   y \<in> FV t1 \<and> y < c"
+          by blast
         have "y=x \<Longrightarrow> y\<in> ?S4" by blast
         moreover have "\<exists>xa xb. xb \<in> FV t2 \<and> Suc c \<le> xb \<and> xa = xb + d \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0
                         \<Longrightarrow> y\<in>?S4"
           using H'
-          sorry
+          proof (simp add: not_le not_less)
+            assume "\<exists>x1. x1 \<in> FV t2 \<and> Suc c \<le> x1 \<and> x1 + d \<noteq> x \<and> x < x1 + d \<and> y = x1 + d - Suc 0" and 
+                    H':"c> x"
+            then obtain x1 where "x1 \<in> FV t2 \<and> Suc c \<le> x1 \<and> x1 + d \<noteq> x \<and> x < x1 + d \<and> y = x1 + d - Suc 0"
+              by blast
+            hence "x1 \<in> FV t2 \<and> c \<le> x1-Suc 0 \<and> x1-Suc 0 = x1-Suc 0 \<and>  x1 \<noteq> x \<and> x < x1 \<and> y = x1 - Suc 0 + d"
+              using Suc_le_mono[symmetric] H'
+              by force
+            then show "y = x \<or> (\<exists>xa. ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                      xa \<in> FV t2 \<and> xa \<noteq> x \<and> xa \<le> x \<or> xa \<in> FV t1) \<and> c \<le> xa \<and> y = xa + d) \<or>
+                      ((\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0) \<or> y \<in> FV t2 \<and> y \<noteq> x \<and> y \<le> x \<or> y \<in> FV t1) \<and> y < c"
+              by blast
+          qed
 
         moreover have "\<exists>xa. xa \<in> FV t2 \<and> xa < Suc c \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0 \<Longrightarrow>
                         y\<in>?S4"
@@ -531,7 +571,7 @@ next
 
         moreover have "(\<exists>x. x \<in> FV t2 \<and> Suc c \<le> x \<and> y = x + d) \<and> y \<noteq> x \<and> y \<le> x \<Longrightarrow>
                         y\<in>?S4"
-          using H' sorry           
+          using H' by linarith       
           
         moreover have "y \<in> FV t2 \<and> y < Suc c \<and> y \<noteq> x \<and> y \<le> x \<Longrightarrow> y\<in> ?S4"
           using H' by auto
@@ -539,49 +579,676 @@ next
         moreover have "(\<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d) \<or> y \<in> FV t1 \<and> y < c \<Longrightarrow> y\<in>?S4"
           using H' by force
         
-        ultimately show "y\<in>?S4" using H by smt
+        ultimately show "y\<in>?S4" using H by satx
       qed
   
     with 3 have P2:"x<c \<Longrightarrow> ?S2 = ?S4" by fast
 
     show ?case 
       using P1 P2 not_le
-      by (cases "x\<ge>c")(force simp: hyps image_def Bex_def exI Int_Collect simp_nat)+
+      by (cases "x\<ge>c")(force simp: hyps image_def Bex_def Int_Collect simp_nat)+
 next
   case (CaseSum t x t1 y t2)
-    note hyps=this
+    note this(1-3) and inv = this(4)[unfolded RCons.simps[of "CaseSum t x t1 y t2", simplified]]
+    note hyps=this(1)[OF inv[THEN conjunct1]] this(2)[OF inv[THEN conjunct2, THEN conjunct1]]
+              this(3)[OF inv[THEN conjunct2, THEN conjunct2]]
     have simp_nat: "nat (int x + int d) = x+d" 
                    "nat (int y + int d) = y+d"
       by force+
-    have 1:"(\<lambda>x. x + d) ` FV t1 \<inter> (\<lambda>x. x + d) ` Collect (op \<le> (Suc c)) = (\<lambda>x. x + d) ` FV t1 \<inter> (\<lambda>x. x + d) ` Collect (op \<le> c)"
-      sorry
-    have 2: "FV t1 \<inter> {x. \<not> Suc c \<le> x} = FV t1 \<inter> {x. \<not> c \<le> x}" sorry
-    have C1: "c \<le> y \<Longrightarrow> c \<le> x \<Longrightarrow> ?case"
-      using hyps[of c]
-     sorry
    
+    let ?S= "\<lambda>x t1 t2. {y. \<exists>xa. (xa = x \<or> ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+               xa \<in> FV t2 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1) \<and> c \<le> xa) \<and> y = xa + d} \<union>
+             ({y. \<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t2 - {x}) \<inter> {y. \<not> x < y} \<union> FV t1) \<inter>
+             {x. \<not> c \<le> x}"
+        and ?S1 ="\<lambda>x t1 t2. insert (x + d)({y. \<exists>xa. ((\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> xa = x + d) \<or> xa \<in> FV t2 \<and> \<not> c \<le> xa) \<and>
+                  xa \<noteq> x + d \<and> x + d < xa \<and> y = xa - Suc 0} \<union> ({y. \<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> y = x + d} \<union> 
+                  FV t2 \<inter> {x. \<not> c \<le> x} - {x + d}) \<inter> {y. \<not> x + d < y} \<union>
+                  ({y. \<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d} \<union> FV t1 \<inter> {x. \<not> c \<le> x}))"
+    
+    have 1:"\<And>x t1 t2. x\<ge>c \<Longrightarrow> ?S1 x t1 t2 \<subseteq> ?S x t1 t2"
+      proof (rule)
+        fix u ta tb y
+        assume "y \<in> ?S1 u ta tb" and H2:"u\<ge>c"
+        note this(1)[simplified,unfolded not_less]
+        then have H:"(\<lambda>x t1 t2. y = x + d \<or> (\<exists>xa x1. x1 \<in> FV t2 \<and> c \<le> x1 \<and> xa = x1 + d \<and> xa \<noteq> x + d \<and> x + d < xa 
+                        \<and> y = xa - Suc 0) \<or> 
+                   (\<exists>xa. xa \<in> FV t2 \<and> \<not> c \<le> xa \<and> xa \<noteq> x + d \<and> x + d < xa \<and> y = xa - Suc 0)
+               \<or> (\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> y = x + d) \<and> y \<noteq> x + d \<and> y \<le> x + d \<or>
+               y \<in> FV t2 \<and> \<not> c \<le> y \<and> y \<noteq> x + d \<and> y \<le> x + d \<or> (\<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d) \<or> y \<in> FV t1 \<and> \<not> c \<le> y)
+               u ta tb"
+          by blast
+        have "(\<lambda>x. y=x+d) u \<Longrightarrow> y\<in> ?S u ta tb" by blast
+        moreover have "(\<lambda>x t1 t2. \<exists>xa x1. x1 \<in> FV t2 \<and> c \<le> x1 \<and> xa = x1 + d \<and> xa \<noteq> x + d \<and> x + d < xa 
+                        \<and> y = xa - Suc 0) u ta tb\<Longrightarrow>
+                        y\<in>?S u ta tb"
+          using H2 le_neq_implies_less[of y "u+d"]
+          proof (simp)
+            assume "(\<lambda>x t1 t2. \<exists>x1. x1 \<in> FV t2 \<and> c \<le> x1 \<and> x1 \<noteq> x \<and> x < x1 \<and> y = x1 + d - Suc 0) u ta tb" and 
+                    H':"c\<le> u"
+            then obtain x1 where "(\<lambda>x t1 t2. x1 \<in> FV t2 \<and> c \<le> x1 \<and> x1 \<noteq> x \<and> x < x1 \<and> y = x1 + d - Suc 0) u ta tb"
+              by blast
+            hence "(\<lambda>x t1 t2. x1 \<in> FV t2 \<and> x1 \<noteq> x \<and> x < x1 \<and> x1 - Suc 0 = x1 - Suc 0 \<and> c \<le> x1 - Suc 0 \<and> 
+                    y = x1 - Suc 0 + d) u ta tb"
+              using Orderings.order_class.dual_order.strict_trans2[OF _ H', of x1]
+              by auto
+            then show "(\<lambda>x t1 t2.(\<exists>xa. (xa = x \<or> ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or> xa \<in> FV t2 
+                        \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1) \<and> c \<le> xa) \<and> y = xa + d) \<or> ((\<exists>xa. xa \<in> FV t2 \<and>
+                        xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0) \<or> y \<in> FV t2 \<and> y \<noteq> x \<and> \<not> x < y \<or> y \<in> FV t1) \<and>
+                        \<not> c \<le> y) u ta tb"
+              by blast
+          qed
+
+        moreover have "(\<lambda>x t1 t2. \<exists>xa. xa \<in> FV t2 \<and> \<not> c \<le> xa \<and> xa \<noteq> x + d \<and> x + d < xa \<and> y = xa - Suc 0) u ta tb\<Longrightarrow>
+                        y\<in>?S u ta tb"
+          using H2
+          by force
+        moreover have "(\<lambda>x t1 t2. (\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> y = x + d) \<and> y \<noteq> x + d \<and> y \<le> x + d) u ta tb\<Longrightarrow> y\<in>?S u ta tb"
+          using H2 le_neq_implies_less[of y "x+d"]
+          by force
+        moreover have "(\<lambda>x t1 t2. y \<in> FV t2 \<and> \<not> c \<le> y \<and> y \<noteq> x + d \<and> y \<le> x + d) u ta tb\<Longrightarrow> y\<in>?S u ta tb"
+          using H2 le_neq_implies_less[of y "x+d"] not_less not_le
+          by simp
+        moreover have "(\<lambda>x t1 t2. (\<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d) \<or> y \<in> FV t1 \<and> \<not> c \<le> y) u ta tb\<Longrightarrow> y\<in>?S u ta tb"   
+          using H2 not_le not_less
+          by blast
+        ultimately show "y\<in>?S u ta tb" using H by satx   
+          
+      qed    
+
+    have 2:"\<And>x t1 t2. x\<ge>c \<Longrightarrow> ?S x t1 t2 \<subseteq> ?S1 x t1 t2"
+      proof (rule)
+        fix u t1 t2 y
+        assume "y \<in> ?S u t1 t2" and H':"u\<ge>c"
+        note this(1)[simplified,unfolded not_less not_le] 
+        then have H:"(\<lambda>x. y=x+d \<or> (\<exists>xa xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0 \<and> c \<le> xa \<and> y = xa + d) \<or>
+              (\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> xa \<le> x \<and> c \<le> xa \<and> y = xa + d) \<or> 
+              (\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0) \<and> y < c \<or>
+              (y \<in> FV t2 \<and> y \<noteq> x \<and> y \<le> x \<and> y < c) \<or> (\<exists>xa. xa \<in> FV t1 \<and> c \<le> xa \<and> y = xa + d) \<or> y \<in> FV t1 \<and> y < c) u"
+          by blast
+        have "(\<lambda>x. y=x+d) u \<Longrightarrow> y\<in> ?S1 u t1 t2" by blast
+        moreover have "(\<lambda>x. \<exists>xa xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0 \<and> c \<le> xa \<and> y = xa + d) u
+                        \<Longrightarrow> y\<in>?S1 u t1 t2"
+          using H'
+          proof(simp)
+            assume "(\<lambda>x. \<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> c \<le> xb - Suc 0 \<and> y = xb - Suc 0 + d) u"
+            then obtain xb where  "(\<lambda>x. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> c \<le> xb - Suc 0 \<and> y = xb - Suc 0 + d) u"
+              by blast
+            hence "(\<lambda>x. xb\<in>FV t2 \<and> c\<le>xb \<and> xb+d=xb+d \<and> xb+d\<noteq>x+d \<and> x+d < xb+d \<and> y = xb +d - Suc 0) u"
+              by force
+            then show "(\<lambda>x. y = x + d \<or>(\<exists>xa. ((\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> xa = x + d) \<or> xa \<in> FV t2 \<and> \<not> c \<le> xa) \<and>
+                      xa \<noteq> x + d \<and> x + d < xa \<and> y = xa - Suc 0) \<or> ((\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> y = x + d) \<or> y \<in> FV t2 \<and> \<not> c \<le> y) \<and> y \<noteq> x + d \<and> \<not> x + d < y \<or>
+                      (\<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d) \<or> y \<in> FV t1 \<and> \<not> c \<le> y) u"
+              by blast
+          qed
+        moreover have "(\<lambda>x. \<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> xa \<le> x \<and> c \<le> xa \<and> y = xa + d) u \<Longrightarrow>
+                        y\<in>?S1 u t1 t2"
+          using H' le_neq_implies_less[of _ x] not_less not_le
+          by force
+
+        moreover have "(\<lambda>x. (\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0) \<and> y < c) u \<Longrightarrow>
+                        y\<in>?S1 u t1 t2"
+          using H' by auto              
+          
+        moreover have "(\<lambda>x. y \<in> FV t2 \<and> y \<noteq> x \<and> y \<le> x \<and> y < c) u \<Longrightarrow> y\<in> ?S1 u t1 t2"
+          using H' by auto
+
+        moreover have "(\<lambda>x. \<exists>xa. xa \<in> FV t1 \<and> c \<le> xa \<and> y = xa + d) u \<Longrightarrow> y\<in>?S1 u t1 t2"
+          using H' by force
+        moreover have "(\<lambda>x.  y \<in> FV t1 \<and> y < c) u \<Longrightarrow> y\<in>?S1 u t1 t2" by auto
+        ultimately show "y\<in>?S1 u t1 t2" using H by satx
+      qed
+
+    have P1:"\<And>x t1 t2. x\<ge>c \<Longrightarrow> ?S x t1 t2= ?S1 x t1 t2"
+      proof -
+        fix x ta tb
+        assume H:"x\<ge>c"
+        show "?S x ta tb= ?S1 x ta tb" 
+          using 1[OF H,of tb ta] 2[OF H,of tb ta]
+          by fast
+      qed  
      
-    have C2: "c \<le> y \<Longrightarrow> \<not>c \<le> x \<Longrightarrow> ?case"
+    let ?SS1= "insert (x + d)
+     (insert (y + d)
+       ({y. \<exists>xa. ((\<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> xa = x + d) \<or> xa \<in> FV t1 \<and> \<not> c \<le> xa) \<and>
+                 xa \<noteq> x + d \<and> x + d < xa \<and> y = xa - Suc 0} \<union>
+        ({y. \<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d} \<union> FV t1 \<inter> {x. \<not> c \<le> x} - {x + d}) \<inter> {y. \<not> x + d < y} \<union>
+        ({ya. \<exists>x. ((\<exists>xa. xa \<in> FV t2 \<and> c \<le> xa \<and> x = xa + d) \<or> x \<in> FV t2 \<and> \<not> c \<le> x) \<and>
+                  x \<noteq> y + d \<and> y + d < x \<and> ya = x - Suc 0} \<union>
+         ({y. \<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> y = x + d} \<union> FV t2 \<inter> {x. \<not> c \<le> x} - {y + d}) \<inter> {z. \<not> y + d < z}) \<union>
+        ({y. \<exists>x. x \<in> FV t \<and> c \<le> x \<and> y = x + d} \<union> FV t \<inter> {x. \<not> c \<le> x})))" and
+        ?SS2 = "
+    {ya. \<exists>xa. (xa = x \<or>
+               xa = y \<or>
+               ((\<exists>xb. xb \<in> FV t1 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                xa \<in> FV t1 \<and> xa \<noteq> x \<and> \<not> x < xa \<or>
+                (\<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> xa = x - Suc 0) \<or>
+                xa \<in> FV t2 \<and> xa \<noteq> y \<and> \<not> y < xa \<or> xa \<in> FV t) \<and>
+               c \<le> xa) \<and>
+              ya = xa + d} \<union>
+    ({y. \<exists>xa. xa \<in> FV t1 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t1 - {x}) \<inter> {y. \<not> x < y} \<union>
+     ({ya. \<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> ya = x - Suc 0} \<union> (FV t2 - {y}) \<inter> {z. \<not> y < z}) \<union>
+     FV t) \<inter>
+    {x. \<not> c \<le> x}"
+    have S1:"?SS1 = ?S1 x t t1 \<union> ?S1 y t t2"
+     by fast
+    have S2:"?SS2 = ?S x t t1 \<union> ?S y t t2"
+     proof (rule; rule)
+       fix a
+       assume "a\<in>{ya. \<exists>xa. (xa = x \<or>
+                          xa = y \<or>
+                          ((\<exists>xb. xb \<in> FV t1 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                           xa \<in> FV t1 \<and> xa \<noteq> x \<and> \<not> x < xa \<or>
+                           (\<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> xa = x - Suc 0) \<or>
+                           xa \<in> FV t2 \<and> xa \<noteq> y \<and> \<not> y < xa \<or> xa \<in> FV t) \<and>
+                          c \<le> xa) \<and>
+                         ya = xa + d} \<union>
+               ({y. \<exists>xa. xa \<in> FV t1 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union>
+                (FV t1 - {x}) \<inter> {y. \<not> x < y} \<union>
+                ({ya. \<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> ya = x - Suc 0} \<union>
+                 (FV t2 - {y}) \<inter> {z. \<not> y < z}) \<union>
+                FV t) \<inter>
+               {x. \<not> c \<le> x}"
+       note this[unfolded Un_iff Int_iff]
+      then show "a \<in> {y. \<exists>xa. (xa = x \<or>
+                   ((\<exists>xb. xb \<in> FV t1 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                    xa \<in> FV t1 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t) \<and> c \<le> xa) \<and> y = xa + d} \<union>
+                ({y. \<exists>xa. xa \<in> FV t1 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union>
+                 (FV t1 - {x}) \<inter> {y. \<not> x < y} \<union> FV t) \<inter> {x. \<not> c \<le> x} \<union>
+                ({ya. \<exists>xa. (xa = y \<or> ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> y \<and> y < xb \<and> xa = xb - Suc 0) \<or>
+                  xa \<in> FV t2 \<and> xa \<noteq> y \<and> \<not> y < xa \<or> xa \<in> FV t) \<and> c \<le> xa) \<and> ya = xa + d} \<union>
+                 ({ya. \<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> y \<and> y < xa \<and> ya = xa - Suc 0} \<union>
+                  (FV t2 - {y}) \<inter> {ya. \<not> y < ya} \<union> FV t) \<inter> {x. \<not> c \<le> x})" 
+         by (simp, blast)
+     next
+       fix a
+       assume  "a \<in> {y. \<exists>xa. (xa = x \<or>
+                   ((\<exists>xb. xb \<in> FV t1 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                    xa \<in> FV t1 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t) \<and> c \<le> xa) \<and> y = xa + d} \<union>
+                ({y. \<exists>xa. xa \<in> FV t1 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union>
+                 (FV t1 - {x}) \<inter> {y. \<not> x < y} \<union> FV t) \<inter> {x. \<not> c \<le> x} \<union>
+                ({ya. \<exists>xa. (xa = y \<or> ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> y \<and> y < xb \<and> xa = xb - Suc 0) \<or>
+                  xa \<in> FV t2 \<and> xa \<noteq> y \<and> \<not> y < xa \<or> xa \<in> FV t) \<and> c \<le> xa) \<and> ya = xa + d} \<union>
+                 ({ya. \<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> y \<and> y < xa \<and> ya = xa - Suc 0} \<union>
+                  (FV t2 - {y}) \<inter> {ya. \<not> y < ya} \<union> FV t) \<inter> {x. \<not> c \<le> x})" 
+       note this[unfolded Un_iff Int_iff]
+       then show "a\<in>{ya. \<exists>xa. (xa = x \<or>
+                          xa = y \<or>
+                          ((\<exists>xb. xb \<in> FV t1 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                           xa \<in> FV t1 \<and> xa \<noteq> x \<and> \<not> x < xa \<or>
+                           (\<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> xa = x - Suc 0) \<or>
+                           xa \<in> FV t2 \<and> xa \<noteq> y \<and> \<not> y < xa \<or> xa \<in> FV t) \<and>
+                          c \<le> xa) \<and>
+                         ya = xa + d} \<union>
+               ({y. \<exists>xa. xa \<in> FV t1 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union>
+                (FV t1 - {x}) \<inter> {y. \<not> x < y} \<union>
+                ({ya. \<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> ya = x - Suc 0} \<union>
+                 (FV t2 - {y}) \<inter> {z. \<not> y < z}) \<union>
+                FV t) \<inter>
+               {x. \<not> c \<le> x}"
+         by (simp, blast)
+     qed
+    have "c \<le> y \<Longrightarrow> c \<le> x \<Longrightarrow> ?SS1 = ?SS2"
+      proof (simp only: S1 S2)
+        assume hyps:"c \<le> y" "c\<le>x"
+        show "?S1 x t t1 \<union> ?S1 y t t2 = ?S x t t1 \<union> ?S y t t2"
+          using P1[OF hyps(2), of t1 t, symmetric] P1[OF hyps(1),of t2 t, symmetric]
+          by presburger
+      qed
+    hence C1: "c \<le> y \<Longrightarrow> c \<le> x \<Longrightarrow> ?case"
+      by (simp add: hyps image_def Bex_def Int_Collect simp_nat)        
+    
+    let ?S2 ="\<lambda>x t1 t2. insert x ({y. \<exists>xa. ((\<exists>x. x \<in> FV t2 \<and> Suc c \<le> x \<and> xa = x + d) \<or> xa \<in> FV t2 \<and> \<not> Suc c \<le> xa) \<and>
+               xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> ({y. \<exists>x. x \<in> FV t2 \<and> Suc c \<le> x \<and> y = x + d} \<union> FV t2 \<inter> {x. \<not> Suc c \<le> x} - {x}) \<inter> {y. \<not> x < y} \<union>
+               ({y. \<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d} \<union> FV t1 \<inter> {x. \<not> c \<le> x}))"
+        and ?S4 ="\<lambda>x t1 t2. insert x
+     ({y. \<exists>xa. ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                xa \<in> FV t2 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1) \<and>
+               c \<le> xa \<and> y = xa + d} \<union>
+      ({y. \<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t2 - {x}) \<inter> {y. \<not> x < y} \<union> FV t1) \<inter>
+      {x. \<not> c \<le> x})" and
+      ?SS3 ="insert x (insert (y + d) ({y. \<exists>xa. ((\<exists>x. x \<in> FV t1 \<and> Suc c \<le> x \<and> xa = x + d) \<or>
+             xa \<in> FV t1 \<and> \<not> Suc c \<le> xa) \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> ({y. \<exists>x. x \<in> FV t1 \<and> Suc c \<le> x \<and> y = x + d} \<union> FV t1 \<inter> {x. \<not> Suc c \<le> x} -
+         {x}) \<inter> {y. \<not> x < y} \<union> ({ya. \<exists>x. ((\<exists>xa. xa \<in> FV t2 \<and> c \<le> xa \<and> x = xa + d) \<or> x \<in> FV t2 \<and> \<not> c \<le> x) \<and>
+                  x \<noteq> y + d \<and> y + d < x \<and> ya = x - Suc 0} \<union> ({y. \<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> y = x + d} \<union> FV t2 \<inter> {x. \<not> c \<le> x} - {y + d}) \<inter>
+         {z. \<not> y + d < z}) \<union> ({y. \<exists>x. x \<in> FV t \<and> c \<le> x \<and> y = x + d} \<union> FV t \<inter> {x. \<not> c \<le> x})))"
+       and ?SS4 = "insert x ({ya. \<exists>xa. (xa = y \<or> ((\<exists>xb. xb \<in> FV t1 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                  xa \<in> FV t1 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> (\<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> xa = x - Suc 0) \<or>
+                  xa \<in> FV t2 \<and> xa \<noteq> y \<and> \<not> y < xa \<or> xa \<in> FV t) \<and> c \<le> xa) \<and> ya = xa + d} \<union>
+                  ({y. \<exists>xa. xa \<in> FV t1 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t1 - {x}) \<inter> {y. \<not> x < y} \<union>
+                  ({ya. \<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> ya = x - Suc 0} \<union> (FV t2 - {y}) \<inter> {z. \<not> y < z}) \<union>
+                    FV t) \<inter> {x. \<not> c \<le> x})"
+    
+    have 3:"\<And>x t1 t2. x<c \<Longrightarrow> ?S4 x t1 t2 \<subseteq> ?S2 x t1 t2"
+      proof (rule)
+        fix x t1 t2 y
+        assume "y \<in> ?S4 x t1 t2" and H2:"x<c"
+        note this(1)[simplified,unfolded not_less not_le] 
+        then have H:"y=x \<or> (\<exists>xa x1. x1 \<in> FV t2 \<and> x1 \<noteq> x \<and> x < x1 \<and> xa = x1 - Suc 0 \<and>  c \<le> xa \<and> y = xa + d)\<or>
+                    (\<exists>xa.  xa \<in> FV t2 \<and> xa \<noteq> x \<and> xa \<le> x \<and> c \<le> xa \<and> y = xa + d) \<or>
+                    (\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0) \<and> y < c \<or>
+                    y \<in> FV t2 \<and> y \<noteq> x \<and> y \<le> x \<and> y < c \<or> (\<exists>xa.  xa \<in> FV t1 \<and> c \<le> xa \<and> y = xa + d) \<or> y \<in> FV t1 \<and> y < c "
+          by blast
+        have "y=x \<Longrightarrow> y\<in> ?S2 x t1 t2" by blast
+        moreover have "\<exists>xa x1. x1 \<in> FV t2 \<and> x1 \<noteq> x \<and> x < x1 \<and> xa = x1 - Suc 0 \<and>  c \<le> xa \<and> y = xa + d \<Longrightarrow>
+                        y\<in>?S2 x t1 t2"
+          using H2 
+          proof (simp add: not_le not_less)
+            assume "\<exists>x1. x1 \<in> FV t2 \<and> x1 \<noteq> x \<and> x < x1 \<and> c \<le> x1 - Suc 0 \<and> y = x1 - Suc 0 + d" and 
+                    H':"c> x"
+            then obtain x1 where "x1 \<in> FV t2 \<and> x1 \<noteq> x \<and> x < x1 \<and> c \<le> x1 - Suc 0 \<and> y = x1 - Suc 0 + d"
+              by blast
+            hence "x1 \<in> FV t2 \<and> Suc c \<le> x1 \<and> x1+d = x1 + d \<and>  x1+d \<noteq> x \<and> x < x1+d \<and> y = x1 + d - Suc 0"
+              using Suc_le_mono[symmetric]
+              by force
+            then show " y = x \<or> (\<exists>xa. ((\<exists>x. x \<in> FV t2 \<and> Suc c \<le> x \<and> xa = x + d) \<or> xa \<in> FV t2 \<and> xa < Suc c) \<and>
+                        xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0) \<or> ((\<exists>x. x \<in> FV t2 \<and> Suc c \<le> x \<and> y = x + d) 
+                        \<or> y \<in> FV t2 \<and> y < Suc c) \<and> y \<noteq> x \<and> y \<le> x \<or> (\<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d)
+                        \<or> y \<in> FV t1 \<and> y < c"
+              by auto
+          qed
+
+        moreover have "\<exists>xa.  xa \<in> FV t2 \<and> xa \<noteq> x \<and> xa \<le> x \<and> c \<le> xa \<and> y = xa + d \<Longrightarrow>
+                        y\<in>?S2 x t1 t2"
+          using H2 not_le not_less
+          by force
+
+        moreover have "(\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0) \<and> y < c \<Longrightarrow> y\<in>?S2 x t1 t2"
+          using H2 by force
+         
+        moreover have "y \<in> FV t2 \<and> y \<noteq> x \<and> y \<le> x \<and> y < c \<Longrightarrow> y\<in>?S2 x t1 t2"
+          using H2 
+          by (simp add: not_le not_less)
+          
+        moreover have "(\<exists>xa.  xa \<in> FV t1 \<and> c \<le> xa \<and> y = xa + d) \<or> y \<in> FV t1 \<and> y < c \<Longrightarrow> y\<in>?S2 x t1 t2"   
+          using H2 
+          by (simp add: not_le not_less)
+          
+        ultimately show "y\<in>?S2 x t1 t2" using H by satx        
+          
+      qed    
+
+    have 4:"\<And>x t1 t2. x<c \<Longrightarrow> ?S2 x t1 t2 \<subseteq> ?S4 x t1 t2"
+      proof (rule)
+        fix x t1 t2 y
+        assume "y \<in> ?S2 x t1 t2" and H':"x<c"
+        note this(1)[simplified,unfolded not_less not_le] 
+        then have H:"y=x \<or> (\<exists>xa xb. xb \<in> FV t2 \<and> Suc c \<le> xb \<and> xa = xb + d \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0)\<or>
+                   (\<exists>xa. xa \<in> FV t2 \<and> xa < Suc c \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0) \<or> 
+                   (\<exists>x. x \<in> FV t2 \<and> Suc c \<le> x \<and> y = x + d) \<and> y \<noteq> x \<and> y \<le> x \<or>
+                   y \<in> FV t2 \<and> y < Suc c \<and> y \<noteq> x \<and> y \<le> x \<or>(\<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d) \<or> 
+                   y \<in> FV t1 \<and> y < c"
+          by blast
+        have "y=x \<Longrightarrow> y\<in> ?S4 x t1 t2" by blast
+        moreover have "\<exists>xa xb. xb \<in> FV t2 \<and> Suc c \<le> xb \<and> xa = xb + d \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0
+                        \<Longrightarrow> y\<in>?S4 x t1 t2"
+          using H'
+          proof (simp add: not_le not_less)
+            assume "\<exists>x1. x1 \<in> FV t2 \<and> Suc c \<le> x1 \<and> x1 + d \<noteq> x \<and> x < x1 + d \<and> y = x1 + d - Suc 0" and 
+                    H':"c> x"
+            then obtain x1 where "x1 \<in> FV t2 \<and> Suc c \<le> x1 \<and> x1 + d \<noteq> x \<and> x < x1 + d \<and> y = x1 + d - Suc 0"
+              by blast
+            hence "x1 \<in> FV t2 \<and> c \<le> x1-Suc 0 \<and> x1-Suc 0 = x1-Suc 0 \<and>  x1 \<noteq> x \<and> x < x1 \<and> y = x1 - Suc 0 + d"
+              using Suc_le_mono[symmetric] H'
+              by force
+            then show "y = x \<or> (\<exists>xa. ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                      xa \<in> FV t2 \<and> xa \<noteq> x \<and> xa \<le> x \<or> xa \<in> FV t1) \<and> c \<le> xa \<and> y = xa + d) \<or>
+                      ((\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0) \<or> y \<in> FV t2 \<and> y \<noteq> x \<and> y \<le> x \<or> y \<in> FV t1) \<and> y < c"
+              by blast
+          qed
+
+        moreover have "\<exists>xa. xa \<in> FV t2 \<and> xa < Suc c \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0 \<Longrightarrow>
+                        y\<in>?S4 x t1 t2"
+          using H' 
+          by (auto simp: not_le not_less)
+
+        moreover have "(\<exists>x. x \<in> FV t2 \<and> Suc c \<le> x \<and> y = x + d) \<and> y \<noteq> x \<and> y \<le> x \<Longrightarrow>
+                        y\<in>?S4 x t1 t2"
+          using H' by linarith       
+          
+        moreover have "y \<in> FV t2 \<and> y < Suc c \<and> y \<noteq> x \<and> y \<le> x \<Longrightarrow> y\<in> ?S4 x t1 t2"
+          using H' by auto
+
+        moreover have "(\<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d) \<or> y \<in> FV t1 \<and> y < c \<Longrightarrow> y\<in>?S4 x t1 t2"
+          using H' by force
+        
+        ultimately show "y\<in>?S4 x t1 t2" using H by satx
+      qed
+  
+    have P2:"\<And>x t1 t2. x<c \<Longrightarrow> ?S2 x t1 t2 = ?S4 x t1 t2" 
+      proof -
+        fix x ta tb
+        assume H:"x<c"
+        show "?S2 x ta tb= ?S4 x ta tb" 
+          using 3[OF H,of tb ta] 4[OF H,of tb ta]
+          by fast
+      qed  
+
+    have S3:"?SS3 = ?S2 x t t1 \<union> ?S1 y t t2"
+      by fastforce
+    have S4:"?SS4= ?S4 x t t1 \<union> ?S y t t2" by blast
+    have "c \<le> y \<Longrightarrow>\<not> c \<le> x \<Longrightarrow> ?SS3 = ?SS4"
+      proof (simp only: S3 S4)
+        assume hyps:"c \<le> y" "\<not>c\<le>x"
+        show "?S2 x t t1 \<union> ?S1 y t t2 = ?S4 x t t1 \<union> ?S y t t2"
+          using P2[OF hyps(2)[unfolded not_le], of t1 t, symmetric] P1[OF hyps(1),of t2 t, symmetric]
+          by presburger
+      qed
+    then have C2: "c \<le> y \<Longrightarrow> \<not>c \<le> x \<Longrightarrow> ?case"
+      by (simp add: hyps image_def Bex_def Int_Collect simp_nat)
+
+    let ?SS5="insert (x + d) (insert y ({y. \<exists>xa. ((\<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> xa = x + d) \<or> xa \<in> FV t1 \<and> \<not> c \<le> xa) \<and>
+                 xa \<noteq> x + d \<and> x + d < xa \<and> y = xa - Suc 0} \<union>
+        ({y. \<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d} \<union> FV t1 \<inter> {x. \<not> c \<le> x} - {x + d}) \<inter> {y. \<not> x + d < y} \<union>
+        ({ya. \<exists>x. ((\<exists>xa. xa \<in> FV t2 \<and> Suc c \<le> xa \<and> x = xa + d) \<or> x \<in> FV t2 \<and> \<not> Suc c \<le> x) \<and>
+                  x \<noteq> y \<and> y < x \<and> ya = x - Suc 0} \<union>
+         ({y. \<exists>x. x \<in> FV t2 \<and> Suc c \<le> x \<and> y = x + d} \<union> FV t2 \<inter> {x. \<not> Suc c \<le> x} - {y}) \<inter> {z. \<not> y < z}) \<union>
+        ({y. \<exists>x. x \<in> FV t \<and> c \<le> x \<and> y = x + d} \<union> FV t \<inter> {x. \<not> c \<le> x})))" and
+        ?SS6="insert y ({ya. \<exists>xa. (xa = x \<or> ((\<exists>xb. xb \<in> FV t1 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+              xa \<in> FV t1 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> (\<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> xa = x - Suc 0) \<or>
+              xa \<in> FV t2 \<and> xa \<noteq> y \<and> \<not> y < xa \<or> xa \<in> FV t) \<and> c \<le> xa) \<and> ya = xa + d} \<union>
+              ({y. \<exists>xa. xa \<in> FV t1 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t1 - {x}) \<inter> {y. \<not> x < y} \<union>
+              ({ya. \<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> ya = x - Suc 0} \<union> (FV t2 - {y}) \<inter> {z. \<not> y < z}) \<union>
+              FV t) \<inter> {x. \<not> c \<le> x})"
+    have S5:"?SS5 = ?S1 x t t1 \<union> ?S2 y t t2"
+      by fastforce
+    have S6:"?SS6= ?S4 y t t2 \<union> ?S x t t1"
+      proof (rule; rule)
+        fix a
+        assume "a \<in> insert y
+                ({ya. \<exists>xa. (xa = x \<or>
+                            ((\<exists>xb. xb \<in> FV t1 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                             xa \<in> FV t1 \<and> xa \<noteq> x \<and> \<not> x < xa \<or>
+                             (\<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> xa = x - Suc 0) \<or>
+                             xa \<in> FV t2 \<and> xa \<noteq> y \<and> \<not> y < xa \<or> xa \<in> FV t) \<and>
+                            c \<le> xa) \<and>
+                           ya = xa + d} \<union>
+                 ({y. \<exists>xa. xa \<in> FV t1 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t1 - {x}) \<inter> {y. \<not> x < y} \<union>
+                  ({ya. \<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> ya = x - Suc 0} \<union> (FV t2 - {y}) \<inter> {z. \<not> y < z}) \<union>
+                  FV t) \<inter>
+                 {x. \<not> c \<le> x})"
+       note this[unfolded Un_iff Int_iff insert_def]
+      then show "a \<in> insert y
+                 ({ya. \<exists>xa. ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> y \<and> y < xb \<and> xa = xb - Suc 0) \<or>
+                             xa \<in> FV t2 \<and> xa \<noteq> y \<and> \<not> y < xa \<or> xa \<in> FV t) \<and>
+                            c \<le> xa \<and> ya = xa + d} \<union>
+                  ({ya. \<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> y \<and> y < xa \<and> ya = xa - Suc 0} \<union>
+                   (FV t2 - {y}) \<inter> {ya. \<not> y < ya} \<union>
+                   FV t) \<inter>
+                  {x. \<not> c \<le> x}) \<union>
+                ({y. \<exists>xa. (xa = x \<or>
+                           ((\<exists>xb. xb \<in> FV t1 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                            xa \<in> FV t1 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t) \<and>
+                           c \<le> xa) \<and>
+                          y = xa + d} \<union>
+                 ({y. \<exists>xa. xa \<in> FV t1 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t1 - {x}) \<inter> {y. \<not> x < y} \<union>
+                  FV t) \<inter>
+                 {x. \<not> c \<le> x})"
+        by (simp add: not_le not_less, blast)
+     next
+       fix a
+       assume "a \<in> insert y
+                ({ya. \<exists>xa. ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> y \<and> y < xb \<and> xa = xb - Suc 0) \<or>
+                            xa \<in> FV t2 \<and> xa \<noteq> y \<and> \<not> y < xa \<or> xa \<in> FV t) \<and>
+                           c \<le> xa \<and> ya = xa + d} \<union>
+                 ({ya. \<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> y \<and> y < xa \<and> ya = xa - Suc 0} \<union>
+                  (FV t2 - {y}) \<inter> {ya. \<not> y < ya} \<union>
+                  FV t) \<inter>
+                 {x. \<not> c \<le> x}) \<union>
+               ({y. \<exists>xa. (xa = x \<or>
+                          ((\<exists>xb. xb \<in> FV t1 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                           xa \<in> FV t1 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t) \<and>
+                          c \<le> xa) \<and>
+                         y = xa + d} \<union>
+                ({y. \<exists>xa. xa \<in> FV t1 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t1 - {x}) \<inter> {y. \<not> x < y} \<union>
+                 FV t) \<inter>
+                {x. \<not> c \<le> x})"
+              
+       note this[unfolded Un_iff Int_iff insert_def not_le not_less, simplified]
      
-    sorry
-    have C3: "c \<le> x \<Longrightarrow> \<not>c \<le> y \<Longrightarrow> ?case"
-      
-    sorry
-    have "\<not>c \<le> y \<Longrightarrow> \<not>c \<le> x \<Longrightarrow> ?case"
-      
-    sorry
-    show ?case
-     sorry
+       then show "a \<in> insert y
+                 ({ya. \<exists>xa. (xa = x \<or>
+                             ((\<exists>xb. xb \<in> FV t1 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                              xa \<in> FV t1 \<and> xa \<noteq> x \<and> \<not> x < xa \<or>
+                              (\<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> xa = x - Suc 0) \<or>
+                              xa \<in> FV t2 \<and> xa \<noteq> y \<and> \<not> y < xa \<or> xa \<in> FV t) \<and>
+                             c \<le> xa) \<and>
+                            ya = xa + d} \<union>
+                  ({y. \<exists>xa. xa \<in> FV t1 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t1 - {x}) \<inter> {y. \<not> x < y} \<union>
+                   ({ya. \<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> ya = x - Suc 0} \<union> (FV t2 - {y}) \<inter> {z. \<not> y < z}) \<union>
+                   FV t) \<inter>
+                  {x. \<not> c \<le> x})"
+         by (simp add: not_le not_less) blast         
+         
+     qed
+
+    have "c \<le> x \<Longrightarrow> \<not>c \<le> y \<Longrightarrow> ?SS5 = ?SS6"
+      proof -
+        assume hyps:"c \<le> x" "\<not>c\<le>y"
+        show "?SS5 = ?SS6"
+          using P2[OF hyps(2)[unfolded not_le], of t2 t, symmetric] P1[OF hyps(1),of t1 t, symmetric]
+                S5 S6
+          by force
+      qed    
+    then have C3: "c \<le> x \<Longrightarrow> \<not>c \<le> y \<Longrightarrow> ?case"
+      by (simp add: hyps image_def Bex_def Int_Collect simp_nat)
+    
+    let ?SS7= "  insert x (insert y ({y. \<exists>xa. ((\<exists>x. x \<in> FV t1 \<and> Suc c \<le> x \<and> xa = x + d) \<or> xa \<in> FV t1 \<and> \<not> Suc c \<le> xa) \<and>
+                 xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union>
+        ({y. \<exists>x. x \<in> FV t1 \<and> Suc c \<le> x \<and> y = x + d} \<union> FV t1 \<inter> {x. \<not> Suc c \<le> x} - {x}) \<inter> {y. \<not> x < y} \<union>
+        ({ya. \<exists>x. ((\<exists>xa. xa \<in> FV t2 \<and> Suc c \<le> xa \<and> x = xa + d) \<or> x \<in> FV t2 \<and> \<not> Suc c \<le> x) \<and>
+                  x \<noteq> y \<and> y < x \<and> ya = x - Suc 0} \<union>
+         ({y. \<exists>x. x \<in> FV t2 \<and> Suc c \<le> x \<and> y = x + d} \<union> FV t2 \<inter> {x. \<not> Suc c \<le> x} - {y}) \<inter> {z. \<not> y < z}) \<union>
+        ({y. \<exists>x. x \<in> FV t \<and> c \<le> x \<and> y = x + d} \<union> FV t \<inter> {x. \<not> c \<le> x})))" and
+        ?SS8=" insert x (insert y ({ya. \<exists>xa. ((\<exists>xb. xb \<in> FV t1 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+          xa \<in> FV t1 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> (\<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> xa = x - Suc 0) \<or>
+           xa \<in> FV t2 \<and> xa \<noteq> y \<and> \<not> y < xa \<or> xa \<in> FV t) \<and> c \<le> xa \<and> ya = xa + d} \<union>
+        ({y. \<exists>xa. xa \<in> FV t1 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t1 - {x}) \<inter> {y. \<not> x < y} \<union>
+         ({ya. \<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> ya = x - Suc 0} \<union> (FV t2 - {y}) \<inter> {z. \<not> y < z}) \<union>
+         FV t) \<inter> {x. \<not> c \<le> x}))"
+
+    have S7:"?SS7 = ?S2 x t t1 \<union> ?S2 y t t2"
+      by fastforce
+    have S8:"?SS8= ?S4 x t t1 \<union> ?S4 y t t2"
+      proof (rule; rule)
+        fix a
+        assume "a \<in> insert x
+                (insert y
+                  ({ya. \<exists>xa. ((\<exists>xb. xb \<in> FV t1 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                              xa \<in> FV t1 \<and> xa \<noteq> x \<and> \<not> x < xa \<or>
+                              (\<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> xa = x - Suc 0) \<or>
+                              xa \<in> FV t2 \<and> xa \<noteq> y \<and> \<not> y < xa \<or> xa \<in> FV t) \<and>
+                             c \<le> xa \<and> ya = xa + d} \<union>
+                   ({y. \<exists>xa. xa \<in> FV t1 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t1 - {x}) \<inter> {y. \<not> x < y} \<union>
+                    ({ya. \<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> ya = x - Suc 0} \<union> (FV t2 - {y}) \<inter> {z. \<not> y < z}) \<union>
+                    FV t) \<inter>
+                   {x. \<not> c \<le> x}))"
+       note this[unfolded Un_iff Int_iff insert_def not_le not_less]
+      then show "a \<in> insert x
+                 ({y. \<exists>xa. ((\<exists>xb. xb \<in> FV t1 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                            xa \<in> FV t1 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t) \<and>
+                           c \<le> xa \<and> y = xa + d} \<union>
+                  ({y. \<exists>xa. xa \<in> FV t1 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t1 - {x}) \<inter> {y. \<not> x < y} \<union>
+                   FV t) \<inter>
+                  {x. \<not> c \<le> x}) \<union>
+                insert y
+                 ({ya. \<exists>xa. ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> y \<and> y < xb \<and> xa = xb - Suc 0) \<or>
+                             xa \<in> FV t2 \<and> xa \<noteq> y \<and> \<not> y < xa \<or> xa \<in> FV t) \<and>
+                            c \<le> xa \<and> ya = xa + d} \<union>
+                  ({ya. \<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> y \<and> y < xa \<and> ya = xa - Suc 0} \<union>
+                   (FV t2 - {y}) \<inter> {ya. \<not> y < ya} \<union>
+                   FV t) \<inter>
+                  {x. \<not> c \<le> x})"
+        by (simp add: not_le not_less) blast
+        
+     next
+       fix a
+       assume "a \<in> insert x
+                ({y. \<exists>xa. ((\<exists>xb. xb \<in> FV t1 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                           xa \<in> FV t1 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t) \<and>
+                          c \<le> xa \<and> y = xa + d} \<union>
+                 ({y. \<exists>xa. xa \<in> FV t1 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t1 - {x}) \<inter> {y. \<not> x < y} \<union>
+                  FV t) \<inter>
+                 {x. \<not> c \<le> x}) \<union>
+               insert y
+                ({ya. \<exists>xa. ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> y \<and> y < xb \<and> xa = xb - Suc 0) \<or>
+                            xa \<in> FV t2 \<and> xa \<noteq> y \<and> \<not> y < xa \<or> xa \<in> FV t) \<and>
+                           c \<le> xa \<and> ya = xa + d} \<union>
+                 ({ya. \<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> y \<and> y < xa \<and> ya = xa - Suc 0} \<union>
+                  (FV t2 - {y}) \<inter> {ya. \<not> y < ya} \<union>
+                  FV t) \<inter>
+                 {x. \<not> c \<le> x})"
+              
+       note this[unfolded Un_iff Int_iff insert_def not_le not_less, simplified]
+     
+       then show "a \<in> insert x
+                 (insert y
+                   ({ya. \<exists>xa. ((\<exists>xb. xb \<in> FV t1 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                               xa \<in> FV t1 \<and> xa \<noteq> x \<and> \<not> x < xa \<or>
+                               (\<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> xa = x - Suc 0) \<or>
+                               xa \<in> FV t2 \<and> xa \<noteq> y \<and> \<not> y < xa \<or> xa \<in> FV t) \<and>
+                              c \<le> xa \<and> ya = xa + d} \<union>
+                    ({y. \<exists>xa. xa \<in> FV t1 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union>
+                     (FV t1 - {x}) \<inter> {y. \<not> x < y} \<union>
+                     ({ya. \<exists>x. x \<in> FV t2 \<and> x \<noteq> y \<and> y < x \<and> ya = x - Suc 0} \<union> (FV t2 - {y}) \<inter> {z. \<not> y < z}) \<union>
+                     FV t) \<inter> {x. \<not> c \<le> x}))"
+         by (simp add: not_le not_less) blast        
+         
+     qed
+
+    have "\<not>c \<le> y \<Longrightarrow> \<not>c \<le> x \<Longrightarrow> ?SS7 = ?SS8"
+      proof (simp only: S7 S8)
+        assume hyps:"\<not>c \<le> x" "\<not>c\<le>y"
+        show "?S2 x t t1 \<union> ?S2 y t t2 = ?S4 x t t1 \<union> ?S4 y t t2"
+          using P2[OF hyps(2)[unfolded not_le], of t2 t, symmetric] 
+                P2[OF hyps(1)[unfolded not_le],of t1 t, symmetric]
+          by force
+      qed    
+    then have "\<not>c \<le> y \<Longrightarrow> \<not>c \<le> x \<Longrightarrow> ?case"
+      by (simp add: hyps image_def Bex_def Int_Collect simp_nat)
+    
+    with C1 C2 C3 show ?case by satx
 next
   case (CaseVar t L I LT)
-    note hyps=this
-    have A:"UNION (set (indexed_map 0 (\<lambda>k. shift_L (int d) (if I ! k < c then Suc c else c)) LT)) FV =
-          (\<lambda>x. x + d) ` ((\<Union>x\<in>set LT. FV x) \<inter> {x. c \<le> x}) \<union> UNION (set LT) FV \<inter> {x. \<not> c \<le> x}"
-          sorry
+    note this(1,2) and inv = this(3)[unfolded RCons.simps[of "CaseVar _ _ _ _", simplified]]          
+    note hyps=this(1)[OF inv[THEN conjunct2,THEN conjunct1]] this(2)[OF _ inv[THEN conjunct2,THEN conjunct2, rule_format]]
+         and len_cdt=inv[THEN conjunct1]          
+    let ?f = "(\<lambda>p. shift_L (int d) (if I ! fst p < c then Suc c else c) (snd p))" and
+        ?S1= "{x. \<exists>xa. (\<exists>a b. (\<exists>n. [0..<length LT] ! n = a \<and>
+                         map (\<lambda>p. shift_L (int d) (if I ! fst p < c then Suc c else c)
+                                   (snd p))
+                          (zip [0..<length LT] LT)! n = b \<and> n < length LT) \<and>
+                    xa = {y. \<exists>x. x \<in> FV b \<and>
+                            x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I !
+                                 a \<and>
+                            map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a
+                            < x \<and>
+                            y = x - Suc 0} \<union>
+                    (FV b - {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                    {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a
+                           < y}) \<and> x \<in> xa}"
+
+    have A:"\<And>n a b. ([0..<length LT] ! n = a \<and>
+                         map (\<lambda>p. shift_L (int d) (if I ! fst p < c then Suc c else c) (snd p))
+                          (zip [0..<length LT] LT) !
+                         n =
+                         b \<and>
+                         n < length LT) = (n=a \<and> n < length LT \<and> b= shift_L (int d) (if I ! n < c then Suc c else c) (LT!n))" sorry
+    have B:"\<And>n a b. ([0..<length LT] ! n = a \<and> LT ! n = b \<and> n < length LT) =
+             (n=a \<and> LT ! n = b \<and> n < length LT)"
+      sorry 
+    have simp_n: "\<And>x.  nat (int x + int d) = x+d" 
+      by force      
     show ?case
-      
-      sorry
+      apply (simp add:hyps indexed_to_map image_def Bex_def Int_Collect)
+      apply (simp add: in_set_zip fst_conv snd_conv Union_eq A B simp_n)
+      proof (rule; rule)
+        fix x
+        let ?TS ="x \<in> {y. \<exists>x. (x \<in> FV t \<or> (\<exists>xa. (\<exists>a<length LT. xa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and>
+                  I ! a < x \<and> y = x - Suc 0} \<union> (FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y}) \<and> x \<in> xa) \<or>
+                       x \<in> set I) \<and> c \<le> x \<and> y = x + d} \<union>
+              (FV t \<union>  {x. \<exists>xa. (\<exists>a<length LT. xa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and> I ! a < x \<and> y = x - Suc 0} \<union>
+               (FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y}) \<and> x \<in> xa} \<union> set I) \<inter> {x. \<not> c \<le> x}" 
+        assume "x \<in> {y. \<exists>x. x \<in> FV t \<and> c \<le> x \<and> y = x + d} \<union> FV t \<inter> {x. \<not> c \<le> x} \<union>
+             {x. \<exists>xa. (\<exists>a. (I ! a < c \<longrightarrow> a < length LT \<and>
+                            xa = {y. \<exists>x. x \<in> FV (shift_L (int d) (Suc c) (LT ! a)) \<and>
+                                         x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                                         map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and>
+                                         y = x - Suc 0} \<union>
+                                 (FV (shift_L (int d) (Suc c) (LT ! a)) -
+                                  {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                                 {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y}) \<and>
+                           (\<not> I ! a < c \<longrightarrow>a < length LT \<and>
+                            xa = {y. \<exists>x. x \<in> FV (shift_L (int d) c (LT ! a)) \<and>
+                                         x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                                         map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and>
+                                         y = x - Suc 0} \<union>
+                                 (FV (shift_L (int d) c (LT ! a)) -
+                                  {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                                 {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y})) \<and>
+                      x \<in> xa} \<union>
+             ({y. \<exists>x. x \<in> set I \<and> c \<le> x \<and> y = x + d} \<union> set I \<inter> {x. \<not> c \<le> x})"
+        note H=this[simplified] 
+        let ?asm="(\<exists>xa. (\<exists>a. (I ! a < c \<longrightarrow> a < length LT \<and>
+              xa = {y. \<exists>x. x \<in> FV (shift_L (int d) (Suc c) (LT ! a)) \<and>
+                           x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and> y = x - Suc 0} \<union>
+                   (FV (shift_L (int d) (Suc c) (LT ! a)) - {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                   {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y}) \<and>
+             (\<not> I ! a < c \<longrightarrow>  a < length LT \<and> xa = {y. \<exists>x. x \<in> FV (shift_L (int d) c (LT ! a)) \<and>
+              x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and> y = x - Suc 0} \<union>
+                   (FV (shift_L (int d) c (LT ! a)) - {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                   {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y})) \<and> x \<in> xa)"
+        have "(\<exists>xa. xa \<in> FV t \<and> c \<le> xa \<and> x = xa + d) \<or> x \<in> FV t \<and> \<not> c \<le> x \<Longrightarrow> ?TS" by fast
+        moreover have "(\<exists>xa. xa \<in> set I \<and> c \<le> xa \<and> x = xa + d) \<or> x \<in> set I \<and> \<not> c \<le> x \<Longrightarrow> ?TS" by fast
+        
+        moreover have "?asm \<Longrightarrow> ?TS" 
+          proof -
+            assume "?asm"
+            then obtain xa a where H1:"I ! a < c \<Longrightarrow> a < length LT \<and>
+              xa = {y. \<exists>x. x \<in> FV (shift_L (int d) (Suc c) (LT ! a)) \<and>
+                           x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and> y = x - Suc 0} \<union>
+                   (FV (shift_L (int d) (Suc c) (LT ! a)) - {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                   {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y}"
+             "\<not> I ! a < c \<Longrightarrow> a < length LT \<and> xa = {y. \<exists>x. x \<in> FV (shift_L (int d) c (LT ! a)) \<and>
+              x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and> y = x - Suc 0} \<union>
+                   (FV (shift_L (int d) c (LT ! a)) - {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                   {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y}" "x \<in> xa"
+              by blast+
+            have "I!a<c \<Longrightarrow> ?TS"
+              proof-
+                assume infc: "I!a<c"
+                note a_len=H1(1)[OF infc, THEN conjunct1]
+                show ?TS
+                  using H1(3)[unfolded H1(1)[OF infc, THEN conjunct2], simplified]
+                        a_len hyps(2)[unfolded in_set_conv_nth,OF _ a_len]
+                        nth_map[OF a_len[unfolded len_cdt[symmetric]], 
+                                of "\<lambda>x. if c \<le> x then nat (int x + int d) else x"]
+                        infc
+                  sorry
+              qed
+            moreover have "\<not>I!a<c \<Longrightarrow> ?TS"
+              proof-
+                assume supc: "\<not>I!a<c"
+                note a_len=H1(2)[OF supc, THEN conjunct1]
+                show ?TS
+                  using H1(3)[unfolded H1(2)[OF supc, THEN conjunct2], simplified]
+                        a_len hyps(2)[unfolded in_set_conv_nth,OF _ a_len]
+                        nth_map[OF a_len[unfolded len_cdt[symmetric]], 
+                                of "\<lambda>x. if c \<le> x then nat (int x + int d) else x"]
+                        supc
+                  sorry
+              qed
+            ultimately show ?TS by fast
+          qed
+
+        ultimately show ?TS using H by satx
+     next
+        sorry
+     qed
 qed auto
+
+
 
 lemma FV_subst:
   "FV (subst_L n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"
