@@ -362,6 +362,7 @@ inductive RCons::"lterm \<Rightarrow> bool" where
 |"subterms t = Unary t1 \<Longrightarrow> RCons t1 \<Longrightarrow> RCons t"
 |"subterms t = Void \<Longrightarrow> RCons t"
 
+method RCons_inv = (match premises in H:"RCons t" for t \<Rightarrow> \<open>insert H[unfolded RCons.simps[of t, simplified]]\<close>)
 
 lemma FV_shift:
   "RCons t \<Longrightarrow> FV (shift_L (int d) c t) = image (\<lambda>x. if x \<ge> c then x + d else x) (FV t)"
@@ -370,6 +371,30 @@ proof (induction t arbitrary: c rule: lterm.induct)
     show ?case 
       using LAbs(1)[OF LAbs(2)[unfolded RCons.simps[of "LAbs T t", simplified]]]       
       by (auto simp: gr_Suc_conv image_iff) force+
+next
+  case (Tuple L)
+    have "\<And>xa c. xa \<in> set L \<Longrightarrow> FV (shift_L (int d) c xa) = (\<lambda>x. if c \<le> x then x + d else x) ` FV xa"
+      proof -
+        fix xa c
+        assume H:"xa \<in> set L" 
+        show "FV (shift_L (int d) c xa) = (\<lambda>x. if c \<le> x then x + d else x) ` FV xa"
+          using Tuple(2)[unfolded RCons.simps[of "Tuple L", simplified], rule_format]
+                H[unfolded in_set_conv_nth] Tuple(1)[OF H]
+          by blast
+      qed          
+    thus ?case by auto 
+next
+  case (Record L LT)
+    have "\<And>xa c. xa \<in> set LT \<Longrightarrow> FV (shift_L (int d) c xa) = (\<lambda>x. if c \<le> x then x + d else x) ` FV xa"
+      proof -
+        fix xa c
+        assume H:"xa \<in> set LT" 
+        show "FV (shift_L (int d) c xa) = (\<lambda>x. if c \<le> x then x + d else x) ` FV xa"
+          using Record(2)[unfolded RCons.simps[of "Record L LT", simplified], rule_format]
+                H[unfolded in_set_conv_nth] Record(1)[OF H]
+          by blast
+      qed          
+    thus ?case by auto        
 next
   case (LetBinder x t1 t2)
     note this(1-2) and inv = this(3)[unfolded RCons.simps[of "LetBinder x t1 t2", simplified]]
@@ -1132,42 +1157,33 @@ next
     note this(1,2) and inv = this(3)[unfolded RCons.simps[of "CaseVar _ _ _ _", simplified]]          
     note hyps=this(1)[OF inv[THEN conjunct2,THEN conjunct1]] this(2)[OF _ inv[THEN conjunct2,THEN conjunct2, rule_format]]
          and len_cdt=inv[THEN conjunct1]          
-    let ?f = "(\<lambda>p. shift_L (int d) (if I ! fst p < c then Suc c else c) (snd p))" and
-        ?S1= "{x. \<exists>xa. (\<exists>a b. (\<exists>n. [0..<length LT] ! n = a \<and>
-                         map (\<lambda>p. shift_L (int d) (if I ! fst p < c then Suc c else c)
-                                   (snd p))
-                          (zip [0..<length LT] LT)! n = b \<and> n < length LT) \<and>
-                    xa = {y. \<exists>x. x \<in> FV b \<and>
-                            x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I !
-                                 a \<and>
-                            map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a
-                            < x \<and>
-                            y = x - Suc 0} \<union>
-                    (FV b - {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
-                    {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a
-                           < y}) \<and> x \<in> xa}"
+    let ?f = "(\<lambda>p. shift_L (int d) (if I ! fst p < c then Suc c else c) (snd p))"
 
     have A:"\<And>n a b. ([0..<length LT] ! n = a \<and>
                          map (\<lambda>p. shift_L (int d) (if I ! fst p < c then Suc c else c) (snd p))
                           (zip [0..<length LT] LT) !
                          n =
                          b \<and>
-                         n < length LT) = (n=a \<and> n < length LT \<and> b= shift_L (int d) (if I ! n < c then Suc c else c) (LT!n))" sorry
+                         n < length LT) = (n=a \<and> n < length LT \<and> b= shift_L (int d) (if I ! n < c then Suc c else c) (LT!n))"
+      using nth_upt[of 0 _ "length LT", simplified] nth_map[of _ "zip [0..<length LT] LT" ?f, simplified]
+      by force
     have B:"\<And>n a b. ([0..<length LT] ! n = a \<and> LT ! n = b \<and> n < length LT) =
              (n=a \<and> LT ! n = b \<and> n < length LT)"
-      sorry 
+      using nth_upt[of 0 _ "length LT", simplified]
+      by fastforce
+       
     have simp_n: "\<And>x.  nat (int x + int d) = x+d" 
-      by force      
+      by force
+      
     show ?case
       apply (simp add:hyps indexed_to_map image_def Bex_def Int_Collect)
       apply (simp add: in_set_zip fst_conv snd_conv Union_eq A B simp_n)
       proof (rule; rule)
         fix x
-        let ?TS ="x \<in> {y. \<exists>x. (x \<in> FV t \<or> (\<exists>xa. (\<exists>a<length LT. xa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and>
-                  I ! a < x \<and> y = x - Suc 0} \<union> (FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y}) \<and> x \<in> xa) \<or>
-                       x \<in> set I) \<and> c \<le> x \<and> y = x + d} \<union>
-              (FV t \<union>  {x. \<exists>xa. (\<exists>a<length LT. xa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and> I ! a < x \<and> y = x - Suc 0} \<union>
-               (FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y}) \<and> x \<in> xa} \<union> set I) \<inter> {x. \<not> c \<le> x}" 
+        let ?TS ="x \<in> {y. \<exists>x. (x \<in> FV t \<or> (\<exists>xa. (\<exists>a<length LT.  xa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and> I ! a < x \<and> y = x - Suc 0} \<union>
+                   (FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y}) \<and> x \<in> xa) \<or> x \<in> set I) \<and> c \<le> x \<and> y = x + d} \<union>
+              (FV t \<union> {x. \<exists>xa. (\<exists>a<length LT. xa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and> I ! a < x \<and> y = x - Suc 0} \<union>
+                (FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y}) \<and>  x \<in> xa} \<union> set I) \<inter> {x. \<not> c \<le> x}" 
         assume "x \<in> {y. \<exists>x. x \<in> FV t \<and> c \<le> x \<and> y = x + d} \<union> FV t \<inter> {x. \<not> c \<le> x} \<union>
              {x. \<exists>xa. (\<exists>a. (I ! a < c \<longrightarrow> a < length LT \<and>
                             xa = {y. \<exists>x. x \<in> FV (shift_L (int d) (Suc c) (LT ! a)) \<and>
@@ -1188,6 +1204,7 @@ next
                       x \<in> xa} \<union>
              ({y. \<exists>x. x \<in> set I \<and> c \<le> x \<and> y = x + d} \<union> set I \<inter> {x. \<not> c \<le> x})"
         note H=this[simplified] 
+     
         let ?asm="(\<exists>xa. (\<exists>a. (I ! a < c \<longrightarrow> a < length LT \<and>
               xa = {y. \<exists>x. x \<in> FV (shift_L (int d) (Suc c) (LT ! a)) \<and>
                            x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
@@ -1219,66 +1236,224 @@ next
               proof-
                 assume infc: "I!a<c"
                 note a_len=H1(1)[OF infc, THEN conjunct1]
-                show ?TS
-                  using H1(3)[unfolded H1(1)[OF infc, THEN conjunct2], simplified]
-                        a_len hyps(2)[unfolded in_set_conv_nth,OF _ a_len]
-                        nth_map[OF a_len[unfolded len_cdt[symmetric]], 
-                                of "\<lambda>x. if c \<le> x then nat (int x + int d) else x"]
-                        infc
-                  sorry
-              qed
-            moreover have "\<not>I!a<c \<Longrightarrow> ?TS"
-              proof-
+                have "FV (shift_L (int d) (Suc c) (LT ! a)) = (\<lambda>x. if Suc c \<le> x then x + d else x) ` FV (LT ! a)"
+                  using hyps(2)[unfolded in_set_conv_nth,OF _ a_len, of "Suc c"] a_len
+                  by blast
+                hence " (\<exists>xa. xa \<in> (\<lambda>x. if Suc c \<le> x then x + d else x) ` FV (LT ! a) \<and>
+                        xa \<noteq> (if c \<le> (I ! a) then (I ! a) + d else (I ! a))  \<and>
+                        (if c \<le> (I ! a) then (I ! a) + d else (I ! a)) < xa \<and> x = xa - Suc 0) \<or>
+                          x \<in> (\<lambda>x. if Suc c \<le> x then x + d else x) ` FV (LT ! a) \<and>
+                          x \<noteq> (if c \<le> (I ! a) then (I ! a) + d else (I ! a)) \<and>
+                          \<not> (if c \<le> (I ! a) then (I ! a) + d else (I ! a)) < x "
+                   using H1(3)[unfolded H1(1)[OF infc, THEN conjunct2], simplified]
+                   by  (simp only: nth_map[OF a_len[unfolded len_cdt[symmetric]], 
+                                of "\<lambda>x. if c \<le> x then nat (int x + int d) else x", symmetric]
+                         simp_n[of "I!a", symmetric])
+                note C=this[unfolded image_def Bex_def not_less, simplified]
+                moreover have "(\<exists>xa. (\<exists>x. x \<in> FV (LT ! a) \<and> xa = (if Suc c \<le> x then x + d else x)) \<and>
+                                xa \<noteq> (if c \<le> I ! a then I ! a + d else I ! a) \<and>
+                                (if c \<le> I ! a then I ! a + d else I ! a) < xa \<and> x = xa - Suc 0) \<Longrightarrow> ?TS"
+                  proof -
+                    assume "(\<exists>xa. (\<exists>x. x \<in> FV (LT ! a) \<and> xa = (if Suc c \<le> x then x + d else x)) \<and>
+                                xa \<noteq> (if c \<le> I ! a then I ! a + d else I ! a) \<and>
+                                (if c \<le> I ! a then I ! a + d else I ! a) < xa \<and> x = xa - Suc 0)"
+                    then obtain xa x1 where H:"x1 \<in> FV (LT ! a) \<and> xa = (if Suc c \<le> x1 then x1 + d else x1)"
+                                              "xa \<noteq> (I ! a)"  "(I ! a) < xa \<and> x = xa - Suc 0 "
+                      using infc
+                      by auto
+                    have "x1\<ge> Suc c \<Longrightarrow> ?TS"
+                      proof -
+                        assume "x1\<ge> Suc c"
+                        hence "x1-Suc 0 \<in> {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and> I ! a < x \<and> y = x - Suc 0} \<and>
+                                c \<le> x1-Suc 0 \<and> x = x1 - Suc 0 + d"
+                          using H infc      
+                          by force
+                        thus ?TS using a_len by blast
+                      qed    
+              
+                    moreover have "x1<Suc c \<Longrightarrow> ?TS" using H a_len by auto
+                    ultimately show ?TS by linarith
+               qed
+
+               moreover have " (\<exists>xa. xa \<in> FV (LT ! a) \<and> x = (if Suc c \<le> xa then xa + d else xa)) \<and>
+                x \<noteq> (if c \<le> I ! a then I ! a + d else I ! a) \<and> x \<le> (if c \<le> I ! a then I ! a + d else I ! a)
+                  \<Longrightarrow> ?TS"
+                 proof -
+                   assume "(\<exists>xa. xa \<in> FV (LT ! a) \<and> x = (if Suc c \<le> xa then xa + d else xa)) \<and>
+                          x \<noteq> (if c \<le> I ! a then I ! a + d else I ! a) \<and> x \<le> (if c \<le> I ! a then I ! a + d else I ! a)"
+                   then obtain xa where H:" xa \<in> FV (LT ! a) \<and> x = (if Suc c \<le> xa then xa + d else xa)"
+                                          " x \<noteq> (if c \<le> I ! a then I ! a + d else I ! a)"  
+                                          " x \<le> (if c \<le> I ! a then I ! a + d else I ! a)"
+                     by blast
+                   have " Suc c > xa \<Longrightarrow> ?TS"  using H infc not_le not_le a_len by auto
+                     
+                   with H show ?TS using infc a_len by fastforce
+                 qed                     
+               ultimately show ?TS by satx
+             qed
+           moreover have "\<not>I!a<c \<Longrightarrow> ?TS"
+             proof-
                 assume supc: "\<not>I!a<c"
                 note a_len=H1(2)[OF supc, THEN conjunct1]
-                show ?TS
+                have "FV (shift_L (int d) c (LT ! a)) = (\<lambda>x. if c \<le> x then x + d else x) ` FV (LT ! a)"
+                  using hyps(2)[unfolded in_set_conv_nth,OF _ a_len, of "c"] a_len
+                  by blast
+                hence "(\<exists>xa. xa \<in> (\<lambda>x. if c \<le> x then x + d else x) ` FV (LT ! a) \<and>
+                        xa \<noteq> ( if c \<le> (I ! a) then (I ! a) + d else (I ! a)) \<and>
+                        ( if c \<le> (I ! a) then (I ! a) + d else (I ! a)) < xa \<and> x = xa - Suc 0) \<or>
+                        x \<in> (\<lambda>x. if c \<le> x then x + d else x) ` FV (LT ! a) \<and>
+                        x \<noteq> ( if c \<le> (I ! a) then (I ! a) + d else (I ! a)) \<and>
+                        \<not> ( if c \<le> (I ! a) then (I ! a) + d else (I ! a)) < x"
                   using H1(3)[unfolded H1(2)[OF supc, THEN conjunct2], simplified]
-                        a_len hyps(2)[unfolded in_set_conv_nth,OF _ a_len]
-                        nth_map[OF a_len[unfolded len_cdt[symmetric]], 
-                                of "\<lambda>x. if c \<le> x then nat (int x + int d) else x"]
-                        supc
-                  sorry
-              qed
+                  by (simp only:nth_map[OF a_len[unfolded len_cdt[symmetric]], 
+                                of "\<lambda>x. if c \<le> x then nat (int x + int d) else x", symmetric]
+                                simp_n[symmetric])
+                note C=this[unfolded image_def Bex_def not_less, simplified]
+                moreover have "(\<exists>xa. (\<exists>x. x \<in> FV (LT ! a) \<and> xa = (if c \<le> x then x + d else x)) \<and>
+                                xa \<noteq> (if c \<le> I ! a then I ! a + d else I ! a) \<and>
+                                (if c \<le> I ! a then I ! a + d else I ! a) < xa \<and> x = xa - Suc 0) \<Longrightarrow> ?TS"
+                  proof -
+                    assume "(\<exists>xa. (\<exists>x. x \<in> FV (LT ! a) \<and> xa = (if c \<le> x then x + d else x)) \<and>
+                                xa \<noteq> (if c \<le> I ! a then I ! a + d else I ! a) \<and>
+                                (if c \<le> I ! a then I ! a + d else I ! a) < xa \<and> x = xa - Suc 0)"
+                    then obtain xa x1 where H:"x1 \<in> FV (LT ! a) \<and> xa = (if c \<le> x1 then x1 + d else x1)"
+                                              "xa \<noteq> (I ! a) + d "  "(I ! a) + d < xa \<and> x = xa - Suc 0 "
+                      using supc
+                      by auto
+                    have "x1\<ge> c \<Longrightarrow> ?TS" 
+                      proof -
+                        assume A:"x1 \<ge> c"
+                        hence "x1 \<in> FV (LT ! a) \<and> x1 \<noteq> I ! a \<and> I ! a < x1 \<and> c \<le> x1 - Suc 0 \<and> x = x1 - Suc 0 + d"
+                          using H supc[unfolded not_less]
+                          by auto
+                        thus ?TS using a_len by blast
+                      qed    
+              
+                    moreover have "x1< c \<Longrightarrow> ?TS" using H a_len supc by simp
+                    ultimately show ?TS by linarith
+                 qed
+
+               moreover have " (\<exists>xa. xa \<in> FV (LT ! a) \<and> x = (if c \<le> xa then xa + d else xa)) \<and>
+                x \<noteq> (if c \<le> I ! a then I ! a + d else I ! a) \<and> x \<le> (if c \<le> I ! a then I ! a + d else I ! a)
+                  \<Longrightarrow> ?TS"
+                 proof -
+                   assume "(\<exists>xa. xa \<in> FV (LT ! a) \<and> x = (if c \<le> xa then xa + d else xa)) \<and>
+                          x \<noteq> (if c \<le> I ! a then I ! a + d else I ! a) \<and> x \<le> (if c \<le> I ! a then I ! a + d else I ! a)"
+                   then obtain xa where H:" xa \<in> FV (LT ! a) \<and> x = (if c \<le> xa then xa + d else xa)"
+                                          " x \<noteq> (if c \<le> I ! a then I ! a + d else I ! a)"  
+                                          " x \<le> (if c \<le> I ! a then I ! a + d else I ! a)"
+                     by blast
+                   have " c \<le> xa \<Longrightarrow> ?TS"  using H supc not_le a_len by auto
+                   moreover have " c > xa \<Longrightarrow> ?TS"  using H supc not_le not_less a_len
+                   sorry  
+                   ultimately show ?TS using supc a_len by fastforce
+                 qed                     
+               ultimately show ?TS by satx
+             qed
             ultimately show ?TS by fast
           qed
 
         ultimately show ?TS using H by satx
      next
-        sorry
+        fix x
+        let ?asm1 ="x \<in> {y. \<exists>x. (x \<in> FV t \<or> (\<exists>xa. (\<exists>a<length LT.  xa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and> I ! a < x \<and> y = x - Suc 0} \<union>
+                   (FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y}) \<and> x \<in> xa) \<or> x \<in> set I) \<and> c \<le> x \<and> y = x + d} \<union>
+              (FV t \<union> {x. \<exists>xa. (\<exists>a<length LT. xa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and> I ! a < x \<and> y = x - Suc 0} \<union>
+                (FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y}) \<and>  x \<in> xa} \<union> set I) \<inter> {x. \<not> c \<le> x}" and
+            ?TS= "x \<in> {y. \<exists>x. x \<in> FV t \<and> c \<le> x \<and> y = x + d} \<union> FV t \<inter> {x. \<not> c \<le> x} \<union>
+             {x. \<exists>xa. (\<exists>a. (I ! a < c \<longrightarrow> a < length LT \<and>
+                            xa = {y. \<exists>x. x \<in> FV (shift_L (int d) (Suc c) (LT ! a)) \<and>
+                                         x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                                         map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and>
+                                         y = x - Suc 0} \<union>
+                                 (FV (shift_L (int d) (Suc c) (LT ! a)) -
+                                  {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                                 {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y}) \<and>
+                           (\<not> I ! a < c \<longrightarrow>a < length LT \<and>
+                            xa = {y. \<exists>x. x \<in> FV (shift_L (int d) c (LT ! a)) \<and>
+                                         x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                                         map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and>
+                                         y = x - Suc 0} \<union>
+                                 (FV (shift_L (int d) c (LT ! a)) -
+                                  {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                                 {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y})) \<and>
+                      x \<in> xa} \<union>
+             ({y. \<exists>x. x \<in> set I \<and> c \<le> x \<and> y = x + d} \<union> set I \<inter> {x. \<not> c \<le> x})"
+        assume ?asm1
+        note this[simplified] 
+
+        then have H:"(\<exists>xa. xa \<in> FV t \<and> c \<le> xa \<and> x = xa + d) \<or>
+         (\<exists>xa. (\<exists>xaa. (\<exists>a<length LT. xaa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and> I ! a < x \<and> y = x - Suc 0} \<union>
+         (FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y}) \<and> xa \<in> xaa) \<and> c \<le> xa \<and> x = xa + d) \<or>
+         (\<exists>xa. xa \<in> set I \<and> c \<le> xa \<and> x = xa + d) \<or>
+         x \<in> FV t \<and> \<not> c \<le> x \<or>
+         (\<exists>xa. (\<exists>a<length LT. xa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and> I ! a < x \<and> y = x - Suc 0} \<union>
+          (FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y}) \<and> x \<in> xa \<and> \<not> c \<le> x \<or> x \<in> set I \<and> \<not> c \<le> x)"
+          by blast
+
+        have "\<exists>xa. xa \<in> FV t \<and>c \<le> xa \<and> x = xa + d \<Longrightarrow> ?TS" by fast
+        moreover have "\<exists>xa. xa \<in> set  I\<and>c \<le> xa \<and> x = xa + d \<Longrightarrow> ?TS" by fast
+        moreover have "x \<in> FV t \<and> \<not> c \<le> x \<Longrightarrow> ?TS" by fast
+
+        moreover have "\<exists>xa. ((\<exists>xaa. (\<exists>a<length LT. xaa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and> I ! a < x \<and> y = x - Suc 0} \<union>
+               (FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y}) \<and> xa \<in> xaa)) \<and> c \<le> xa \<and> x = xa + d
+               \<Longrightarrow> ?TS"
+          proof -
+            assume "\<exists>xa. ((\<exists>xaa. (\<exists>a<length LT. xaa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and> I ! a < x \<and> y = x - Suc 0} \<union>
+               (FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y}) \<and> xa \<in> xaa)) \<and> c \<le> xa \<and> x = xa + d"
+            then obtain xa a x1 where H:"x1 \<in> FV (LT ! a) \<and> x1 \<noteq> I ! a \<and> I ! a < x1 \<and> xa = x1 - Suc 0 \<or>
+                                         xa \<in> FV (LT ! a) \<and> xa\<noteq> I ! a \<and> \<not> I ! a < xa" "c \<le> xa" "x = xa + d"
+                                        "a<length LT"
+              by blast
+            from H(2-) have "xa \<in> FV (LT ! a) \<and> xa \<noteq> I ! a \<and> \<not> I ! a < xa \<Longrightarrow> ?TS"  sorry
+            thus ?TS sorry
+          qed
+
+        moreover have "(\<exists>xa. (\<exists>a<length LT. xa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and> I ! a < x \<and> y = x - Suc 0} \<union>
+          (FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y}) \<and> x \<in> xa \<and> \<not> c \<le> x \<or> x \<in> set I \<and> \<not> c \<le> x) \<Longrightarrow> ?TS" 
+            sorry
+     
+        ultimately show ?TS using H by satx
      qed
-qed auto
+qed (RCons_inv, force)+
 
+method RCons_m = (match conclusion in "RCons t" for t \<Rightarrow> 
+                    \<open>insert RCons.intros[of t, simplified], force\<close>)
 
+lemma RCons_shift:
+  "RCons t \<Longrightarrow> RCons (shift_L d c t)"
+by (induction t arbitrary: c) (RCons_inv, RCons_m)+
 
 lemma FV_subst:
-  "FV (subst_L n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"
+  "RCons t \<Longrightarrow> FV (subst_L n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"
 proof (induction u arbitrary: n t rule: lterm.induct)
   case (LAbs T u)
-  thus ?case 
-    by (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1],
+  from LAbs(1)[OF RCons_shift[OF LAbs(2)]] 
+    show ?case 
+    by (auto simp: gr0_conv_Suc image_iff FV_shift[OF LAbs(2), of 1, unfolded int_1],
         (metis DiffI One_nat_def UnCI diff_Suc_1 empty_iff imageI insert_iff nat.distinct(1))+)
 next
   case (Record L LT)
-    note hyps=this
+    note hyps=this(1)[OF _ this(2)] this(1)[OF _ RCons_shift[OF this(2)]]
     have "(\<exists>x\<in>set LT. n \<in> FV x) \<longrightarrow> (\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV - {n} \<union> FV t"
       proof (rule)
         assume "\<exists>x\<in>set LT. n \<in> FV x"
         then obtain x where H:"x\<in>set LT" "n\<in>FV x" by blast
 
-        note H1= hyps[OF H(1), of n t, simplified H(2) if_True]
+        note H1= hyps[OF H(1), of n, simplified H(2) if_True]
         
         have "(\<Union>x\<in>set LT. FV (subst_L n t x)) \<subseteq> UNION (set LT) FV - {n} \<union> FV t"
           proof (rule,simp)
             fix y
             assume "\<exists>xa\<in>set LT. y \<in> FV (subst_L n t xa)"
             then obtain x1 where A:"x1\<in>set LT" "y \<in> FV (subst_L n t x1)" by blast
-            note H2=A(2)[unfolded hyps[OF A(1), of n t]]
+            note H2=A(2)[unfolded hyps[OF A(1), of n]]
             show "(\<exists>xa\<in>set LT. y \<in> FV xa) \<and> y \<noteq> n \<or> y \<in> FV t"
                 using H2 A(1)
                 by (cases "n\<in>FV x1") force+
           qed
         moreover have "UNION (set LT) FV - {n} \<union> FV t \<subseteq> (\<Union>x\<in>set LT. FV (subst_L n t x))"
-          using hyps[of _ n t] H1 H
+          using hyps[of _ n] H1 H
           by auto
         
         ultimately show "(\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV - {n} \<union> FV t"
@@ -1290,26 +1465,26 @@ next
     ultimately show ?case by simp      
 next
   case (Tuple LT)
-    note hyps= this
+    note hyps= this(1)[OF _ this(2)] this(1)[OF _ RCons_shift[OF this(2)]]
     have "(\<exists>x\<in>set LT. n \<in> FV x) \<longrightarrow> (\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV - {n} \<union> FV t"
       proof (rule)
         assume "\<exists>x\<in>set LT. n \<in> FV x"
         then obtain x where H:"x\<in>set LT" "n\<in>FV x" by blast
 
-        note H1= hyps[OF H(1), of n t, simplified H(2) if_True]
+        note H1= hyps[OF H(1), of n, simplified H(2) if_True]
         
         have "(\<Union>x\<in>set LT. FV (subst_L n t x)) \<subseteq> UNION (set LT) FV - {n} \<union> FV t"
           proof (rule,simp)
             fix y
             assume "\<exists>xa\<in>set LT. y \<in> FV (subst_L n t xa)"
             then obtain x1 where A:"x1\<in>set LT" "y \<in> FV (subst_L n t x1)" by blast
-            note H2=A(2)[unfolded hyps[OF A(1), of n t]]
+            note H2=A(2)[unfolded hyps[OF A(1), of n]]
             show "(\<exists>xa\<in>set LT. y \<in> FV xa) \<and> y \<noteq> n \<or> y \<in> FV t"
                 using H2 A(1)
                 by (cases "n\<in>FV x1") force+
           qed
         moreover have "UNION (set LT) FV - {n} \<union> FV t \<subseteq> (\<Union>x\<in>set LT. FV (subst_L n t x))"
-          using hyps[of _ n t] H1 H
+          using hyps[of _ n] H1 H
           by auto
         
         ultimately show "(\<Union>x\<in>set LT. FV (subst_L n t x)) = UNION (set LT) FV - {n} \<union> FV t"
@@ -1321,40 +1496,43 @@ next
     ultimately show ?case by simp
 next
   case (LetBinder x t1 t2)
-    note hyps=this
+    note hyps=this(1)[OF this(3)] this(1)[OF RCons_shift[OF this(3)]]
+              this(2)[OF this(3)] this(2)[OF RCons_shift[OF this(3)]]
     have "x < n \<Longrightarrow> ?case"
       proof (rule; rule)
         fix x1
-        assume H:"x<n" "x1 \<in> FV (subst_L n t (Let var x := t1 in t2))"
-        have "n\<in>FV (Let var x := t1 in t2) \<Longrightarrow> n = x \<Longrightarrow> x1 \<in> FV (Let var x := t1 in t2) - {n} \<union> FV t"
-          apply simp
-          using H(2)[simplified, unfolded hyps]
-          apply (simp add: hyps)
-          apply (cases "x\<in>FV t1")
+         assume H:"x<n" "x1 \<in> FV (subst_L n t (Let var x := t1 in t2))"
+      
+        have "n\<in>FV (Let var x := t1 in t2) \<Longrightarrow> x1 \<in> FV (Let var x := t1 in t2) - {n} \<union> FV t"
+          using H[simplified] FV_shift[OF LetBinder(3), of 1 x, simplified]
+          by (simp add: image_def Bex_def hyps)
+             (cases "n\<in> FV t1", cases "Suc n\<in> FV t2", force+)
+        moreover have  "n \<notin> FV (Let var x := t1 in t2) \<Longrightarrow> x1\<in> FV (Let var x := t1 in t2)"
+          using H[simplified]
+          apply (simp add: image_def Bex_def hyps)
+          apply (cases "Suc n\<in> FV t2")
           sorry
-        show "x1 \<in> (if n \<in> FV (Let var x := t1 in t2) then FV (Let var x := t1 in t2) - {n} \<union> FV t
+        ultimately show "x1 \<in> (if n \<in> FV (Let var x := t1 in t2) then FV (Let var x := t1 in t2) - {n} \<union> FV t
                  else FV (Let var x := t1 in t2))"
-          sorry
+          by meson
       next
         fix x1
         show "x1 \<in> FV (subst_L n t (Let var x := t1 in t2))" sorry
       qed
-    show ?case
-      apply (cases "n \<in> FV (Let var x := t1 in t2)")
-      apply (cases "n\<ge>x")
-      apply (cases "n=x")
-      apply (simp del: subst_L.simps)
-      apply rule+
-      apply (simp add: image_iff)
-      
-      sorry
+    show ?case sorry
+     
 next
-  case (CaseSum )
+  case (CaseSum t1 x t2 y t3)
+    note hyps=this(1)[OF this(4)] this(1)[OF RCons_shift[OF this(4)]] this(2)[OF this(4)]
+              this(2)[OF RCons_shift[OF this(4)]] this(3)[OF this(4)] this(3)[OF RCons_shift[OF this(4)]]
     thus ?case sorry
 next
   case (CaseVar)
+    note hyps=this(1)[OF this(3)] this(1)[OF RCons_shift[OF this(3)]] this(2)[OF _ this(3)]
+              this(2)[OF _ RCons_shift[OF this(3)]]
+
     thus ?case sorry
-qed (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1])
+qed (auto simp: gr0_conv_Suc image_iff FV_shift[of t 1, unfolded int_1])
 
 lemma weakening :
   fixes \<Gamma>::lcontext  and t::lterm and A S::ltype and \<sigma> ::"nat\<rightharpoonup>ltype" and n::nat
