@@ -1174,10 +1174,41 @@ next
        
     have simp_n: "\<And>x.  nat (int x + int d) = x+d" 
       by force
-      
-    show ?case
-      apply (simp add:hyps indexed_to_map image_def Bex_def Int_Collect)
-      apply (simp add: in_set_zip fst_conv snd_conv Union_eq A B simp_n)
+    have "{y. \<exists>x. x \<in> FV t \<and> c \<le> x \<and> y = x + d} \<union> FV t \<inter> {x. \<not> c \<le> x} \<union>
+    {x. \<exists>xa. (\<exists>a. (I ! a < c \<longrightarrow>
+                   a < length LT \<and>
+                   xa = {y. \<exists>x. x \<in> FV (shift_L (int d) (Suc c) (LT ! a)) \<and>
+                                x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                                map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and>
+                                y = x - Suc 0} \<union>
+                        (FV (shift_L (int d) (Suc c) (LT ! a)) -
+                         {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                        {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y}) \<and>
+                  (\<not> I ! a < c \<longrightarrow>
+                   a < length LT \<and>
+                   xa = {y. \<exists>x. x \<in> FV (shift_L (int d) c (LT ! a)) \<and>
+                                x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                                map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and>
+                                y = x - Suc 0} \<union>
+                        (FV (shift_L (int d) c (LT ! a)) -
+                         {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                        {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y})) \<and>
+             x \<in> xa} \<union>
+    ({y. \<exists>x. x \<in> set I \<and> c \<le> x \<and> y = x + d} \<union> set I \<inter> {x. \<not> c \<le> x}) =
+    {y. \<exists>x. (x \<in> FV t \<or>
+             (\<exists>xa. (\<exists>a<length LT.
+                       xa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and> I ! a < x \<and> y = x - Suc 0} \<union>
+                            (FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y}) \<and>
+                   x \<in> xa) \<or>
+             x \<in> set I) \<and>
+            c \<le> x \<and> y = x + d} \<union>
+    (FV t \<union>
+     {x. \<exists>xa. (\<exists>a<length LT.
+                  xa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and> I ! a < x \<and> y = x - Suc 0} \<union>
+                       (FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y}) \<and>
+              x \<in> xa} \<union>
+     set I) \<inter>
+    {x. \<not> c \<le> x}"
       proof (rule; rule)
         fix x
         let ?TS ="x \<in> {y. \<exists>x. (x \<in> FV t \<or> (\<exists>xa. (\<exists>a<length LT.  xa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and> I ! a < x \<and> y = x - Suc 0} \<union>
@@ -1344,8 +1375,18 @@ next
                                           " x \<le> (if c \<le> I ! a then I ! a + d else I ! a)"
                      by blast
                    have " c \<le> xa \<Longrightarrow> ?TS"  using H supc not_le a_len by auto
-                   moreover have " c > xa \<Longrightarrow> ?TS"  using H supc not_le not_less a_len
-                   sorry  
+                   moreover have " c > xa \<Longrightarrow> ?TS"  using supc a_len
+                     proof -
+                       assume H1: "c>xa"
+                       note H=H(1)[THEN conjunct1] H(1)[THEN conjunct2, simplified H1[unfolded not_le[symmetric]] if_False] 
+                              H(2-) and H1
+                       have "x\<in>(FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y} \<and> c>x"                       
+                         using H(1)[unfolded H(2)[symmetric], simplified supc[unfolded not_less] if_True] 
+                               supc[unfolded not_less] H1[unfolded H(2)[symmetric]]
+                         by simp
+                       then show ?TS using a_len not_le by blast
+                     qed
+  
                    ultimately show ?TS using supc a_len by fastforce
                  qed                     
                ultimately show ?TS by satx
@@ -1405,16 +1446,222 @@ next
                                          xa \<in> FV (LT ! a) \<and> xa\<noteq> I ! a \<and> \<not> I ! a < xa" "c \<le> xa" "x = xa + d"
                                         "a<length LT"
               by blast
-            from H(2-) have "xa \<in> FV (LT ! a) \<and> xa \<noteq> I ! a \<and> \<not> I ! a < xa \<Longrightarrow> ?TS"  sorry
-            thus ?TS sorry
+            have A:"\<And>c. FV (shift_L (int d) c (LT ! a)) = (\<lambda>x. if c \<le> x then x + d else x) ` FV (LT ! a)"
+                  using hyps(2)[OF _ H(4)] set_conv_nth H(4)
+                  by auto
+            have "xa \<in> FV (LT ! a) \<and> xa \<noteq> I ! a \<and> \<not> I ! a < xa \<Longrightarrow> ?TS" 
+              proof -
+                assume H1:"xa \<in> FV (LT ! a) \<and> xa \<noteq> I ! a \<and> \<not> I ! a < xa"
+                note H1=H1[THEN conjunct1] H1[THEN conjunct2,THEN conjunct1] H1[THEN conjunct2,THEN conjunct2]
+
+                
+                have "x\<in>{y. \<exists>x. x \<in> FV (shift_L (int d) c (LT ! a)) \<and>
+                                     x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                                     map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and>
+                                     y = x - Suc 0} \<union>
+                             (FV (shift_L (int d) c (LT ! a)) -
+                              {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                             {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y}"
+                  proof -
+                    have " c\<le> I!a \<Longrightarrow> (\<exists>xa. ((\<exists>x. x \<in> FV (LT ! a) \<and> c \<le> x \<and> xa = x + d) \<or> xa \<in> FV (LT ! a) \<and> \<not> c \<le> xa) \<and>
+                           xa \<noteq> I ! a + d \<and> I ! a + d < xa \<and> x = xa - Suc 0) \<or>
+                           ((\<exists>xa. xa \<in> FV (LT ! a) \<and> c \<le> xa \<and> x = xa + d) \<or> x \<in> FV (LT ! a) \<and> \<not> c \<le> x) \<and>
+                           x \<noteq> I ! a + d \<and> \<not> I ! a + d < x"
+                      using H1 H(2-) by simp
+
+                    moreover have " \<not> c \<le> I ! a \<Longrightarrow> (\<exists>xa. ((\<exists>x. x \<in> FV (LT ! a) \<and> c \<le> x \<and> xa = x + d) \<or> xa \<in> FV (LT ! a) \<and> \<not> c \<le> xa) \<and>
+                                    xa \<noteq> I ! a \<and> I ! a < xa \<and> x = xa - Suc 0) \<or> ((\<exists>xa. xa \<in> FV (LT ! a) \<and> 
+                                    c \<le> xa \<and> x = xa + d) \<or> x \<in> FV (LT ! a) \<and> \<not> c \<le> x) \<and> x \<noteq> I ! a \<and> \<not> I ! a < x"
+                      using H1 H(2-)
+                      by linarith
+                    ultimately show ?thesis
+                      by (simp add: A image_iff Bex_def nth_map[OF H(4)[unfolded len_cdt[symmetric]]] simp_n )
+                  qed
+                then have "\<exists>xa. (I ! a < c \<longrightarrow> a < length LT \<and>
+                        xa = {y. \<exists>x. x \<in> FV (shift_L (int d) (Suc c) (LT ! a)) \<and>
+                                     x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                                     map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and>
+                                     y = x - Suc 0} \<union>(FV (shift_L (int d) (Suc c) (LT ! a)) -
+                              {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                             {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y}) \<and>
+                       (\<not> I ! a < c \<longrightarrow> a < length LT \<and> xa = {y. \<exists>x. x \<in> FV (shift_L (int d) c (LT ! a)) \<and>
+                                     x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                                     map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and>
+                                     y = x - Suc 0} \<union> (FV (shift_L (int d) c (LT ! a)) -
+                              {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                             {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y}) \<and>
+                  x \<in> xa"
+                  using H(4) H1(3) H(2) less_le_trans by auto
+               thus ?TS by auto
+             qed
+            moreover have "x1 \<in> FV (LT ! a) \<and> x1 \<noteq> I ! a \<and> I ! a < x1 \<and> xa = x1 - Suc 0 \<Longrightarrow> ?TS"
+              proof -
+                assume H1:"x1 \<in> FV (LT ! a) \<and> x1 \<noteq> I ! a \<and> I ! a < x1 \<and> xa = x1 - Suc 0"
+                note H1=H1[THEN conjunct1] H1[THEN conjunct2,THEN conjunct1] 
+                        H1[THEN conjunct2,THEN conjunct2,THEN conjunct1] 
+                        H1[THEN conjunct2,THEN conjunct2,THEN conjunct2]
+                
+                have 1:"c>I!a \<Longrightarrow> x\<in>{y. \<exists>x. x \<in> FV (shift_L (int d) (Suc c) (LT ! a)) \<and>
+                                     x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                                     map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and>
+                                     y = x - Suc 0} \<union>
+                             (FV (shift_L (int d) (Suc c) (LT ! a)) -
+                              {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                             {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y}"
+                  proof -
+                    assume H2:"c> I!a"
+                 
+                    have a: "x1 \<in> FV (LT ! a) \<and> Suc c \<le> x1  \<and> x1+d \<noteq> I ! a \<and>
+                            I ! a < x1+d \<and> x = x1 +d - Suc 0"
+                        using H1 H(2-) by auto
+                    hence "(\<exists>xa. ((\<exists>x. x \<in> FV (LT ! a) \<and> Suc c \<le> x \<and> xa = x + d) \<or> xa \<in> FV (LT ! a) \<and> \<not>Suc c \<le> xa) \<and>
+                          xa \<noteq> I ! a \<and> I ! a < xa \<and> x = xa - Suc 0) \<or>((\<exists>xa. xa \<in> FV (LT ! a) \<and>
+                          Suc c \<le> xa \<and> x = xa + d) \<or> x \<in> FV (LT ! a) \<and> \<not>Suc c \<le> x) \<and> x \<noteq> I ! a \<and> \<not> I ! a < x"      
+                      by blast  
+                    with H2 show ?thesis
+                      by (simp add: A image_iff Bex_def nth_map[OF H(4)[unfolded len_cdt[symmetric]]] simp_n )
+                  qed
+                have "\<not> c > I ! a \<Longrightarrow> x\<in>{y. \<exists>x. x \<in> FV (shift_L (int d) c (LT ! a)) \<and>
+                                     x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                                     map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and>
+                                     y = x - Suc 0} \<union> (FV (shift_L (int d) c (LT ! a)) -
+                              {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                             {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y}"
+                  proof -
+                    assume H2:"\<not> c > I ! a"
+                   have a: "x1 \<in> FV (LT ! a) \<and> c \<le> x1  \<and> x1+d \<noteq> I ! a \<and>
+                            I ! a < x1+d \<and> x = x1 +d - Suc 0"
+                        using H1 H(2-) by auto
+                   
+                    hence "c = I ! a \<Longrightarrow>(\<exists>xa. ((\<exists>x. x \<in> FV (LT ! a) \<and> I ! a \<le> x \<and> xa = x + d) \<or> xa \<in> FV (LT ! a) \<and> \<not> I ! a \<le> xa) \<and>
+                                    xa \<noteq> I ! a + d \<and> I ! a + d < xa \<and> x = xa - Suc 0) \<or> 
+                                    ((\<exists>xa. xa \<in> FV (LT ! a) \<and> I ! a \<le> xa \<and> x = xa + d) \<or> 
+                                    x \<in> FV (LT ! a) \<and> \<not> I ! a \<le> x) \<and> x \<noteq> I ! a + d \<and> \<not> I ! a + d < x"
+                      
+                      by (metis H1(2) H1(3) add_less_mono1 nat_add_right_cancel)
+                    moreover have "(\<exists>xa. ((\<exists>x. x \<in> FV (LT ! a) \<and> c \<le> x \<and> xa = x + d) \<or> xa \<in> FV (LT ! a) \<and> \<not> c \<le> xa) \<and>
+                                 xa \<noteq> I ! a + d \<and> I ! a + d < xa \<and> x = xa - Suc 0) \<or>
+                           ((\<exists>xa. xa \<in> FV (LT ! a) \<and> c \<le> xa \<and> x = xa + d) \<or> x \<in> FV (LT ! a) \<and> \<not> c \<le> x) \<and>
+                           x \<noteq> I ! a + d \<and> \<not> I ! a + d < x"
+                      proof -
+                        have "x1 \<in> FV (LT ! a) \<and> c \<le> x1  \<and> x1+d \<noteq> I ! a + d \<and>
+                              I ! a + d < x1+d \<and> x = x1 +d - Suc 0"
+                          using H1 H(2-) by auto
+                        thus ?thesis by blast
+                      qed
+                    ultimately show ?thesis using H2
+                      by (simp add: A image_iff Bex_def nth_map[OF H(4)[unfolded len_cdt[symmetric]]] simp_n )
+                  qed
+                with 1 have "\<exists>xa. (I ! a < c \<longrightarrow> a < length LT \<and>
+                        xa = {y. \<exists>x. x \<in> FV (shift_L (int d) (Suc c) (LT ! a)) \<and>
+                                     x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                                     map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and>
+                                     y = x - Suc 0} \<union>(FV (shift_L (int d) (Suc c) (LT ! a)) -
+                              {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                             {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y}) \<and>
+                       (\<not> I ! a < c \<longrightarrow> a < length LT \<and> xa = {y. \<exists>x. x \<in> FV (shift_L (int d) c (LT ! a)) \<and>
+                                     x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                                     map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and>
+                                     y = x - Suc 0} \<union> (FV (shift_L (int d) c (LT ! a)) -
+                              {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                             {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y}) \<and>
+                  x \<in> xa"
+                  using H(4)
+                  by (metis (no_types, lifting))                  
+               thus ?TS by auto
+             qed
+
+            ultimately show ?TS using H(1) by blast
           qed
 
         moreover have "(\<exists>xa. (\<exists>a<length LT. xa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and> I ! a < x \<and> y = x - Suc 0} \<union>
           (FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y}) \<and> x \<in> xa \<and> \<not> c \<le> x \<or> x \<in> set I \<and> \<not> c \<le> x) \<Longrightarrow> ?TS" 
-            sorry
-     
-        ultimately show ?TS using H by satx
+          proof -
+            assume HH:"(\<exists>xa. (\<exists>a<length LT. xa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and> I ! a < x \<and> y = x - Suc 0} \<union>
+              (FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y}) \<and> x \<in> xa \<and> \<not> c \<le> x \<or> x \<in> set I \<and> \<not> c \<le> x)"
+            have "\<exists>xa. (\<exists>a<length LT. xa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and> I ! a < x \<and> y = x - Suc 0} \<union>
+              (FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y}) \<and> x \<in> xa \<and> \<not> c \<le> x \<Longrightarrow> ?TS"
+              proof-
+                assume "\<exists>xa. (\<exists>a<length LT. xa = {y. \<exists>x. x \<in> FV (LT ! a) \<and> x \<noteq> I ! a \<and> I ! a < x \<and> y = x - Suc 0} \<union>
+                        (FV (LT ! a) - {I ! a}) \<inter> {y. \<not> I ! a < y}) \<and> x \<in> xa \<and> \<not> c \<le> x"
+                then obtain a where H: "a<length LT" "(\<exists>x1. x1 \<in> FV (LT ! a) \<and> x1 \<noteq> I ! a \<and> I ! a < x1 \<and> x = x1 - Suc 0) \<or>
+                                      x\<in>FV (LT ! a) \<and> x\<noteq> I!a \<and> \<not> I ! a < x" "\<not> c \<le> x"
+                  by blast
+               have A:"\<And>c. FV (shift_L (int d) c (LT ! a)) = (\<lambda>x. if c \<le> x then x + d else x) ` FV (LT ! a)"
+                  using hyps(2)[OF _ H(1)] set_conv_nth H(1)
+                  by auto
+               have "\<exists>x1. x1 \<in> FV (LT ! a) \<and> x1 \<noteq> I ! a \<and> I ! a < x1 \<and> x = x1 - Suc 0 \<Longrightarrow> ?TS"
+                 proof -
+                   assume "\<exists>x1. x1 \<in> FV (LT ! a) \<and> x1 \<noteq> I ! a \<and> I ! a < x1 \<and> x = x1 - Suc 0"
+                   then obtain x1 where H1:"x1 \<in> FV (LT ! a)" "x1 \<noteq> I ! a" "I ! a < x1" 
+                                            "x = x1 - Suc 0"
+                      by blast
+                   hence "x\<in> {y. \<exists>x. x \<in> FV (shift_L (int d) (Suc c) (LT ! a)) \<and>
+                            x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                            map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and> y = x - Suc 0} \<union>
+                            (FV (shift_L (int d) (Suc c) (LT ! a)) -
+                             {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                            {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y}"
+                      using H(1,3)
+                      by (auto simp:A image_iff Bex_def simp_n nth_map[OF H(1)[unfolded len_cdt[symmetric]]])
+                   hence M:"\<exists>xa. (I ! a < c \<longrightarrow> a < length LT \<and> xa = {y. \<exists>x. x \<in> FV (shift_L (int d) (Suc c) (LT ! a)) \<and>
+                          x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                          map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and> y = x - Suc 0} \<union>
+                          (FV (shift_L (int d) (Suc c) (LT ! a)) -
+                           {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                          {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y}) \<and>
+                        (\<not> I ! a < c \<longrightarrow> a < length LT \<and> xa = {y. \<exists>x. x \<in> FV (shift_L (int d) c (LT ! a)) \<and>
+                         x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                         map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and> y = x - Suc 0} \<union>
+                         (FV (shift_L (int d) c (LT ! a)) - {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                          {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y}) \<and>
+                         x \<in> xa"
+                      using H(1,3) H1(3,4) Suc_pred diff_le_self less_le_trans
+                            not_less_eq_eq zero_less_diff 
+                      by auto
+                   then show ?TS by (auto simp add:image_iff Bex_def) 
+                 qed     
+               moreover have "x\<in>FV (LT ! a) \<and> x\<noteq> I!a \<and> \<not> I ! a < x \<Longrightarrow> ?TS"
+                 proof -
+                   assume H1:"x\<in>FV (LT ! a) \<and> x\<noteq> I!a \<and> \<not> I ! a < x"
+                   hence "I ! a < c \<Longrightarrow> x\<in> (FV (shift_L (int d) (Suc c) (LT ! a)) -
+                     {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                    {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y}"
+                     by (simp add:image_iff Bex_def A nth_map[OF H(1)[unfolded len_cdt[symmetric]]] simp_n)
+                   moreover have "\<not> I ! a < c \<Longrightarrow> x\<in>(FV (shift_L (int d) c (LT ! a)) -
+                              {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                             {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y}"
+                     using H1 H(3)
+                     by (simp add:image_iff Bex_def A nth_map[OF H(1)[unfolded len_cdt[symmetric]]] simp_n)
+                   ultimately have "\<exists>xa. (\<exists>a. (I ! a < c \<longrightarrow> a < length LT \<and> xa = {y. \<exists>x. x \<in> FV (shift_L (int d) (Suc c) (LT ! a)) \<and>
+                                     x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                                     map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and>
+                                     y = x - Suc 0} \<union> (FV (shift_L (int d) (Suc c) (LT ! a)) -
+                              {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                             {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y}) \<and>
+                       (\<not> I ! a < c \<longrightarrow> a < length LT \<and> xa = {y. \<exists>x. x \<in> FV (shift_L (int d) c (LT ! a)) \<and>
+                                     x \<noteq> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a \<and>
+                                     map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < x \<and>
+                                     y = x - Suc 0} \<union>
+                       (FV (shift_L (int d) c (LT ! a)) - {map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a}) \<inter>
+                       {y. \<not> map (\<lambda>x. if c \<le> x then nat (int x + int d) else x) I ! a < y})) \<and> x \<in> xa"
+                     using H
+                     by (cases "I ! a < c", auto)
+                   thus ?TS by blast
+                 qed  
+                     
+               ultimately show ?TS using H(2) by blast 
+             qed       
+                  
+           moreover have "x \<in> set I \<and> \<not> c \<le> x \<Longrightarrow> ?TS" by blast
+           ultimately show ?TS using HH by presburger
+         qed
+
+       ultimately show ?TS using H by satx
      qed
+   then show ?case
+      by (simp add: hyps indexed_to_map image_def Bex_def Int_Collect)
+         (simp add: in_set_zip fst_conv snd_conv Union_eq A B simp_n)
 qed (RCons_inv, force)+
 
 method RCons_m = (match conclusion in "RCons t" for t \<Rightarrow> 

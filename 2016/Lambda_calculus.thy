@@ -111,7 +111,7 @@ function subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> l
   "subst_L j s (t as A) = (subst_L j s t) as A" |
   "subst_L j s (Let var x := t in t1) = 
   (if j=x then Let var x := subst_L j s t in t1
-    else  (Let var x := (subst_L j s t) in (subst_L (if j > x then Suc j else j) (shift_L 1 x s) t1))) " |
+    else  (Let var x := (subst_L j s t) in (subst_L (if j > x then Suc j else j) (if j > x then (shift_L 1 x s) else s) t1))) " |
   "subst_L j s (\<lbrace>t1,t2\<rbrace>) = \<lbrace>subst_L j s t1, subst_L j s t2\<rbrace>" |
   "subst_L j s (\<pi>1 t) = \<pi>1 (subst_L j s t)" |
   "subst_L j s (\<pi>2 t) = \<pi>2 (subst_L j s t)" |
