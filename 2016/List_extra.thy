@@ -21,11 +21,6 @@ fun replace ::"nat \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list"
   (if length xs \<le> n then xs 
     else (take n xs) @ [x] @ (drop (Suc n) xs))"
 
-fun r1::"nat \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
-"r1 0 x xs = x# drop 1 xs"|
-"r1 (Suc n) x [] = []"|
-"r1 (Suc n) x (x1#xs') = x1#(r1 n x xs')"
-
 abbreviation fst_extract::"('a\<times>'b) list \<Rightarrow> 'a list" where
 "fst_extract L \<equiv> (list_iter (\<lambda>p r. fst p # r) [] L)"
 

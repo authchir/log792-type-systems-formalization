@@ -418,20 +418,20 @@ qed (auto simp: nth_append min_def intro: has_type_LE.intros)
 (*e is a translation function from external to internal language*)
 
 
-fun e::"ltermE \<Rightarrow> ltermI" where
-  "e LETrue           = LTrue" |
-  "e LEFalse          = LFalse" |
-  "e (LEIf t1 t2 t3)  = LIf (e t1) (e t2) (e t3)" |
+fun e::"ltermE \<Rightarrow>  ltermI" where
+  "e LETrue           =  LTrue" |
+  "e LEFalse          =  LFalse" |
+  "e (LEIf t1 t2 t3)  =  LIf (e t1) (e t2) (e t3)" |
   "e (LEVar x)        = LVar x" |
   "e (LEAbs A t1)     = LAbs A (e t1)" |
   "e (LEApp t1 t2) = LApp (e t1) (e t2)" |
   "e unitE = unit" |
-  "e (SeqE t1 t2) = e t1 ;; e t2"
+  "e (SeqE t1 t2) = (e t1 ;; e t2)"
 
-(* 
-  This theorem shows that both implementation of sequence are
+(*   This theorem shows that both implementation of sequence are
    equivalent in term of typing and evaluation
 *)
+
 
 
 lemma value_equiv: "is_value_LE v1 \<longleftrightarrow> is_value_L (e v1)" (is "?P \<longleftrightarrow> ?Q")
@@ -454,18 +454,7 @@ proof (induction t)
       by auto
 qed auto
 
-lemma e_inv:
-  "e t = LTrue \<Longrightarrow> t = LETrue"
-  "e t = LFalse \<Longrightarrow> t = LEFalse" 
-  "e t = LIf c t1 t2 \<Longrightarrow> \<exists>c' t1' t2'. e c'= c \<and>  e t1' = t1 \<and> t = LEIf c' t1' t2' 
-                                              \<and> e t2' = t2"  
-  "e t = LAbs A t1 \<Longrightarrow> \<exists>t1'. t = LEAbs A t1' \<and> e t1' = t1"
-  "e t = LVar x \<Longrightarrow> t = LEVar x"
-  "e t = unit \<Longrightarrow> t = unitE"  
-  "e t = LApp t1 t2 \<Longrightarrow> \<exists>t1' t2'. t = LEApp t1' t2' \<and> e t1' = t1 \<and> e t2' = t2 \<or>
-                        (\<exists>t3 t3'. t1 = LAbs Unit (shift_L 1 0 t3) \<and> e t3' = t3 \<and> e t2' = t2 \<and>
-                          t = SeqE t2' t3')"
-by (auto elim: e.elims)
+
 
 lemma shift_suc:
   "(\<And>x. x\<in>FV t \<Longrightarrow> x\<ge> c \<Longrightarrow> int x \<ge> -d \<and> int x + d \<ge> int c1) \<Longrightarrow> c\<ge>c1 \<Longrightarrow>  shift_L d (Suc c) (shift_L 1 c1 t) = shift_L 1 c1 (shift_L d c t)"
@@ -517,8 +506,7 @@ next
   case (SeqE t1 t2)    
     have A:"(\<lambda>x. x - 1) ` (FV (shift_L 1 0 (e t2)) - {0}) = FV (e t2)"
       using FV_shift[of 1 0 "e t2"]
-      by (auto, smt Diff_empty Diff_insert0 One_nat_def diff_Suc_1 imageE image_insert 
-                    insert_iff mk_disjoint_insert nat.simps(3))
+      by (fastforce simp add: Bex_def image_def)
 
     show ?case
       using shift_suc[of "e t2" c d 0] 
@@ -577,11 +565,22 @@ using assms
 proof (induction t t' arbitrary: A rule: eval1_LE.induct)
   case (eval1_LEApp_LEAbs v2 A1 t1)
     note hyp=this(1)
-
-    have "\<And>x. x \<in> (if 0 \<in> FV (e t1) then FV (e t1) - {0} \<union> FV (e (shift_LE 1 0 v2)) else FV (e t1)) \<Longrightarrow> 1 \<le> int x"
+    have "0\<notin> FV (e t1) \<Longrightarrow>(\<And>x. x \<in> (if 0 \<in> FV (e t1) then FV (e t1) - {0} \<union>
+                        FV (e (shift_LE 1 0 v2)) else FV (e t1)) \<Longrightarrow> 1 \<le> int x)"
+      proof  (simp add: image_def Bex_def)
+        fix x :: nat
+        assume a1: "x \<in> FV (e t1)"
+        assume "0 \<notin> FV (e t1)"
+        then have "x \<noteq> 0"
+          using a1 by meson
+        then show "1 \<le> int x"
+          by auto
+      qed
+    hence "\<And>x. x \<in> (if 0 \<in> FV (e t1) then FV (e t1) - {0} \<union> FV (e (shift_LE 1 0 v2)) else FV (e t1)) \<Longrightarrow> 1 \<le> int x"
       using FV_shift[of 1 0 "e v2"] e_shift[of v2 0 1, simplified]
-      by (cases "0\<in> FV (e t1)") (auto, smt of_nat_le_0_iff)
-        
+      by (cases "0\<in> FV (e t1)") (force simp add: image_def Bex_def) 
+     
+
     then show ?case
       using e_shift[of v2 0 1, simplified]
             e_subst
@@ -590,6 +589,9 @@ proof (induction t t' arbitrary: A rule: eval1_LE.induct)
             eval1_LApp_LAbs[OF hyp[unfolded value_equiv]]
       by auto
 qed (auto intro: eval1_L.intros eval1_Lseq eval1_Lseq_next elim: has_type_LE.cases simp: value_equiv e_shift e_subst)
+
+
+
 
 inductive BigS :: "ltermI\<Rightarrow>ltermI\<Rightarrow>bool" ("(_)\<Down>(_)" [151,150]200) where
  BigS_v         : "is_value_L v \<Longrightarrow> v \<Down> v" |

@@ -83,7 +83,7 @@ abbreviation closed ::"lterm \<Rightarrow> bool" where
   "closed t \<equiv> FV t={}"
 
 abbreviation halts :: "lterm \<Rightarrow> bool" where
-  "halts t \<equiv> (\<exists>t'. star eval1_L t t' \<and> (\<forall>t1. \<not> eval1_L t' t1)) \<or> (\<forall>t1. \<not> eval1_L t t1)"
+  "halts t \<equiv> (\<exists>t'. star eval1_L t t' \<and> (\<forall>t1. \<not> eval1_L t' t1))"
 
 
 lemma value_characterisation:
