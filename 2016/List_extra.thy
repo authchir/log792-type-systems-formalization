@@ -94,7 +94,7 @@ qed simp
 
 lemma insert_nth_comp:
   "n\<le> length L \<Longrightarrow> n\<le>n1 \<Longrightarrow> insert_nth n S (insert_nth n1 S1 L) = insert_nth (Suc n1) S1 (insert_nth n S L)"
-  "n\<le> length L \<Longrightarrow> n>n1 \<Longrightarrow> insert_nth (Suc n) S (insert_nth n1 S1 L) = insert_nth (n1) S1 (insert_nth n S L)"
+  "n\<le> length L \<Longrightarrow> n\<ge>n1 \<Longrightarrow> insert_nth (Suc n) S (insert_nth n1 S1 L) = insert_nth (n1) S1 (insert_nth n S L)"
 proof (induction L arbitrary: n n1)
   case (Cons a L')
     case (1)

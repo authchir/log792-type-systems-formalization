@@ -1,6 +1,5 @@
 theory Lambda_calculus
   imports Main
-          Pure
           List_extra
           "$AFP/List-Index/List_Index"
 begin
@@ -200,7 +199,7 @@ function FV :: "lterm \<Rightarrow> nat set" where
   "FV unit = {}" |
   "FV (Seq t1 t2) = FV t1 \<union> FV t2" |
   "FV (t as A) = FV t" |
-  "FV (Let var x := t in t1) = image (\<lambda>y. if (y>x) then y-1 else y) (FV t1 -{x}) \<union> FV t \<union> {x}" |
+  "FV (Let var x := t in t1) = image (\<lambda>y. if (y>x) then y-1 else y) (FV t1 -{x}) \<union> FV t" |
   "FV (\<lbrace>t1,t2\<rbrace>) = FV t1 \<union> FV t2" |
   "FV (\<pi>1 t) =  FV t" |
   "FV (\<pi>2 t) =  FV t" |

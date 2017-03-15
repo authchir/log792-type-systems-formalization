@@ -1747,44 +1747,67 @@ next
     note hyps=this(1)[OF this(3)] this(1)[OF RCons_shift[OF this(3)]]
               this(2)[OF this(3)] this(2)[OF RCons_shift[OF this(3)]] and
          FVS = FV_shift[OF LetBinder(3), of 1 x, simplified]
-    have "x < n \<Longrightarrow> ?case"
-      proof (rule; rule)
-        fix x1
-        assume H:"x<n" "x1 \<in> FV (subst_L n t (Let var x := t1 in t2))"
-        note H=H(1) H(2)[simplified subst_L.simps]
-              
-        have "n\<in>FV (Let var x := t1 in t2) \<Longrightarrow> x1 \<in> FV (Let var x := t1 in t2) - {n} \<union> FV t"
-          using H FVS
-          by (simp add: image_def Bex_def hyps)
-             (cases "n\<in> FV t1", cases "Suc n\<in> FV t2", force+)
-        moreover have  "n \<notin> FV (Let var x := t1 in t2) \<Longrightarrow> x1\<in> FV (Let var x := t1 in t2)"
-          proof -
-            assume "n \<notin> FV (Let var x := t1 in t2)"
-            hence H1: "n\<noteq>x" "n\<notin>FV t1" "n\<notin> (\<lambda>y. if (y>x) then y-1 else y)`(FV t2-{x})"
-              by simp+
-            note H1=H1[unfolded image_iff Bex_def, simplified, rule_format]
-            hence "x1 \<in> FV (Let var x := subst_L n t t1 in subst_L (Suc n) (shift_L 1 x t) t2)"
-              using H by auto
-            note H2= this[unfolded FV.simps hyps(1)[of n] hyps(4)[of "Suc n"] FVS image_def Bex_def, 
-                      simplified]
-            have FVH:"Suc n \<notin> FV t2" using H1(3)[of "Suc n"] H(1) less_SucI by force
-            have "(\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x1 = (if x < xa then xa - 1 else xa)) \<Longrightarrow>
-                  (\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> x1 = xa - Suc 0) \<or> x1 \<in> FV t2 \<and> x1 \<noteq> x \<and> \<not> x < x1"
-              proof -
-                assume "(\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x1 = (if x < xa then xa - 1 else xa))"
-                then obtain xa where Ha:"xa \<in> FV t2" "xa \<noteq> x" "x1 = (if x < xa then xa - 1 else xa)" 
-                  by blast
-                show ?thesis
-                  using Ha H1(3)[OF Ha(1)] H(1)
-                  by (cases "x<xa") force+
-              qed
-            with FVH show ?thesis
-              using H1 H(1) H2
-              by (fastforce simp: image_def Bex_def hyps)
-          qed
-        ultimately show "x1 \<in> (if n \<in> FV (Let var x := t1 in t2) then FV (Let var x := t1 in t2) - {n} \<union> FV t
+    have "\<And>xa. xa \<in> FV (subst_L n t (Let var x := t1 in t2)) \<Longrightarrow>
+          xa \<in> (if n \<in> FV (Let var x := t1 in t2) then FV (Let var x := t1 in t2) - {n} \<union> FV t
                  else FV (Let var x := t1 in t2))"
-          by meson
+      proof -
+        fix x1
+        assume H:"x1 \<in> FV (subst_L n t (Let var x := t1 in t2))"
+        note H=H[simplified subst_L.simps]
+        have "x<n\<Longrightarrow>
+          x1 \<in> (if n \<in> FV (Let var x := t1 in t2) then FV (Let var x := t1 in t2) - {n} \<union> FV t
+                 else FV (Let var x := t1 in t2))"
+          proof -
+            assume "x<n"
+            note H= this H
+            have "n\<in>FV (Let var x := t1 in t2) \<Longrightarrow> x1 \<in> FV (Let var x := t1 in t2) - {n} \<union> FV t"
+              using H FVS
+              by (simp add: image_def Bex_def hyps)
+                 (cases "n\<in> FV t1", cases "Suc n\<in> FV t2", force+)
+            moreover have  "n \<notin> FV (Let var x := t1 in t2) \<Longrightarrow> x1\<in> FV (Let var x := t1 in t2)"
+              proof -
+                assume "n \<notin> FV (Let var x := t1 in t2)"
+                hence H1: "n\<noteq>x" "n\<notin>FV t1" "n\<notin> (\<lambda>y. if (y>x) then y-1 else y)`(FV t2-{x})"
+                  by simp+
+                note H1=H1[unfolded image_iff Bex_def, simplified, rule_format]
+                hence "x1 \<in> FV (Let var x := subst_L n t t1 in subst_L (Suc n) (shift_L 1 x t) t2)"
+                  using H by auto
+                note H2= this[unfolded FV.simps hyps(1)[of n] hyps(4)[of "Suc n"] FVS image_def Bex_def, 
+                          simplified]
+                have FVH:"Suc n \<notin> FV t2" using H1(3)[of "Suc n"] H(1) less_SucI by force
+                have "(\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x1 = (if x < xa then xa - 1 else xa)) \<Longrightarrow>
+                      (\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> x1 = xa - Suc 0) \<or> x1 \<in> FV t2 \<and> x1 \<noteq> x \<and> \<not> x < x1"
+                  proof -
+                    assume "(\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x1 = (if x < xa then xa - 1 else xa))"
+                    then obtain xa where Ha:"xa \<in> FV t2" "xa \<noteq> x" "x1 = (if x < xa then xa - 1 else xa)" 
+                      by blast
+                    show ?thesis
+                      using Ha H1(3)[OF Ha(1)] H(1)
+                      by (cases "x<xa") force+
+                  qed
+                with FVH show ?thesis
+                  using H1 H(1) H2
+                  by (fastforce simp: image_def Bex_def hyps)
+              qed
+            ultimately show "x1 \<in> (if n \<in> FV (Let var x := t1 in t2) then FV (Let var x := t1 in t2) - {n} \<union> FV t
+                 else FV (Let var x := t1 in t2))"
+              by meson
+          qed
+        moreover have "n=x\<Longrightarrow>
+        x1 \<in> (if n \<in> FV (Let var x := t1 in t2) then FV (Let var x := t1 in t2) - {n} \<union> FV t
+               else FV (Let var x := t1 in t2))"
+          proof -
+            assume "n=x"
+            note H=this H[unfolded this, simplified, unfolded image_def Bex_def hyps FVS, simplified]
+            have "n \<in> FV (Let var x := t1 in t2) \<Longrightarrow> x1 \<in> FV (Let var x := t1 in t2) - {n} \<union> FV t"
+              
+            show "x1 \<in> (if n \<in> FV (Let var x := t1 in t2) then FV (Let var x := t1 in t2) - {n} \<union> FV t
+               else FV (Let var x := t1 in t2))"
+              
+          sorry
+        moreover have "n<x \<Longrightarrow> ?case"
+          apply (simp add: image_def Bex_def)
+          sorry
       next
         fix x1
         assume H:"x<n" "x1 \<in> (if n \<in> FV (Let var x := t1 in t2) then FV (Let var x := t1 in t2) - {n} \<union> FV t
@@ -1818,18 +1841,38 @@ next
               apply auto[1]
               by force
           qed
-        show "x1 \<in> FV (subst_L n t (Let var x := t1 in t2))"
-          sorry
+        moreover have "n\<notin>FV (Let var x := t1 in t2) \<Longrightarrow> x1\<in>FV (subst_L n t (Let var x := t1 in t2))"
+          proof -
+            assume "n\<notin>FV (Let var x := t1 in t2)"
+            note Ha=this[unfolded FV.simps image_def Bex_def, simplified]
+                and H1=H(2)[simplified this if_False, simplified, unfolded Bex_def image_iff]
+            have A:"Suc n \<in> FV t2 \<Longrightarrow> x1 = x \<or> (\<exists>xa. (xa \<in> FV t2 \<and> xa \<noteq> Suc n \<or> xa \<in> FV (shift_L 1 x t)) \<and> xa \<noteq> x \<and> x < xa \<and> x1 = xa - Suc 0) \<or>
+                  (x1 \<in> FV t2 \<and> x1 \<noteq> Suc n \<or> x1 \<in> FV (shift_L 1 x t)) \<and> x1 \<noteq> x \<and> \<not> x < x1 \<or> x1 \<in> FV t1"
+              using Ha[THEN conjunct2, THEN conjunct1, rule_format, of "Suc n"] H(1)                    
+              by auto
+
+            show " x1\<in>FV (subst_L n t (Let var x := t1 in t2))"
+              using H(1) H1 Ha A
+              by (force simp add: Bex_def image_iff hyps)
+          qed
+        ultimately show "x1 \<in> FV (subst_L n t (Let var x := t1 in t2))" by blast
       qed
    
     moreover have "x=n \<Longrightarrow> ?case"
-      using hyps
+      proof (rule;rule)
+        fix x1
+        assume H: "x=n" "x1 \<in> FV (subst_L n t (Let var x := t1 in t2))"
+        
+      using hyps 
       apply (simp add: image_def Bex_def)
+      apply (cases "Suc n\<in>FV t2")
       apply (cases "n\<in>FV t1")
       apply simp_all
       
       sorry
-    show ?case sorry
+    show ?case
+      
+      sorry
      
 next
   case (CaseSum t1 x t2 y t3)
@@ -2665,6 +2708,7 @@ proof (induction s arbitrary: d c f)
             hyps(1) inv
       by auto      
 qed (inv_agrees_f, agrees_m)+
+
 
 lemma substitution:
   "\<Gamma> \<turnstile> \<lparr>t|;|\<sigma>,f\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>LVar n|;|\<sigma>1,f1\<rparr> |:| S \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>s|;|\<sigma>1,f1\<rparr> |:| S \<Longrightarrow>agrees_flag s f \<Longrightarrow> 
