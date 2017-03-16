@@ -44,7 +44,7 @@ datatype lterm =
   inr lterm ltype ("inr/ (_)/ as/ (_)" [100,100]200) |
   CaseSum lterm nat lterm nat lterm ("Case/ (_)/ of/ Inl/ (_)/ \<Rightarrow>/ (_)/ |/ Inr/ (_)/ \<Rightarrow>/ (_)" [100, 100,100, 100, 100]200) |
   Variant string lterm ltype ("<(_):=(_)> as (_)" [100,55] 200) |
-  CaseVar lterm "string list" "nat list" "lterm list" ("Case/ (_)/ of/ <(_):=(_)>/ \<Rightarrow>/ (_)" [100,100,100,100]200)|
+  CaseVar lterm "string list" "(nat\<times>lterm) list" ("Case/ (_)/ of/ (_)/ \<Rightarrow>/ (_)" [100,100,100]200)|
   Fixpoint lterm  ("fix (_)" [201]200) |
   Lnil ltype |
   Lcons ltype lterm lterm |
@@ -69,9 +69,9 @@ fun shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lterm" w
   "shift_L d c (Seq t1 t2) = Seq (shift_L d c t1) (shift_L d c t2)" |
   "shift_L d c (t as A) = (shift_L d c t) as A" |
   "shift_L d c (Let var x := t in t1) = 
-    (if x\<ge> c then Let var (nat (int x + d)) := (shift_L d c t) in (shift_L d c t1)
+    (if x> c then Let var (nat (int x + d)) := (shift_L d c t) in (shift_L d c t1)
      else  Let var x := (shift_L d c t) in (shift_L d (Suc c) t1)
-     )" |
+     )"  |
   "shift_L d c (\<lbrace>t1,t2\<rbrace>) = \<lbrace> shift_L d c t1 , shift_L d c t2 \<rbrace>" |
   "shift_L d c (\<pi>1 t) = \<pi>1 (shift_L d c t)" |
   "shift_L d c (\<pi>2 t) = \<pi>2 (shift_L d c t)" |
@@ -85,12 +85,12 @@ fun shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lterm" w
   "shift_L d c (inr t as T') =  inr (shift_L d c t) as T'" |
   "shift_L d c (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = 
     (Case (shift_L d c t) of 
-        Inl (if x\<ge> c then (nat (int x + d)) else x) \<Rightarrow> shift_L d (if x< c then Suc c else c) t1 
-      | Inr (if y\<ge> c then (nat (int y + d)) else y) \<Rightarrow> shift_L d (if y< c then Suc c else c) t2)" |
+        Inl (if x> c then (nat (int x + d)) else x) \<Rightarrow> shift_L d (if x< c then Suc c else c) t1 
+      | Inr (if y> c then (nat (int y + d)) else y) \<Rightarrow> shift_L d (if y< c then Suc c else c) t2)" |
   "shift_L d c (<l:=t> as A) = <l:= shift_L d c t> as A" |
-  "shift_L d c (Case t of <L:=I> \<Rightarrow> LT) = 
-    (Case (shift_L d c t) of <L:= (map (\<lambda>x. if x\<ge> c then (nat (int x + d)) else x) I)> \<Rightarrow> 
-      indexed_map 0 (\<lambda>k. shift_L d (if (I!k)<c then Suc c else c)) LT)"|
+  "shift_L d c (Case t of L \<Rightarrow> B) = 
+    (Case (shift_L d c t) of L \<Rightarrow> 
+      map (\<lambda>p.(if (fst p) \<ge> c then (nat (int (fst p) + d)) else fst p , shift_L d (if (fst p)<c then Suc c else c) (snd p))) B)"|
   "shift_L d c (Fixpoint t) = Fixpoint (shift_L d c t)" |
   "shift_L d c (Lnil A) = Lnil A"|
   "shift_L d c (Lisnil A t) = Lisnil A (shift_L d c t)"|
@@ -126,8 +126,8 @@ function subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> l
         Inl x \<Rightarrow> (subst_L (if j \<ge> x then Suc j else j) (shift_L 1 x s) t1)
       | Inr y \<Rightarrow> (subst_L (if j \<ge> y then Suc j else j) (shift_L 1 y s) t2))" |
   "subst_L j s (<l:=t> as T') =  <l:=subst_L j s t> as T'" |
-  "subst_L j s (Case t of <L:=I> \<Rightarrow> LT) = 
-    (Case (subst_L j s t) of <L:=I> \<Rightarrow> map (\<lambda>p. subst_L (if j \<ge> fst p  then Suc j else j) (shift_L 1 (fst p) s) (snd p)) (zip I LT))" |
+  "subst_L j s (Case t of L \<Rightarrow> B) = 
+    (Case (subst_L j s t) of L \<Rightarrow> map (\<lambda>p. (fst p, subst_L (if j \<ge> fst p  then Suc j else j) (shift_L 1 (fst p) s) (snd p))) B)" |
   "subst_L j s (Fixpoint t) = Fixpoint (subst_L j s t)"|
   "subst_L j s (Lnil A) = Lnil A"|
   "subst_L j s (Lisnil A t) = Lisnil A (subst_L j s t)"|
@@ -166,7 +166,7 @@ fun patterns::"lterm \<Rightarrow> nat list" where
 "patterns (inr t as T') =  patterns t" |
 "patterns (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = patterns t @ patterns t1 @ patterns t2" |
 "patterns (<l:=t> as T') =  patterns t" |
-"patterns (Case t of <L:=I> \<Rightarrow> LT) = patterns t @ foldl (\<lambda>e r. e @ r) [] (map (patterns) LT)" |
+"patterns (Case t of L \<Rightarrow> B) = patterns t @ foldl (\<lambda>e r. e @ r) [] (map (patterns\<circ>snd) B)" |
 "patterns (Fixpoint t) = patterns t"|
 "patterns (Lisnil A t)                  = patterns t" |
 "patterns (Lhead A t)                  = patterns t" |
@@ -213,9 +213,9 @@ function FV :: "lterm \<Rightarrow> nat set" where
   "FV (inr t as A) = FV t" |
   "FV (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = image (\<lambda>y. if (y>x) then y - 1 else y) (FV t1 -{x}) \<union> 
                                               image (\<lambda>z. if (z>y) then z - 1 else z) (FV t2 -{y}) \<union> 
-                                              FV t \<union> {x,y}" |
+                                              FV t " |
   "FV (<L:=t> as A) = FV t" |
-  "FV (Case t of <L:=I> \<Rightarrow> LT) = FV t \<union> foldl (\<lambda>x r. x \<union> r) {} (indexed_map 0 (\<lambda>k t. image (\<lambda>y. if (y>I!k) then y - 1 else y) (FV t - {I!k})) LT) \<union> set I" |
+  "FV (Case t of L \<Rightarrow> B) = FV t \<union> foldl (\<lambda>x r. x \<union> r) {} (map (\<lambda>p. image (\<lambda>y. if (y>fst p) then y - 1 else y) (FV t - {fst p})) B)" |
   "FV (Fixpoint t) = FV t"|
   "FV (Lcons A t t') = FV t \<union> FV t'"|
   "FV (Ltail A t) = FV t"|
@@ -254,7 +254,7 @@ fun fill::"(nat \<rightharpoonup> lterm) \<Rightarrow> lterm \<Rightarrow> lterm
 "fill \<Sigma> (inr t as A) = inr (fill \<Sigma> t) as A"|
 "fill \<Sigma> (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = (Case (fill \<Sigma> t) of Inl x \<Rightarrow> (fill \<Sigma> t1) | Inr y \<Rightarrow> (fill \<Sigma> t2))"|
 "fill \<Sigma> (<l:=t> as A) =  <l:=(fill \<Sigma> t)> as A"|
-"fill \<Sigma> (Case t of <L:=I> \<Rightarrow> LT) = (Case (fill \<Sigma> t) of <L:=I> \<Rightarrow> map (fill \<Sigma>) LT)"|
+"fill \<Sigma> (Case t of L \<Rightarrow> B) = (Case (fill \<Sigma> t) of L \<Rightarrow> map (\<lambda>p. (fst p, fill \<Sigma> (snd p))) B)"|
 "fill \<Sigma> (Fixpoint t) = Fixpoint (fill \<Sigma> t)" |
 "fill \<Sigma> (Lisnil A t)                = Lisnil A (fill \<Sigma> t)" |
 "fill \<Sigma> (Lhead A t)                 = Lhead A (fill \<Sigma> t)" |
@@ -281,7 +281,7 @@ fun subterms :: "lterm\<Rightarrow>subterm_set" where
 "subterms (inr t as A) = Unary t"|
 "subterms (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = Ter t t1 t2"|
 "subterms (<l:=t> as A) =  Unary t"|
-"subterms (Case t of <L:=I> \<Rightarrow> LT) = Comp t LT"|
+"subterms (Case t of L \<Rightarrow> B) = Comp t (map snd B)"|
 "subterms (Fixpoint t) = Unary t" |
 "subterms (Lcons A t1 t2)               = Bi t1 t2" |
 "subterms (Lhead A t)                  = Unary t" |

@@ -104,92 +104,283 @@ proof (induction t arbitrary: c rule: lterm.induct)
 next 
   case (LetBinder x t1 t2)
     note hyps=this
-    let ?S1 =" FV (shift_L (int d) c (Let var x := t1 in t2))" and
-        ?S2 = "(\<lambda>x. if c \<le> x then x + d else x) ` FV (Let var x := t1 in t2)"
-    have "c \<le> x \<Longrightarrow> ?S1 \<subseteq> ?S2"
-      apply (simp add: image_def hyps Int_Collect Bex_def)
-      apply meson
-      apply rule
-      apply simp
-      apply (smt Nat.add_diff_assoc2 Suc_pred le_antisym less_Suc0 nat_int nat_int_add not_le not_less_eq_eq of_nat_0 of_nat_less_iff zless_nat_conj)
-      apply rule
-      apply simp_all
-      apply (force+)[3]
-      apply rule
-      apply simp_all
-      apply (metis Nat.add_diff_assoc2 One_nat_def Suc_leI Suc_le_lessD diff_Suc_1 gr_Suc_conv less_irrefl_nat zero_less_Suc)
-      apply force
-      apply auto[1]
-      by fast
-    moreover have "c \<le> x \<Longrightarrow> ?S2 \<subseteq> ?S1"
-      apply (simp add: image_def hyps Int_Collect Bex_def)
-      apply meson
-      apply rule
-      apply simp
-      defer
-      apply force
-      apply rule
-      apply simp
-      apply meson
-      apply simp_all
-apply (metis Suc_leI le_add1 less_le_trans)
-apply (metis Suc_leI add.commute trans_less_add2)
-apply (metis Suc_leI add.commute trans_less_add2)
-apply (metis Suc_leI add.commute trans_less_add2)
-apply (metis Suc_pred add_gr_0 lessI less_le_trans less_nat_zero_code not_less_eq_eq)
-apply (metis Suc_leI add.commute trans_less_add2)
-apply (metis Suc_pred add_gr_0 le0 le_less_trans lessI not_less_eq_eq)
-apply (metis Suc_leI add.commute trans_less_add2)
-      apply force
-      apply meson
-      apply simp_all
-      apply (metis add.commute add_less_cancel_left less_imp_diff_less nat_int_add not_less)
-      apply (metis (no_types, hide_lams) add.commute less_imp_add_positive nat_add_left_cancel_less nat_int nat_less_le of_nat_add trans_less_add1)
-      defer
-      apply (smt add.commute less_imp_add_positive nat_add_left_cancel_less nat_int nat_less_le of_nat_add trans_less_add1)
-      apply (smt add_gr_0 diff_Suc_less le_less_trans nat_eq_iff nat_less_le of_nat_0_le_iff of_nat_0_less_iff)
-      apply (smt Suc_pred add_gr_0 le_less_trans less_SucI nat_less_le of_nat_0_le_iff of_nat_0_less_iff of_nat_eq_0_iff)
-apply (smt add_gr_0 diff_Suc_less le_less_trans nat_eq_iff nat_less_le of_nat_0_le_iff of_nat_0_less_iff)
-apply (smt Suc_pred add_gr_0 le_less_trans less_SucI nat_less_le of_nat_0_less_iff of_nat_le_0_iff)
-      apply metis
-      apply metis
-      apply rule
-      apply force
-by (smt add.commute less_imp_add_positive nat_add_left_cancel_less nat_int nat_less_le of_nat_add trans_less_add1)
+    let ?S3= "\<lambda>x t1 t2. (if c < x then FV (shift_L (int d) c t1) \<union> 
+                  (\<lambda>y. if nat (int x + int d) < y then y - 1 else y) `(FV(shift_L (int d) c t2)- {nat (int x + int d)})
+        else FV(shift_L (int d) c t1) \<union> ((\<lambda>y. if x < y then y - 1 else y) ` (FV(shift_L (int d) (Suc c) t2)-{x})))"
+       and  ?S4 ="\<lambda>x t1 t2. (\<lambda>x. if c \<le> x then x + d else x) ` ((\<lambda>y. if x < y then y - 1 else y) ` (FV t2 - {x}) \<union> FV t1)"
+    have simp_nat: "\<And>x. nat (int x + int d) = x + d" by auto
+    have C1:"\<And>x t1 t2. c < x \<Longrightarrow> (\<And>c. FV (shift_L (int d) c t1) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t1)
+            \<Longrightarrow> (\<And>c. FV (shift_L (int d) c t2) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t2) \<Longrightarrow>?S3 x t1 t2 \<subseteq> ?S4 x t1 t2"
+      proof -
+        fix x t1 t2
+        assume supc:"c<x" and
+               FV_s:"\<And>c. FV (shift_L (int d) c t1) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t1"
+                    "\<And>c. FV (shift_L (int d) c t2) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t2"
+        have " {y. \<exists>xa. ((\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> xa = x + d) \<or> xa \<in> FV t2 \<and> \<not> c \<le> xa) \<and>
+                  xa \<noteq> nat (int x + int d) \<and> nat (int x + int d) < xa \<and> y = xa - Suc 0} \<subseteq> 
+                  {y. \<exists>xa. ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                 xa \<in> FV t2 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1) \<and> c \<le> xa \<and> y = xa + d} \<union>
+                 ({y. \<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t2 - {x}) \<inter>
+                  {y. \<not> x < y} \<union> FV t1) \<inter>  {x. \<not> c \<le> x}"
+          proof (rule, simp)
+            fix x1
+            assume " \<exists>xaa. ((\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> xaa = x + d) \<or> xaa \<in> FV t2 \<and> \<not> c \<le> xaa) \<and>
+               xaa \<noteq> nat (int x + int d) \<and> nat (int x + int d) < xaa \<and> x1 = xaa - Suc 0"
+            then obtain xaa where H1:"((\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> xaa = x + d) \<or> xaa \<in> FV t2 \<and> \<not> c \<le> xaa)"
+               "xaa \<noteq> nat (int x + int d)" "nat (int x + int d) < xaa" "x1 = xaa - Suc 0"
+              by blast
+            
+            let ?goal= "(\<exists>xaa. ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xaa = xb - Suc 0) \<or>
+                 xaa \<in> FV t2 \<and> xaa \<noteq> x \<and> \<not> x < xaa \<or> xaa \<in> FV t1) \<and> c \<le> xaa \<and> x1 = xaa + d) \<or>
+                 ((\<exists>xaa. xaa \<in> FV t2 \<and> xaa \<noteq> x \<and> x < xaa \<and> x1 = xaa - Suc 0) \<or> x1 \<in> FV t2 \<and> x1 \<noteq> x \<and>
+                 \<not> x < x1 \<or> x1 \<in> FV t1) \<and> \<not> c \<le> x1"
 
-    moreover have "\<not>c\<le>x \<Longrightarrow> ?S1 \<subseteq> ?S2"
-      apply (simp add: image_def hyps Int_Collect Bex_def)
-      apply meson
-      defer
-      apply force
-      apply blast
-      apply fast
-      apply rule
-      apply simp
-      apply meson
-apply (smt Nat.add_diff_assoc2 One_nat_def Suc_leI Suc_le_lessD diff_Suc_1 gr_Suc_conv le_add_diff_inverse2 less_imp_le_nat nat_le_linear trans_less_add2 zero_less_Suc)
-using Suc_pred apply linarith
-apply (smt Nat.add_diff_assoc2 One_nat_def Suc_leI Suc_le_lessD diff_Suc_1 gr_Suc_conv le_add_diff_inverse2 less_imp_le_nat nat_le_linear trans_less_add2 zero_less_Suc)
-apply (smt Nat.add_diff_assoc2 One_nat_def Suc_leD Suc_leI diff_Suc_1 gr_Suc_conv less_le_trans not_le zero_less_Suc)
-apply (blast+)[3]
-by linarith
+            have "(\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> xaa = x + d) \<Longrightarrow> ?goal"
+              proof -
+                assume "\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> xaa = x + d"
+                then obtain xa where "xa \<in> FV t2" "c \<le> xa" "xaa = xa + d"
+                  by blast
+                hence "xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> xa - Suc 0 = xa - Suc 0 \<and>
+                        c \<le> xa - Suc 0 \<and> x1 = xa - Suc 0 + d"
+                  using H1(2-)[unfolded simp_nat] supc
+                  by force
+                thus ?goal by metis
+              qed      
+            moreover have "xaa \<in> FV t2 \<and> \<not> c \<le> xaa \<Longrightarrow> ?goal"
+              using H1(2-)[unfolded simp_nat] supc
+              by simp
+            ultimately show ?goal using H1(1) by satx
+          qed       
+  
+        moreover have "({y. \<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> y = x + d} \<union> FV t2 \<inter> {x. \<not> c \<le> x} - {nat (int x + int d)}) \<inter>
+                {y. \<not> nat (int x + int d) < y} \<subseteq> {y. \<exists>xa. ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                 xa \<in> FV t2 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1) \<and> c \<le> xa \<and> y = xa + d} \<union>
+                ({y. \<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t2 - {x}) \<inter>
+                {y. \<not> x < y} \<union> FV t1) \<inter> {x. \<not> c \<le> x}"
+          using supc  by force
+        
+        moreover have " {y. \<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d} \<subseteq> {y. \<exists>xa. ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                         xa \<in> FV t2 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1) \<and> c \<le> xa \<and> y = xa + d} \<union>
+                           ({y. \<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t2 - {x}) \<inter> {y. \<not> x < y} \<union> FV t1) \<inter>
+                           {x. \<not> c \<le> x}"
+          using supc by force
 
-     moreover have "\<not>c\<le>x \<Longrightarrow> ?S2 \<subseteq> ?S1"
-      apply (simp add: image_def hyps Int_Collect Bex_def)
-      apply meson
-      defer
-      apply force
-      apply rule
-      apply simp
-      apply meson
-      apply simp_all
-      apply (metis Suc_diff_Suc Suc_leI le_add1 le_imp_less_Suc less_le_trans less_nat_zero_code minus_nat.diff_0 not_less)
-      apply (metis One_nat_def Suc_leI diff_Suc_1 le_add1 le_imp_less_Suc less_imp_Suc_add less_le_trans)
-      apply (metis Suc_leI Suc_pred add.commute gr_Suc_conv trans_less_add2 zero_less_Suc)
-      apply (metis Suc_leI Suc_pred add.commute gr_Suc_conv trans_less_add2 zero_less_Suc)
-      apply (metis Suc_le_mono Suc_pred add.commute diff_diff_left less_nat_zero_code neq0_conv zero_less_diff)
-      by (metis Nat.le_diff_conv2 add.commute add.right_neutral add_Suc_right diff_add_zero diff_is_0_eq less_imp_Suc_add trans_less_add2)
-    ultimately show ?case by blast
+        moreover have "FV t1 \<inter> {x. \<not> c \<le> x} \<subseteq> {y. \<exists>xa. ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                        xa \<in> FV t2 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1) \<and> c \<le> xa \<and> y = xa + d} \<union>
+                          ({y. \<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t2 - {x}) \<inter> 
+                          {y. \<not> x < y} \<union> FV t1) \<inter> {x. \<not> c \<le> x}"
+          by force
+
+        ultimately show "?S3 x t1 t2 \<subseteq> ?S4 x t1 t2" 
+          using supc 
+          by (simp add: image_def FV_s Int_Collect Bex_def)
+      qed
+    have C2:"\<And>x t1 t2. c < x \<Longrightarrow> (\<And>c. FV (shift_L (int d) c t1) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t1)
+            \<Longrightarrow> (\<And>c. FV (shift_L (int d) c t2) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t2) \<Longrightarrow>?S4 x t1 t2 \<subseteq> ?S3 x t1 t2"
+      proof -
+        fix x t1 t2
+        assume supc:"c<x" and
+               FV_s:"\<And>c. FV (shift_L (int d) c t1) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t1"
+                    "\<And>c. FV (shift_L (int d) c t2) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t2"
+        have "c<x \<Longrightarrow> ({y. \<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> (FV t2 - {x}) \<inter> {y. \<not> x < y} \<union> FV t1) \<inter>
+                {x. \<not> c \<le> x} \<subseteq> {y. \<exists>xa. ((\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> xa = x + d) \<or> xa \<in> FV t2 \<and> \<not> c \<le> xa) \<and>
+                xa \<noteq> nat (int x + int d) \<and> nat (int x + int d) < xa \<and> y = xa - Suc 0} \<union>
+               ({y. \<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> y = x + d} \<union> FV t2 \<inter> {x. \<not> c \<le> x} - {nat (int x + int d)}) \<inter>
+               {y. \<not> nat (int x + int d) < y} \<union> ({y. \<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d} \<union> FV t1
+               \<inter> {x. \<not> c \<le> x})"
+           by force  
+        moreover have " c < x \<Longrightarrow> {y. \<exists>xa. ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or>
+                        xa \<in> FV t2 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1) \<and>  c \<le> xa \<and> y = xa + d}
+                        \<subseteq> {y. \<exists>xa. ((\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> xa = x + d) \<or> xa \<in> FV t2 \<and> \<not> c \<le> xa) \<and>
+                        xa \<noteq> nat (int x + int d) \<and> nat (int x + int d) < xa \<and> y = xa - Suc 0} \<union>
+                        ({y. \<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> y = x + d} \<union> FV t2 \<inter> {x. \<not> c \<le> x} - {nat (int x + int d)}) \<inter>
+                        {y. \<not> nat (int x + int d) < y} \<union> ({y. \<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d} \<union> FV t1 \<inter> {x. \<not> c \<le> x})"
+          proof (rule, simp)
+            fix x1
+            assume grc:"c<x"  and "\<exists>xaa. ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xaa = xb - Suc 0) \<or>
+                                    xaa \<in> FV t2 \<and> xaa \<noteq> x \<and> \<not> x < xaa \<or> xaa \<in> FV t1) \<and> c \<le> xaa \<and> x1 = xaa + d"
+            then obtain xaa where H1:"(\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xaa = xb - Suc 0) \<or>
+                                    xaa \<in> FV t2 \<and> xaa \<noteq> x \<and> \<not> x < xaa \<or> xaa \<in> FV t1" "c \<le> xaa" "x1 = xaa + d"
+              by blast
+            let ?goal = "(\<exists>xaa. ((\<exists>x. x \<in> FV t2 \<and> c \<le> x \<and> xaa = x + d) \<or> xaa \<in> FV t2 \<and> \<not> c \<le> xaa) \<and>
+                          xaa \<noteq> nat (int x + int d) \<and> nat (int x + int d) < xaa \<and> x1 = xaa - Suc 0) \<or>
+                         ((\<exists>xa. xa \<in> FV t2 \<and> c \<le> xa \<and> x1 = xa + d) \<or> x1 \<in> FV t2 \<and> \<not> c \<le> x1) \<and>
+                         x1 \<noteq> nat (int x + int d) \<and> \<not> nat (int x + int d) < x1 \<or>
+                         (\<exists>xa. xa \<in> FV t1 \<and> c \<le> xa \<and> x1 = xa + d) \<or> x1 \<in> FV t1 \<and> \<not> c \<le> x1"
+            have "\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xaa = xb - Suc 0 \<Longrightarrow> ?goal"
+              proof -
+                assume "\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xaa = xb - Suc 0"
+                then obtain xb where "xb \<in> FV t2" "xb \<noteq> x" "x < xb" "xaa = xb - Suc 0"
+                  by blast
+                hence "xb \<in> FV t2 \<and> c \<le> xb \<and> xb+d \<noteq> nat (int x + int d) \<and> 
+                        nat (int x + int d) < xb+d \<and> x1 = xb + d - Suc 0"
+                  using H1(2-)[unfolded simp_nat] grc
+                  by force
+                thus ?goal by blast
+              qed
+            moreover have "xaa \<in> FV t2 \<and> xaa \<noteq> x \<and> \<not> x < xaa \<Longrightarrow> ?goal"
+              using H1(2-)[unfolded simp_nat] grc
+              by auto
+            ultimately show ?goal using H1[unfolded simp_nat] grc by blast
+          qed        
+        ultimately show "?S4 x t1 t2 \<subseteq> ?S3 x t1 t2" 
+          using supc 
+          by (simp add: image_def FV_s Int_Collect Bex_def)
+              (meson, auto simp add: inf_sup_aci(5))
+      qed
+
+     have C4:"\<And>x t1 t2. \<not>c<x \<Longrightarrow> (\<And>c. FV (shift_L (int d) c t1) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t1)
+            \<Longrightarrow> (\<And>c. FV (shift_L (int d) c t2) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t2) \<Longrightarrow> ?S3 x t1 t2 \<subseteq> ?S4 x t1 t2"
+      proof -
+        fix x t1 t2
+        assume infc: "\<not>c<x" and
+               FV_s: "(\<And>c. FV (shift_L (int d) c t1) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t1)"
+                     " (\<And>c. FV (shift_L (int d) c t2) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t2)"
+        have " {y. \<exists>xa. ((\<exists>x. x \<in> FV t2 \<and> Suc c \<le> x \<and> xa = x + d) \<or> xa \<in> FV t2 \<and> \<not> Suc c \<le> xa) \<and>
+                xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<subseteq> {y. \<exists>xa. ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and>
+                xa = xb - Suc 0) \<or> xa \<in> FV t2 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1) \<and>
+                c \<le> xa \<and> y = xa + d} \<union> ({y. \<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union>
+                (FV t2 - {x}) \<inter> {y. \<not> x < y} \<union> FV t1) \<inter> {x. \<not> c \<le> x}"
+        proof (rule, simp)
+          (*generated with sledgehammer*)
+          fix xa :: nat
+          assume a1: "\<exists>xaa. ((\<exists>x. x \<in> FV t2 \<and> Suc c \<le> x \<and> xaa = x + d) \<or> xaa \<in> FV t2 \<and> \<not> Suc c \<le> xaa) \<and> xaa \<noteq> x \<and> x < xaa \<and> xa = xaa - Suc 0"
+          obtain nna :: nat where
+            f2: "(\<exists>v0. ((\<exists>v1. v1 \<in> FV t2 \<and> Suc c \<le> v1 \<and> v0 = v1 + d) \<or> v0 \<in> FV t2 \<and> \<not> Suc c \<le> v0) \<and> v0 \<noteq> x \<and> x < v0 \<and> xa = v0 - Suc 0) = (((\<exists>v1. v1 \<in> FV t2 \<and> Suc c \<le> v1 \<and> nna = v1 + d) \<or> nna \<in> FV t2 \<and> \<not> Suc c \<le> nna) \<and> nna \<noteq> x \<and> x < nna \<and> xa = nna - Suc 0)"
+            by moura
+          obtain nn :: nat where
+             "(\<exists>v1. v1 \<in> FV t2 \<and> Suc c \<le> v1 \<and> nna = v1 + d) = (nn \<in> FV t2 \<and> Suc c \<le> nn \<and> nna = nn + d)"
+            by moura
+          then have f3: "(nn \<in> FV t2 \<and> Suc c \<le> nn \<and> nna = nn + d \<or> nna \<in> FV t2 \<and> \<not> Suc c \<le> nna) \<and> nna \<noteq> x \<and> x < nna \<and> xa = nna - Suc 0"
+            using f2 a1 by presburger
+          then have f4: "nna \<in> FV t2 \<and> \<not> Suc c \<le> nna \<longrightarrow> \<not> c \<le> xa"
+            by (simp add: gr_Suc_conv)
+          obtain nnb :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
+            f5: "(\<not> Suc c \<le> nn \<or> nn = Suc (nnb nn c) \<and> c \<le> nnb nn c) \<and> (Suc c \<le> nn \<or> (\<forall>n. nn \<noteq> Suc n \<or> \<not> c \<le> n))"
+            by (metis gr_Suc_conv)
+          have "nn - Suc c + Suc c = nn \<and> Suc 0 \<le> nn \<and> nnb nn c = nn - Suc 0 \<and> nn = x \<longrightarrow> nn \<noteq> Suc (nnb nn c) \<or> \<not> c \<le> nnb nn c"
+            by (metis (no_types) infc not_less_eq ordered_cancel_comm_monoid_diff_class.add_diff_inverse trans_less_add2)
+          moreover
+          { assume "nn \<noteq> x"
+            { assume "nn \<noteq> x \<and> x < nn"
+              moreover
+              { assume "(\<exists>n. n \<in> FV t2 \<and> n \<noteq> x \<and> x < n \<and> nnb nn c = n - Suc 0) \<or> nnb nn c \<in> FV t2 \<and> nnb nn c \<noteq> x \<and> \<not> x < nnb nn c \<or> nnb nn c \<in> FV t1"
+                moreover
+                { assume "xa \<noteq> nnb nn c + d"
+                  then have "Suc 0 \<le> nn \<and> nnb nn c = nn - Suc 0 \<longrightarrow> nn \<notin> FV t2 \<or> \<not> Suc c \<le> nn \<or> nna \<noteq> nn + d"
+                    using f3 by (metis (no_types) Nat.add_diff_assoc2) }
+                ultimately have "Suc 0 \<le> nn \<and> nnb nn c = nn - Suc 0 \<longrightarrow> (nn \<notin> FV t2 \<or> \<not> Suc c \<le> nn \<or> nna \<noteq> nn + d) \<or> (nn \<noteq> Suc (nnb nn c) \<or> \<not> c \<le> nnb nn c) \<or> (\<exists>n. ((\<exists>na. na \<in> FV t2 \<and> na \<noteq> x \<and> x < na \<and> n = na - Suc 0) \<or> n \<in> FV t2 \<and> n \<noteq> x \<and> \<not> x < n \<or> n \<in> FV t1) \<and> c \<le> n \<and> xa = n + d) \<or> ((\<exists>n. n \<in> FV t2 \<and> n \<noteq> x \<and> x < n \<and> xa = n - Suc 0) \<or> xa \<in> FV t2 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1) \<and> \<not> c \<le> xa"
+                  by blast }
+              ultimately have "Suc 0 \<le> nn \<and> nnb nn c = nn - Suc 0 \<longrightarrow> (nn \<notin> FV t2 \<or> \<not> Suc c \<le> nn \<or> nna \<noteq> nn + d) \<or> (nn \<noteq> Suc (nnb nn c) \<or> \<not> c \<le> nnb nn c) \<or> (\<exists>n. ((\<exists>na. na \<in> FV t2 \<and> na \<noteq> x \<and> x < na \<and> n = na - Suc 0) \<or> n \<in> FV t2 \<and> n \<noteq> x \<and> \<not> x < n \<or> n \<in> FV t1) \<and> c \<le> n \<and> xa = n + d) \<or> ((\<exists>n. n \<in> FV t2 \<and> n \<noteq> x \<and> x < n \<and> xa = n - Suc 0) \<or> xa \<in> FV t2 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1) \<and> \<not> c \<le> xa"
+                by blast }
+            moreover
+            { assume "\<not> x < nn"
+              then have "nn - Suc c + Suc c \<noteq> nn"
+                by (metis (no_types) infc not_less_eq trans_less_add2) }
+            ultimately have "nn - Suc c + Suc c = nn \<and> Suc 0 \<le> nn \<and> nnb nn c = nn - Suc 0 \<longrightarrow> (nn \<notin> FV t2 \<or> \<not> Suc c \<le> nn \<or> nna \<noteq> nn + d) \<or> (nn \<noteq> Suc (nnb nn c) \<or> \<not> c \<le> nnb nn c) \<or> (\<exists>n. ((\<exists>na. na \<in> FV t2 \<and> na \<noteq> x \<and> x < na \<and> n = na - Suc 0) \<or> n \<in> FV t2 \<and> n \<noteq> x \<and> \<not> x < n \<or> n \<in> FV t1) \<and> c \<le> n \<and> xa = n + d) \<or> ((\<exists>n. n \<in> FV t2 \<and> n \<noteq> x \<and> x < n \<and> xa = n - Suc 0) \<or> xa \<in> FV t2 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1) \<and> \<not> c \<le> xa"
+              by fastforce }
+          moreover
+          { assume "nn - Suc c + Suc c \<noteq> nn"
+            then have "nn \<notin> FV t2 \<or> \<not> Suc c \<le> nn \<or> nna \<noteq> nn + d"
+              using le_add_diff_inverse2 by blast }
+          moreover
+          { assume "nn \<noteq> Suc (nnb nn c) \<or> \<not> c \<le> nnb nn c"
+            then have "nn \<notin> FV t2 \<or> \<not> Suc c \<le> nn \<or> nna \<noteq> nn + d"
+              using f5 by fastforce }
+          moreover
+          { assume "\<not> Suc 0 \<le> nn"
+            then have "nn \<noteq> Suc (nnb nn c) \<or> \<not> c \<le> nnb nn c"
+              by simp }
+          moreover
+          { assume "nnb nn c \<noteq> nn - Suc 0"
+            then have "nn \<noteq> Suc (nnb nn c) \<or> \<not> c \<le> nnb nn c"
+              by (metis (no_types) One_nat_def diff_Suc_1) }
+          moreover
+          { assume "nn \<notin> FV t2 \<or> \<not> Suc c \<le> nn \<or> nna \<noteq> nn + d"
+            then have "(nna \<in> FV t2 \<and> \<not> Suc c \<le> nna) \<and> ((\<exists>n. n \<in> FV t2 \<and> n \<noteq> x \<and> x < n \<and> xa = n - Suc 0) \<or> xa \<in> FV t2 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1)"
+              using f3 by blast
+            then have "(\<exists>n. ((\<exists>na. na \<in> FV t2 \<and> na \<noteq> x \<and> x < na \<and> n = na - Suc 0) \<or> n \<in> FV t2 \<and> n \<noteq> x \<and> \<not> x < n \<or> n \<in> FV t1) \<and> c \<le> n \<and> xa = n + d) \<or> ((\<exists>n. n \<in> FV t2 \<and> n \<noteq> x \<and> x < n \<and> xa = n - Suc 0) \<or> xa \<in> FV t2 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1) \<and> \<not> c \<le> xa"
+              using f4 by force }
+          ultimately show "(\<exists>n. ((\<exists>na. na \<in> FV t2 \<and> na \<noteq> x \<and> x < na \<and> n = na - Suc 0) \<or> n \<in> FV t2 \<and> n \<noteq> x \<and> \<not> x < n \<or> n \<in> FV t1) \<and> c \<le> n \<and> xa = n + d) \<or> ((\<exists>n. n \<in> FV t2 \<and> n \<noteq> x \<and> x < n \<and> xa = n - Suc 0) \<or> xa \<in> FV t2 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1) \<and> \<not> c \<le> xa"
+            by satx
+        qed
+      
+        then show "?S3 x t1 t2 \<subseteq> ?S4 x t1 t2"
+           using infc
+           by (simp add: image_def FV_s Int_Collect Bex_def) force
+      qed
+     
+    have "\<And>x t1 t2. \<not>c<x \<Longrightarrow>(\<And>c. FV (shift_L (int d) c t1) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t1)
+            \<Longrightarrow> (\<And>c. FV (shift_L (int d) c t2) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t2) \<Longrightarrow>?S4 x t1 t2 \<subseteq> ?S3 x t1 t2"
+     proof -
+       fix x t1 t2
+       assume infc:"\<not>c<x" and
+              FV_s: "(\<And>c. FV (shift_L (int d) c t1) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t1)"
+                    "(\<And>c. FV (shift_L (int d) c t2) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t2)"
+       have "\<not> c < x \<Longrightarrow>
+        {y. \<exists>xa. ((\<exists>xb. xb \<in> FV t2 \<and> xb \<noteq> x \<and> x < xb \<and> xa = xb - Suc 0) \<or> xa \<in> FV t2 \<and> xa \<noteq> x \<and> \<not> x < xa \<or> xa \<in> FV t1) \<and>
+         c \<le> xa \<and> y = xa + d} \<subseteq> {y. \<exists>x. x \<in> FV t1 \<and> c \<le> x \<and> y = x + d} \<union> FV t1 \<inter> {x. \<not> c \<le> x} \<union>
+         ({y. \<exists>xa. ((\<exists>x. x \<in> FV t2 \<and> Suc c \<le> x \<and> xa = x + d) \<or> xa \<in> FV t2 \<and> \<not> Suc c \<le> xa) \<and>
+         xa \<noteq> x \<and> x < xa \<and> y = xa - Suc 0} \<union> ({y. \<exists>x. x \<in> FV t2 \<and> Suc c \<le> x \<and> y = x + d} \<union> 
+         FV t2 \<inter> {x. \<not> Suc c \<le> x} - {x}) \<inter> {y. \<not> x < y})"
+         proof (rule, simp)
+            (*generated with sledgehammer*)
+            fix xa :: nat
+            assume a1: "\<exists>xb. ((\<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> xb = xa - Suc 0) \<or> xb \<in> FV t2 \<and> xb \<noteq> x \<and> \<not> x < xb \<or> xb \<in> FV t1) \<and> c \<le> xb \<and> xa = xb + d"
+            assume a2: "\<not> c < x"
+            obtain nna :: nat where
+              f3:"(\<exists>v0. ((\<exists>v1. v1 \<in> FV t2 \<and> v1 \<noteq> x \<and> x < v1 \<and> v0 = v1 - Suc 0) \<or> v0 \<in> FV t2 \<and> v0 \<noteq> x \<and> \<not> x < v0 \<or> v0 \<in> FV t1) \<and> c \<le> v0 \<and> xa = v0 + d) = (((\<exists>v1. v1 \<in> FV t2 \<and> v1 \<noteq> x \<and> x < v1 \<and> nna = v1 - Suc 0) \<or> nna \<in> FV t2 \<and> nna \<noteq> x \<and> \<not> x < nna \<or> nna \<in> FV t1) \<and> c \<le> nna \<and> xa = nna + d)"
+              by moura
+            obtain nn :: nat where
+              "(\<exists>v1. v1 \<in> FV t2 \<and> v1 \<noteq> x \<and> x < v1 \<and> nna = v1 - Suc 0) = (nn \<in> FV t2 \<and> nn \<noteq> x \<and> x < nn \<and> nna = nn - Suc 0)"
+              by moura
+            then have f4: "(nn \<in> FV t2 \<and> nn \<noteq> x \<and> x < nn \<and> nna = nn - Suc 0 \<or> nna \<in> FV t2 \<and> nna \<noteq> x \<and> \<not> x < nna \<or> nna \<in> FV t1) \<and> c \<le> nna \<and> xa = nna + d"
+              using f3 a1 by presburger
+            have f5: "\<forall>n na. \<not> n \<le> na \<or> n < Suc na"
+              using le_imp_less_Suc by satx
+            have f6: "\<forall>n na. \<not> n < na \<or> Suc n \<le> na"
+              by simp
+            obtain nnb :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
+              "\<forall>x0 x1. (\<exists>v2>0. x1 + v2 = x0) = (0 < nnb x0 x1 \<and> x1 + nnb x0 x1 = x0)"
+              by moura
+            then have f7: "\<forall>n na. \<not> n < na \<or> 0 < nnb na n \<and> n + nnb na n = na"
+              using less_imp_add_positive by presburger
+            have f8: "\<forall>n na. \<not> (n::nat) \<le> na \<or> n + (na - n) = na"
+              by fastforce
+            have f9: "0 < Suc nna"
+              by force
+            have f10: "nna \<notin> FV t2 \<or> nna = x \<or> x < nna"
+              using f8 f4 a2 by (metis le_neq_implies_less linorder_neqE_nat trans_less_add1)
+            have "nn = Suc nna \<longrightarrow> (nn \<notin> FV t2 \<or> nn = x \<or> \<not> x < nn \<or> nna \<noteq> nn - Suc 0) \<or> (\<exists>n. n \<in> FV t1 \<and> c \<le> n \<and> xa = n + d) \<or> xa \<in> FV t1 \<and> \<not> c \<le> xa \<or> (\<exists>n. ((\<exists>na. na \<in> FV t2 \<and> Suc c \<le> na \<and> n = na + d) \<or> n \<in> FV t2 \<and> \<not> Suc c \<le> n) \<and> n \<noteq> x \<and> x < n \<and> xa = n - Suc 0) \<or> ((\<exists>n. n \<in> FV t2 \<and> Suc c \<le> n \<and> xa = n + d) \<or> xa \<in> FV t2 \<and> \<not> Suc c \<le> xa) \<and> xa \<noteq> x \<and> \<not> x < xa"
+              using f9 f6 f5 f4 a2 by (metis (no_types) Nat.add_diff_assoc2 trans_less_add1)
+            moreover
+            { assume "nn \<noteq> Suc nna"
+              then have "nn \<notin> FV t2 \<or> nn = x \<or> \<not> x < nn \<or> nna \<noteq> nn - Suc 0"
+                using f9 f8 f7 f6 by (metis (no_types) One_nat_def add_gr_0 diff_Suc_1) }
+            ultimately have "((\<exists>n. n \<in> FV t1 \<and> c \<le> n \<and> xa = n + d) \<or> xa \<in> FV t1 \<and> \<not> c \<le> xa \<or> (\<exists>n. ((\<exists>na. na \<in> FV t2 \<and> Suc c \<le> na \<and> n = na + d) \<or> n \<in> FV t2 \<and> \<not> Suc c \<le> n) \<and> n \<noteq> x \<and> x < n \<and> xa = n - Suc 0) \<or> ((\<exists>n. n \<in> FV t2 \<and> Suc c \<le> n \<and> xa = n + d) \<or> xa \<in> FV t2 \<and> \<not> Suc c \<le> xa) \<and> xa \<noteq> x \<and> \<not> x < xa) \<or> nn \<notin> FV t2 \<or> nn = x \<or> \<not> x < nn \<or> nna \<noteq> nn - Suc 0"
+              by fastforce
+            then show "(\<exists>n. n \<in> FV t1 \<and> c \<le> n \<and> xa = n + d) \<or> xa \<in> FV t1 \<and> \<not> c \<le> xa \<or> (\<exists>n. ((\<exists>na. na \<in> FV t2 \<and> Suc c \<le> na \<and> n = na + d) \<or> n \<in> FV t2 \<and> \<not> Suc c \<le> n) \<and> n \<noteq> x \<and> x < n \<and> xa = n - Suc 0) \<or> ((\<exists>n. n \<in> FV t2 \<and> Suc c \<le> n \<and> xa = n + d) \<or> xa \<in> FV t2 \<and> \<not> Suc c \<le> xa) \<and> xa \<noteq> x \<and> \<not> x < xa"
+              using f10 f4 by auto
+         qed
+         
+        
+       then show "?S4 x t1 t2 \<subseteq> ?S3 x t1 t2"
+         using infc
+         by (simp add: image_def FV_s Int_Collect Bex_def) fastforce
+     qed   
+
+    note H= C1 C2  C4 this
+    have A:" FV (if c < x then Let var nat (int x + int d) := shift_L (int d) c t1 in shift_L (int d) c t2
+        else Let var x := shift_L (int d) c t1 in shift_L (int d) (Suc c) t2) = ?S3 x t1 t2"
+      by auto
+
+    have "?S3 x t1 t2 = ?S4 x t1 t2"
+      using H[of x t1 t2,OF _ hyps]
+      by (cases "c<x") fast+
+
+    then show ?case
+      by (simp only: shift_L.simps FV.simps A)
+      
 qed force+
 
 lemma FV_subst:
@@ -204,78 +395,138 @@ next
     note hyps=this
     let ?S1=" FV (subst_L n t (Let var x := t1 in t2))" and 
         ?S2="if n \<in> FV (Let var x := t1 in t2) then FV (Let var x := t1 in t2) - {n} \<union> FV t
-              else FV (Let var x := t1 in t2)"
-    have "x \<le> n \<Longrightarrow> ?S1 \<subseteq> ?S2"
-      apply (simp add: image_def hyps Int_Collect Bex_def FV_shift[of 1, unfolded int_1])
-      apply (cases "Suc n \<in> FV t2")
-      apply simp_all
-      apply (cases "n \<in> FV t1")
-      apply simp_all
-      apply meson
-      apply (force+)[6]
-      apply meson
-      apply (force+)[3]
-apply (metis One_nat_def diff_Suc_1 le_imp_less_Suc)
-apply (metis One_nat_def diff_Suc_1 le_imp_less_Suc)
-      apply (force+)[2]
-apply (metis One_nat_def diff_Suc_1 le_imp_less_Suc)
-apply (metis One_nat_def diff_Suc_1 le_imp_less_Suc)
-      by (cases "n\<in> FV t1", auto)
+              else FV (Let var x := t1 in t2)" and
+        ?S3="\<lambda>n t x t1 t2. (\<lambda>y. if x < y then y - 1 else y) ` (FV (subst_L (if x \<le> n then Suc n else n) (shift_L 1 x t) t2) - {x}) \<union>
+              FV (subst_L n t t1)" and
+        ?S4 ="\<lambda>n t x t1 t2. (if n \<in> (\<lambda>y. if x < y then y - 1 else y) ` (FV t2 - {x}) \<union> FV t1
+                then (\<lambda>y. if x < y then y - 1 else y) ` (FV t2 - {x}) \<union> FV t1 - {n} \<union> FV t
+                else (\<lambda>y. if x < y then y - 1 else y) ` (FV t2 - {x}) \<union> FV t1)"
+        
+    have C1:"\<And>n t x t1 t2. (\<And>n1 ta. FV (subst_L n1 ta t1) = (if n1 \<in> FV t1 then FV t1 - {n1} \<union> FV ta else 
+                          FV t1)) \<Longrightarrow>
+                         (\<And>n1 ta. FV (subst_L n1 ta t2) = (if n1 \<in> FV t2 then FV t2 - {n1} \<union> FV ta else 
+                          FV t2)) \<Longrightarrow> x \<le> n \<Longrightarrow> ?S3 n t x t1 t2 \<subseteq> ?S4 n t x t1 t2"
+      proof -
+        fix n::nat and t x t1 t2
+        assume le_n:"x\<le>n" and
+                FV_s:"\<And>n1 ta. FV (subst_L n1 ta t1) = (if n1 \<in> FV t1 then FV t1 - {n1} \<union> FV ta else FV t1)"
+                     "\<And>n1 ta. FV (subst_L n1 ta t2) = (if n1 \<in> FV t2 then FV t2 - {n1} \<union> FV ta else FV t2)"
+        note FV_s= FV_s[of n t] FV_s[of "Suc n" "shift_L 1 x t"]
+        have "Suc n \<in> FV t2 \<Longrightarrow> n\<in> FV t1 \<Longrightarrow> ?S3 n t x t1 t2 \<subseteq> ?S4 n t x t1 t2" 
+          using le_n
+          by (simp add: image_def FV_s Int_Collect Bex_def FV_shift[of 1, unfolded int_1]) force
+
+        moreover have "Suc n \<in> FV t2 \<Longrightarrow> n \<notin> FV t1 \<Longrightarrow> ?S3 n t x t1 t2 \<subseteq> ?S4 n t x t1 t2" 
+          using le_n
+          by (simp add: image_def FV_s Int_Collect Bex_def FV_shift[of 1, unfolded int_1])
+             (meson, (force+)[3], ((metis One_nat_def diff_Suc_1 le_imp_less_Suc)+)[2],
+                 (force+)[2], (metis One_nat_def diff_Suc_1 le_imp_less_Suc)+)
+          
+        moreover have "Suc n \<notin> FV t2 \<Longrightarrow>?S3 n t x t1 t2 \<subseteq> ?S4 n t x t1 t2"
+          using le_n
+          by (simp add: image_def FV_s Int_Collect Bex_def FV_shift[of 1, unfolded int_1])
+             (cases "n\<in> FV t1", auto)
+
+        ultimately show "?S3 n t x t1 t2 \<subseteq> ?S4 n t x t1 t2" by linarith
+      qed
+
+    have C2:"\<And>n t x t1 t2. (\<And>n1 ta. FV (subst_L n1 ta t1) = (if n1 \<in> FV t1 then FV t1 - {n1} \<union> FV ta else 
+                          FV t1)) \<Longrightarrow>
+                         (\<And>n1 ta. FV (subst_L n1 ta t2) = (if n1 \<in> FV t2 then FV t2 - {n1} \<union> FV ta else 
+                          FV t2)) \<Longrightarrow> x \<le> n \<Longrightarrow> ?S4 n t x t1 t2 \<subseteq> ?S3 n t x t1 t2" 
+      proof -
+        fix n::nat and t x t1 t2
+        assume le_n:"x\<le>n" and
+                FV_s:"\<And>n1 ta. FV (subst_L n1 ta t1) = (if n1 \<in> FV t1 then FV t1 - {n1} \<union> FV ta else FV t1)"
+                     "\<And>n1 ta. FV (subst_L n1 ta t2) = (if n1 \<in> FV t2 then FV t2 - {n1} \<union> FV ta else FV t2)"
+        note FV_s= FV_s[of n t] FV_s[of "Suc n" "shift_L 1 x t"]
+        have "Suc n \<in> FV t2 \<Longrightarrow> n\<in> FV t1 \<Longrightarrow> ?S4 n t x t1 t2 \<subseteq> ?S3 n t x t1 t2" 
+          using le_n
+          by (simp add: image_def FV_s Int_Collect Bex_def FV_shift[of 1, unfolded int_1]) force
+
+        moreover have "Suc n \<in> FV t2 \<Longrightarrow> n \<notin> FV t1 \<Longrightarrow> ?S4 n t x t1 t2 \<subseteq> ?S3 n t x t1 t2" 
+          using le_n
+          proof (simp add: image_def FV_s Int_Collect Bex_def FV_shift[of 1, unfolded int_1], meson)
+            fix x1
+            show "Suc (x1 - Suc 0) \<in> FV t2 \<Longrightarrow> x1 - Suc 0 \<notin> FV t1 \<Longrightarrow> x \<le> x1 - Suc 0 \<Longrightarrow> x1 \<in> FV t2 \<Longrightarrow>
+                  x1 \<noteq> x \<Longrightarrow> x < x1 \<Longrightarrow> n = x1 - Suc 0 \<Longrightarrow> {y. \<exists>xa. xa \<in> FV t2 \<and> xa \<noteq> x \<and> x < xa \<and> 
+                  y = xa - Suc 0} \<union> (FV t2 - {x}) \<inter> {y. \<not> x < y} \<union> FV t1 - {x1 - Suc 0}
+                  \<subseteq> {y. \<exists>xb. (xb \<in> FV t2 \<and> xb \<noteq> Suc (x1 - Suc 0) \<or> (\<exists>xa. xa \<in> FV t \<and> x \<le> xa \<and> xb = Suc xa) \<or> xb \<in> FV t \<and> \<not> x \<le> xb) \<and>
+                  xb \<noteq> x \<and> x < xb \<and> y = xb - Suc 0} \<union> (FV t2 - {Suc (x1 - Suc 0)} \<union> ({y. \<exists>xa. xa \<in> FV t \<and>
+                  x \<le> xa \<and> y = Suc xa} \<union> FV t \<inter> {y. \<not> x \<le> y}) - {x}) \<inter> {y. \<not> x < y} \<union> FV t1"
+              by auto
+          next
+            fix x1
+            show "Suc (x1 - Suc 0) \<in> FV t2 \<Longrightarrow> x1 - Suc 0 \<notin> FV t1 \<Longrightarrow>  x \<le> x1 - Suc 0 \<Longrightarrow> x1 \<in> FV t2 \<Longrightarrow>
+                  x1 \<noteq> x \<Longrightarrow> x < x1 \<Longrightarrow> n = x1 - Suc 0 \<Longrightarrow> FV t \<subseteq> {y. \<exists>xb. (xb \<in> FV t2 \<and>
+                  xb \<noteq> Suc (x1 - Suc 0) \<or> (\<exists>xa. xa \<in> FV t \<and> x \<le> xa \<and> xb = Suc xa) \<or> xb \<in> FV t \<and> \<not> x \<le> xb) \<and>
+                  xb \<noteq> x \<and> x < xb \<and> y = xb - Suc 0} \<union> (FV t2 - {Suc (x1 - Suc 0)} \<union> ({y. \<exists>xa. xa \<in> FV t \<and>
+                  x \<le> xa \<and> y = Suc xa} \<union> FV t \<inter> {y. \<not> x \<le> y}) - {x}) \<inter> {y. \<not> x < y} \<union> FV t1"
+              by (rule, simp, metis One_nat_def diff_Suc_1 le_eq_less_or_eq le_imp_less_Suc nat_neq_iff)
+          qed fastforce+
+
+        moreover have "Suc n \<notin> FV t2 \<Longrightarrow>?S4 n t x t1 t2 \<subseteq> ?S3 n t x t1 t2"
+          using le_n
+          by (simp add: image_def FV_s Int_Collect Bex_def FV_shift[of 1, unfolded int_1])
+             (cases "n\<in> FV t1", auto)
+
+        ultimately show "?S4 n t x t1 t2 \<subseteq> ?S3 n t x t1 t2" by linarith
+      qed
+
+    have C3:"\<And>n t x t1 t2. (\<And>n1 ta. FV (subst_L n1 ta t1) = (if n1 \<in> FV t1 then FV t1 - {n1} \<union> FV ta else 
+                          FV t1)) \<Longrightarrow>
+                         (\<And>n1 ta. FV (subst_L n1 ta t2) = (if n1 \<in> FV t2 then FV t2 - {n1} \<union> FV ta else 
+                          FV t2)) \<Longrightarrow>\<not>x\<le>n \<Longrightarrow>?S3 n t x t1 t2 \<subseteq> ?S4 n t x t1 t2"
+      proof -
+        fix n::nat and t x t1 t2
+        assume gr_n:"\<not>x\<le>n" and
+                FV_s:"\<And>n1 ta. FV (subst_L n1 ta t1) = (if n1 \<in> FV t1 then FV t1 - {n1} \<union> FV ta else FV t1)"
+                     "\<And>n1 ta. FV (subst_L n1 ta t2) = (if n1 \<in> FV t2 then FV t2 - {n1} \<union> FV ta else FV t2)"
+        note FV_s= FV_s[of n t] FV_s[of "Suc n" "shift_L 1 x t"] FV_s[of n "shift_L 1 x t"]
+        from gr_n have "n\<in>FV t2 \<Longrightarrow> n\<in>FV t1 \<Longrightarrow> ?S3 n t x t1 t2 \<subseteq> ?S4 n t x t1 t2"
+          by (simp add: image_def FV_s Int_Collect Bex_def FV_shift[of 1, unfolded int_1]) force
+        moreover from gr_n have "n\<notin>FV t2 \<Longrightarrow> ?S3 n t x t1 t2 \<subseteq> ?S4 n t x t1 t2"
+          by (force simp add: image_def FV_s Int_Collect Bex_def FV_shift[of 1, unfolded int_1])
+
+        moreover from gr_n have "n\<in>FV t2 \<Longrightarrow> n\<notin>FV t1 \<Longrightarrow> ?S3 n t x t1 t2 \<subseteq> ?S4 n t x t1 t2"
+          by (simp add: image_def FV_s Int_Collect Bex_def FV_shift[of 1, unfolded int_1]) force
+         
+        ultimately  show "?S3 n t x t1 t2 \<subseteq> ?S4 n t x t1 t2"
+          by (cases "n\<in>FV t2", cases "n\<in>FV t1", blast+)
+      qed    
+    have "\<And>n t x t1 t2. (\<And>n1 ta. FV (subst_L n1 ta t1) = (if n1 \<in> FV t1 then FV t1 - {n1} \<union> FV ta else 
+                          FV t1)) \<Longrightarrow>
+                         (\<And>n1 ta. FV (subst_L n1 ta t2) = (if n1 \<in> FV t2 then FV t2 - {n1} \<union> FV ta else 
+                          FV t2)) \<Longrightarrow>\<not>x\<le>n \<Longrightarrow>?S4 n t x t1 t2 \<subseteq> ?S3 n t x t1 t2"
+      proof -
+        fix n::nat and t x t1 t2
+        assume gr_n:"\<not>x\<le>n" and
+                FV_s:"\<And>n1 ta. FV (subst_L n1 ta t1) = (if n1 \<in> FV t1 then FV t1 - {n1} \<union> FV ta else FV t1)"
+                     "\<And>n1 ta. FV (subst_L n1 ta t2) = (if n1 \<in> FV t2 then FV t2 - {n1} \<union> FV ta else FV t2)"
+        note FV_s= FV_s[of n t] FV_s[of "Suc n" "shift_L 1 x t"] FV_s[of n "shift_L 1 x t"]
+        from gr_n have "n\<in>FV t2 \<Longrightarrow> n\<in>FV t1 \<Longrightarrow> ?S4 n t x t1 t2 \<subseteq> ?S3 n t x t1 t2"
+          by (simp add: image_def FV_s Int_Collect Bex_def FV_shift[of 1, unfolded int_1]) force
+        moreover from gr_n have "n\<notin>FV t2 \<Longrightarrow> ?S4 n t x t1 t2 \<subseteq> ?S3 n t x t1 t2"
+          by (simp add: image_def FV_s Int_Collect Bex_def FV_shift[of 1, unfolded int_1]) fastforce
+
+        moreover from gr_n have "n\<in>FV t2 \<Longrightarrow> n\<notin>FV t1 \<Longrightarrow> ?S4 n t x t1 t2 \<subseteq> ?S3 n t x t1 t2"
+          proof (simp add: image_def FV_s Int_Collect Bex_def FV_shift[of 1, unfolded int_1], meson)
+            show "n \<in> FV t2 \<Longrightarrow> n \<notin> FV t1 \<Longrightarrow> \<not> x \<le> n \<Longrightarrow> FV t \<subseteq> {y. \<exists>xa. (xa \<in> FV t2 \<and> xa \<noteq> n \<or> 
+                  (\<exists>xb. xb \<in> FV t \<and> x \<le> xb \<and> xa = Suc xb) \<or> xa \<in> FV t \<and> \<not> x \<le> xa) \<and> xa \<noteq> x \<and> x < xa \<and>
+                  y = xa - Suc 0} \<union> (FV t2 - {n} \<union> ({y. \<exists>xa. xa \<in> FV t \<and> x \<le> xa \<and> y = Suc xa} \<union> FV t \<inter>
+                  {y. \<not> x \<le> y}) - {x}) \<inter> {y. \<not> x < y} \<union> FV t1"
+              by (rule, simp, metis One_nat_def diff_Suc_1 le_eq_less_or_eq le_imp_less_Suc nat_neq_iff)
+          qed fastforce      
+         
+        ultimately  show "?S4 n t x t1 t2 \<subseteq> ?S3 n t x t1 t2"
+          by (cases "n\<in>FV t2", cases "n\<in>FV t1", blast+)
+      qed
+    note H = this C1 C2 C3
+   
+    from H[OF hyps,of x n] have "?S3 n t x t1 t2 = ?S4 n t x t1 t2" by blast      
       
-    moreover have "x\<le>n \<Longrightarrow> ?S2 \<subseteq> ?S1"
-      apply (simp add: image_def hyps Int_Collect Bex_def FV_shift[of 1, unfolded int_1])
-      apply (cases "Suc n \<in> FV t2")
-      apply simp_all
-      apply (cases "n \<in> FV t1")
-      apply simp_all
-      apply meson
-      apply auto[1]
-      apply (fastforce+)[3]
-      defer
-      apply (cases "n \<in> FV t1")
-      apply auto[2]
-      apply meson
-      apply auto[1]
-      apply rule
-      apply simp_all
-      apply (metis One_nat_def diff_Suc_1 le_eq_less_or_eq le_imp_less_Suc nat_neq_iff)
-      apply (metis One_nat_def diff_Suc_1 le_imp_less_Suc)
-      using le_imp_less_Suc apply blast
-      apply (metis One_nat_def diff_Suc_1 lessI)
-      apply blast
-      apply fastforce
-      by auto
-    moreover have "\<not>x\<le>n \<Longrightarrow> ?S1 \<subseteq> ?S2"
-      apply (simp add: image_def hyps Int_Collect Bex_def FV_shift[of 1, unfolded int_1])
-      apply (cases "n\<in>FV t2")
-      apply (cases "n\<in>FV t1")
-      apply simp_all
-      apply rule
-      apply force
-      apply auto[1]
-      apply rule
-      apply force
-      by auto
-    moreover have "\<not>x\<le>n \<Longrightarrow> ?S2 \<subseteq> ?S1"
-      apply (simp add: image_def hyps Int_Collect Bex_def FV_shift[of 1, unfolded int_1])
-      apply (cases "n\<in>FV t2")
-      apply (cases "n\<in>FV t1")
-      apply simp_all
-      apply rule
-      apply force
-      apply fastforce
-      apply rule
-      apply force
-      apply rule
-      apply fastforce
-      apply rule
-      apply simp
-      apply (metis One_nat_def diff_Suc_1 le_eq_less_or_eq le_imp_less_Suc nat_neq_iff)
-      apply (cases "n\<in>FV t1")
-      apply fastforce
-      by force
-      
-    ultimately show ?case by blast
+    then show ?case using hyps by force
+
 qed (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1])
 
 
@@ -311,28 +562,24 @@ next
     have K2:"\<And>y. \<not> n < x \<Longrightarrow> y\<in>FV t1 \<Longrightarrow> y\<noteq>Suc n"
       using H1(2)
       by force
-
-    have "n < x \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Let var nat (int x - 1) := shift_L (- 1) n t in shift_L (- 1) n t1|;|\<sigma>,f\<rparr> |:| B"
-      apply rule
-      using hyps(1)
-      apply (simp)
-      using hyps(3)[OF _ hyps(6) _, simplified] H1(1)
-      apply blast
-      using K H2 
-    by (metis hyps(5) hyps(6) le_SucI length_insert_nth)
+    have "n < x \<Longrightarrow> insert_nth (nat (int x - 1)) A \<Gamma> \<turnstile> \<lparr>shift_L (- 1) n t1|;|\<sigma>,f\<rparr> |:| B"
+      by (metis hyps(5) K H2 hyps(6) le_SucI length_insert_nth)
     
-    
-    moreover have "\<not> n < x \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Let var x := shift_L (- 1) n t in shift_L (- 1) (Suc n) t1|;|\<sigma>,f\<rparr> |:| B"
-      apply rule
-      using hyps(6)
-      apply fastforce
-      using hyps(3)[OF _ hyps(6) _ , simplified] H1(1)
-      apply blast
+    hence C1:"n < x \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Let var nat (int x - 1) := shift_L (- 1) n t in shift_L (- 1) n t1|;|\<sigma>,f\<rparr> |:| B"
+      using hyps(1) hyps(3)[OF _ hyps(6) _, simplified] H1(1)
+      by (force intro: "has_type_L.intros")
+      
+    have "\<not> n < x \<Longrightarrow> insert_nth x A \<Gamma> \<turnstile> \<lparr>shift_L (- 1) (Suc n) t1|;|\<sigma>,f\<rparr> |:| B"
       using insert_nth_comp(2)[of "(nat (int x - 1))" \<Gamma> n A U]
             hyps(1) H1(2) hyps(5)[of "Suc n" ] K2
       by (metis Suc_leI hyps(5) hyps(6) insert_nth_comp(2) le_imp_less_Suc length_insert_nth not_le)
+    
+    hence "\<not> n < x \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>Let var x := shift_L (- 1) n t in shift_L (- 1) (Suc n) t1|;|\<sigma>,f\<rparr> |:| B"
+      using hyps(6) hyps(3)[OF _ hyps(6) _ , simplified] H1(1)
+      by (force intro: "has_type_L.intros")      
 
-    ultimately show ?case by simp
+    with C1 show ?case by simp
+
 qed (fastforce intro: has_type_L.intros simp: nth_append min_def pp2 pp3 pp4)+
 
 
@@ -360,16 +607,14 @@ next
             has_type_Let(5)[unfolded length_insert_nth, of n] 
             insert_nth_comp(1)[of n \<Gamma> x]
       by (auto intro!: has_type_L.intros(5))
+
     moreover have "\<not> n<x \<Longrightarrow> (take n \<Gamma> @ drop n \<Gamma> |,| S) \<turnstile> \<lparr>Let var x := shift_L 1 n t1 in shift_L 1 (Suc n) t2|;|\<sigma>1,f\<rparr> |:| B"
       using has_type_Let(4)[OF has_type_Let(6)] has_type_Let(1,6)
-      apply simp      
-      apply rule
-      apply force+      
-      using insert_nth_comp(2)[OF has_type_Let(6),of x S A]  
+             insert_nth_comp(2)[OF has_type_Let(6),of x S A]  
             has_type_Let(5)[unfolded length_insert_nth, of "Suc n" ] 
             has_type_Let(6)[unfolded Suc_le_mono[of n, symmetric]]
             not_less[of n x]
-      by fastforce
+      by (force intro: "has_type_L.intros")
       
     ultimately show ?case 
       by (simp,metis add.commute nat_int of_nat_Suc)
