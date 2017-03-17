@@ -13,8 +13,7 @@ datatype ltype =
   TupleT "ltype list" ( "\<lparr>_\<rparr>" [150]225) |
   RecordT "string list" "ltype list" ( "\<lparr>(_)|:|(_)\<rparr>" [101,100] 200) |
   Sum ltype ltype (infix "|+|" 225) |
-  TVariant "string list" "ltype list" ( "<(_)|,|(_)>" [151,150] 225)|
-  ListT ltype ("\<lambda>List (_)" 225)
+  TVariant "string list" "ltype list" ( "<(_)|,|(_)>" [151,150] 225)
   
 datatype Lpattern = V nat ltype ("V/ (_)/ as/ (_)" [201,200]220)
                     | RCD "string list" "Lpattern list"
@@ -45,12 +44,7 @@ datatype lterm =
   CaseSum lterm nat lterm nat lterm ("Case/ (_)/ of/ Inl/ (_)/ \<Rightarrow>/ (_)/ |/ Inr/ (_)/ \<Rightarrow>/ (_)" [100, 100,100, 100, 100]200) |
   Variant string lterm ltype ("<(_):=(_)> as (_)" [100,55] 200) |
   CaseVar lterm "string list" "(nat\<times>lterm) list" ("Case/ (_)/ of/ (_)/ \<Rightarrow>/ (_)" [100,100,100]200)|
-  Fixpoint lterm  ("fix (_)" [201]200) |
-  Lnil ltype |
-  Lcons ltype lterm lterm |
-  Lisnil ltype lterm |
-  Lhead ltype lterm |
-  Ltail ltype lterm
+  Fixpoint lterm  ("fix (_)" [201]200) 
 
 datatype subterm_set = Unary lterm | Bi lterm lterm | Ter lterm lterm lterm | Comp lterm "lterm list" |UList "lterm list" | Void
 
@@ -91,12 +85,7 @@ fun shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lterm" w
   "shift_L d c (Case t of L \<Rightarrow> B) = 
     (Case (shift_L d c t) of L \<Rightarrow> 
       map (\<lambda>p.(if (fst p) \<ge> c then (nat (int (fst p) + d)) else fst p , shift_L d (if (fst p)<c then Suc c else c) (snd p))) B)"|
-  "shift_L d c (Fixpoint t) = Fixpoint (shift_L d c t)" |
-  "shift_L d c (Lnil A) = Lnil A"|
-  "shift_L d c (Lisnil A t) = Lisnil A (shift_L d c t)"|
-  "shift_L d c (Lcons A t t') = Lcons A (shift_L d c t) (shift_L d c t')"|
-  "shift_L d c (Lhead A t) = Lhead A (shift_L d c t)"|
-  "shift_L d c (Ltail A t) = Ltail A (shift_L d c t)"
+  "shift_L d c (Fixpoint t) = Fixpoint (shift_L d c t)" 
 
 function subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> lterm" where
   "subst_L j s LTrue = LTrue" |
@@ -128,19 +117,21 @@ function subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> l
   "subst_L j s (<l:=t> as T') =  <l:=subst_L j s t> as T'" |
   "subst_L j s (Case t of L \<Rightarrow> B) = 
     (Case (subst_L j s t) of L \<Rightarrow> map (\<lambda>p. (fst p, subst_L (if j \<ge> fst p  then Suc j else j) (shift_L 1 (fst p) s) (snd p))) B)" |
-  "subst_L j s (Fixpoint t) = Fixpoint (subst_L j s t)"|
-  "subst_L j s (Lnil A) = Lnil A"|
-  "subst_L j s (Lisnil A t) = Lisnil A (subst_L j s t)"|
-  "subst_L j s (Lcons A t t') = Lcons A (subst_L j s t) (subst_L j s t')"|
-  "subst_L j s (Lhead A t) = Lhead A (subst_L j s t)" |
-  "subst_L j s (Ltail A t) = Ltail A (subst_L j s t)"
+  "subst_L j s (Fixpoint t) = Fixpoint (subst_L j s t)"
 by pat_completeness auto
 
 termination
-  by (relation "measure (\<lambda>(j,s,t). size t)", simp_all)
-      (metis less_add_Suc1 size_list_estimation' set_zip_rightD 
-              lessI not_less prod.collapse)+
-
+  proof  (relation "measure (\<lambda>(j,s,t). size t)", simp_all)
+    fix t :: lterm and B :: "(nat \<times> lterm) list" and x :: "nat \<times> lterm"
+    assume "x \<in> set B"
+    then have "\<not> Suc (size_list (size_prod (\<lambda>n. 0) size) B + size t) \<le> size_prod (\<lambda>n. 0) size x"
+      by (meson less_add_Suc1 not_less size_list_estimation')
+    then have "\<not> Suc (size_list (size_prod (\<lambda>n. 0) size) B + size t) \<le> size (snd x)"
+      by (simp add: size_prod_simp)
+    then show "size (snd x) < Suc (size_list (size_prod (\<lambda>n. 0) size) B + size t)"
+      using not_less by blast
+  qed (metis less_add_Suc1 size_list_estimation' set_zip_rightD 
+                lessI not_less prod.collapse)+
 
 fun Pvars :: "Lpattern \<Rightarrow> nat list" where
 "Pvars (V n as A) = [n]" |
@@ -167,13 +158,7 @@ fun patterns::"lterm \<Rightarrow> nat list" where
 "patterns (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = patterns t @ patterns t1 @ patterns t2" |
 "patterns (<l:=t> as T') =  patterns t" |
 "patterns (Case t of L \<Rightarrow> B) = patterns t @ foldl (\<lambda>e r. e @ r) [] (map (patterns\<circ>snd) B)" |
-"patterns (Fixpoint t) = patterns t"|
-"patterns (Lisnil A t)                  = patterns t" |
-"patterns (Lhead A t)                  = patterns t" |
-"patterns (Ltail A t)                 = patterns t" |
-"patterns (Lcons A t t')              = patterns t @ patterns t'"|
-"patterns t = []"
-
+"patterns (Fixpoint t) = patterns t"
 
 inductive is_value_L :: "lterm \<Rightarrow> bool" where
   VTrue : "is_value_L LTrue" |
@@ -185,9 +170,7 @@ inductive is_value_L :: "lterm \<Rightarrow> bool" where
   VRCD  :"(\<And>i. 0\<le>i \<Longrightarrow> i<length LT \<Longrightarrow> is_value_L (LT!i)) \<Longrightarrow>  is_value_L (Record L LT)"|
   VSumL :"is_value_L v \<Longrightarrow> is_value_L (inl v as A)"|
   VSumR :"is_value_L v \<Longrightarrow> is_value_L (inr v as A)"|
-  VVa   :"is_value_L v \<Longrightarrow> is_value_L (<l:=v> as A)"|
-  VNil  :"is_value_L (Lnil A)"|
-  VCons :"is_value_L v1 \<Longrightarrow> is_value_L v2 \<Longrightarrow> is_value_L (Lcons A v1 v2)"
+  VVa   :"is_value_L v \<Longrightarrow> is_value_L (<l:=v> as A)"
 
 function FV :: "lterm \<Rightarrow> nat set" where
   "FV LTrue = {}" |
@@ -216,12 +199,7 @@ function FV :: "lterm \<Rightarrow> nat set" where
                                               FV t " |
   "FV (<L:=t> as A) = FV t" |
   "FV (Case t of L \<Rightarrow> B) = FV t \<union> foldl (\<lambda>x r. x \<union> r) {} (map (\<lambda>p. image (\<lambda>y. if (y>fst p) then y - 1 else y) (FV t - {fst p})) B)" |
-  "FV (Fixpoint t) = FV t"|
-  "FV (Lcons A t t') = FV t \<union> FV t'"|
-  "FV (Ltail A t) = FV t"|
-  "FV (Lhead A t) = FV t"|
-  "FV (Lisnil A t) = FV t"|
-  "FV (Lnil A) = {}"
+  "FV (Fixpoint t) = FV t"
 by pat_completeness auto
 
 termination
@@ -256,10 +234,6 @@ fun fill::"(nat \<rightharpoonup> lterm) \<Rightarrow> lterm \<Rightarrow> lterm
 "fill \<Sigma> (<l:=t> as A) =  <l:=(fill \<Sigma> t)> as A"|
 "fill \<Sigma> (Case t of L \<Rightarrow> B) = (Case (fill \<Sigma> t) of L \<Rightarrow> map (\<lambda>p. (fst p, fill \<Sigma> (snd p))) B)"|
 "fill \<Sigma> (Fixpoint t) = Fixpoint (fill \<Sigma> t)" |
-"fill \<Sigma> (Lisnil A t)                = Lisnil A (fill \<Sigma> t)" |
-"fill \<Sigma> (Lhead A t)                 = Lhead A (fill \<Sigma> t)" |
-"fill \<Sigma> (Ltail A t)                 = Ltail A (fill \<Sigma> t)" |
-"fill \<Sigma> (Lcons A t t')              = Lcons A (fill \<Sigma> t) (fill \<Sigma> t')" |
 "fill \<Sigma> t = t"
 
 fun subterms :: "lterm\<Rightarrow>subterm_set" where
@@ -283,10 +257,6 @@ fun subterms :: "lterm\<Rightarrow>subterm_set" where
 "subterms (<l:=t> as A) =  Unary t"|
 "subterms (Case t of L \<Rightarrow> B) = Comp t (map snd B)"|
 "subterms (Fixpoint t) = Unary t" |
-"subterms (Lcons A t1 t2)               = Bi t1 t2" |
-"subterms (Lhead A t)                  = Unary t" |
-"subterms (Ltail A t)                  = Unary t" |
-"subterms (Lisnil A t)                  = Unary t" |
 "subterms t = Void"
 
 
