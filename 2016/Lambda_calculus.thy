@@ -79,12 +79,12 @@ fun shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lterm" w
   "shift_L d c (inr t as T') =  inr (shift_L d c t) as T'" |
   "shift_L d c (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = 
     (Case (shift_L d c t) of 
-        Inl (if x> c then (nat (int x + d)) else x) \<Rightarrow> shift_L d (if x< c then Suc c else c) t1 
-      | Inr (if y> c then (nat (int y + d)) else y) \<Rightarrow> shift_L d (if y< c then Suc c else c) t2)" |
+        Inl (if x> c then (nat (int x + d)) else x) \<Rightarrow> shift_L d (if x\<le> c then Suc c else c) t1 
+      | Inr (if y> c then (nat (int y + d)) else y) \<Rightarrow> shift_L d (if y\<le> c then Suc c else c) t2)" |
   "shift_L d c (<l:=t> as A) = <l:= shift_L d c t> as A" |
   "shift_L d c (Case t of L \<Rightarrow> B) = 
     (Case (shift_L d c t) of L \<Rightarrow> 
-      map (\<lambda>p.(if (fst p) \<ge> c then (nat (int (fst p) + d)) else fst p , shift_L d (if (fst p)<c then Suc c else c) (snd p))) B)"|
+      map (\<lambda>p.(if (fst p) > c then (nat (int (fst p) + d)) else fst p , shift_L d (if (fst p)\<le>c then Suc c else c) (snd p))) B)"|
   "shift_L d c (Fixpoint t) = Fixpoint (shift_L d c t)" 
 
 function subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> lterm" where
@@ -130,8 +130,7 @@ termination
       by (simp add: size_prod_simp)
     then show "size (snd x) < Suc (size_list (size_prod (\<lambda>n. 0) size) B + size t)"
       using not_less by blast
-  qed (metis less_add_Suc1 size_list_estimation' set_zip_rightD 
-                lessI not_less prod.collapse)+
+  qed (metis  size_list_estimation' lessI not_less)+
 
 fun Pvars :: "Lpattern \<Rightarrow> nat list" where
 "Pvars (V n as A) = [n]" |
@@ -198,15 +197,21 @@ function FV :: "lterm \<Rightarrow> nat set" where
                                               image (\<lambda>z. if (z>y) then z - 1 else z) (FV t2 -{y}) \<union> 
                                               FV t " |
   "FV (<L:=t> as A) = FV t" |
-  "FV (Case t of L \<Rightarrow> B) = FV t \<union> foldl (\<lambda>x r. x \<union> r) {} (map (\<lambda>p. image (\<lambda>y. if (y>fst p) then y - 1 else y) (FV t - {fst p})) B)" |
+  "FV (Case t of L \<Rightarrow> B) = FV t \<union> foldl (\<lambda>x r. x \<union> r) {} (map (\<lambda>p. image (\<lambda>y. if (y>fst p) then y - 1 else y) (FV (snd p) - {fst p})) B)" |
   "FV (Fixpoint t) = FV t"
 by pat_completeness auto
 
 termination
-  by (relation "measure (\<lambda>t. size t)", simp_all)
-      (metis less_add_Suc1 size_list_estimation' set_zip_rightD 
-              lessI not_less prod.collapse)+
-
+  proof (relation "measure (\<lambda>t. size t)", simp_all)
+    fix t :: lterm and B :: "(nat \<times> lterm) list" and x :: "nat \<times> lterm"
+    assume "x \<in> set B"
+    then have "\<not> Suc (size_list (size_prod (\<lambda>n. 0) size) B + size t) \<le> size_prod (\<lambda>n. 0) size x"
+      by (meson less_add_Suc1 not_less size_list_estimation')
+    then have "\<not> Suc (size_list (size_prod (\<lambda>n. 0) size) B + size t) \<le> size (snd x)"
+      by (simp add: size_prod_simp)
+    then show "size (snd x) < Suc (size_list (size_prod (\<lambda>n. 0) size) B + size t)"
+      by (meson not_less)
+  qed (metis size_list_estimation' lessI not_less )+
 
 fun p_instantiate::"(nat \<rightharpoonup> lterm) \<Rightarrow> Lpattern \<Rightarrow> lterm" where
 "p_instantiate \<Sigma> (V k as A) = (case \<Sigma> k of Some t' \<Rightarrow> t' | None \<Rightarrow> <|V k as A|>)"|

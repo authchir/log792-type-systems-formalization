@@ -95,24 +95,27 @@ lemma pp4: "nat (int x - 1) = x - 1" by simp
 lemma gr_Suc_conv: "Suc x \<le> n \<longleftrightarrow> (\<exists>m. n = Suc m \<and> x \<le> m)"
   by (cases n) auto
 
-lemma FV_shift:
-  "FV (shift_L (int d) c t) = image (\<lambda>x. if x \<ge> c then x + d else x) (FV t)"
-proof (induction t arbitrary: c rule: lterm.induct)
-  case (LAbs T t)      
-    thus ?case           
-      by (auto simp: gr_Suc_conv image_iff) force+
-next 
-  case (LetBinder x t1 t2)
-    note hyps=this
-    let ?S3= "\<lambda>x t1 t2. (if c < x then FV (shift_L (int d) c t1) \<union> 
-                  (\<lambda>y. if nat (int x + int d) < y then y - 1 else y) `(FV(shift_L (int d) c t2)- {nat (int x + int d)})
-        else FV(shift_L (int d) c t1) \<union> ((\<lambda>y. if x < y then y - 1 else y) ` (FV(shift_L (int d) (Suc c) t2)-{x})))"
-       and  ?S4 ="\<lambda>x t1 t2. (\<lambda>x. if c \<le> x then x + d else x) ` ((\<lambda>y. if x < y then y - 1 else y) ` (FV t2 - {x}) \<union> FV t1)"
-    have simp_nat: "\<And>x. nat (int x + int d) = x + d" by auto
-    have C1:"\<And>x t1 t2. c < x \<Longrightarrow> (\<And>c. FV (shift_L (int d) c t1) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t1)
-            \<Longrightarrow> (\<And>c. FV (shift_L (int d) c t2) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t2) \<Longrightarrow>?S3 x t1 t2 \<subseteq> ?S4 x t1 t2"
+lemma Binder_FV_shift:
+  fixes c x d::nat and t1 t2::lterm
+  assumes  "(\<And>c1. FV (shift_L (int d) c1 t1) = (\<lambda>x. if c1 \<le> x then x + d else x) ` FV t1)"
+              "(\<And>c1. FV (shift_L (int d) c1 t2) = (\<lambda>x. if c1 \<le> x then x + d else x) ` FV t2)"
+  shows "(if c < x then FV (shift_L (int d) c t1) \<union> 
+        (\<lambda>y. if nat (int x + int d) < y then y - 1 else y) `(FV(shift_L (int d) c t2)- {nat (int x + int d)})
+        else FV(shift_L (int d) c t1) \<union> ((\<lambda>y. if x < y then y - 1 else y) ` (FV(shift_L (int d) (Suc c) t2)-{x}))) =
+        (\<lambda>x. if c \<le> x then x + d else x) ` ((\<lambda>y. if x < y then y - 1 else y) ` (FV t2 - {x}) \<union> FV t1)"
+using assms
+proof -
+  
+  let ?S3= "\<lambda>c x t1 t2. (if c < x then FV (shift_L (int d) c t1) \<union> 
+            (\<lambda>y. if nat (int x + int d) < y then y - 1 else y) `(FV(shift_L (int d) c t2)- {nat (int x + int d)})
+            else FV(shift_L (int d) c t1) \<union> ((\<lambda>y. if x < y then y - 1 else y) ` (FV(shift_L (int d) (Suc c) t2)-{x})))"
+      and  ?S4 ="\<lambda>c x t1 t2. (\<lambda>x. if c \<le> x then x + d else x) ` ((\<lambda>y. if x < y then y - 1 else y) ` (FV t2 - {x}) \<union> FV t1)"
+  
+   have simp_nat: "\<And>x. nat (int x + int d) = x + d" by auto
+    have C1:"\<And>c x t1 t2. c < x \<Longrightarrow> (\<And>c1. FV (shift_L (int d) c1 t1) = (\<lambda>x. if c1 \<le> x then x + d else x) ` FV t1)
+            \<Longrightarrow> (\<And>c1. FV (shift_L (int d) c1 t2) = (\<lambda>x. if c1 \<le> x then x + d else x) ` FV t2) \<Longrightarrow>?S3 c x t1 t2 \<subseteq> ?S4 c x t1 t2"
       proof -
-        fix x t1 t2
+        fix c::nat and x t1 t2
         assume supc:"c<x" and
                FV_s:"\<And>c. FV (shift_L (int d) c t1) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t1"
                     "\<And>c. FV (shift_L (int d) c t2) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t2"
@@ -171,14 +174,14 @@ next
                           {y. \<not> x < y} \<union> FV t1) \<inter> {x. \<not> c \<le> x}"
           by force
 
-        ultimately show "?S3 x t1 t2 \<subseteq> ?S4 x t1 t2" 
+        ultimately show "?S3 c x t1 t2 \<subseteq> ?S4 c x t1 t2" 
           using supc 
           by (simp add: image_def FV_s Int_Collect Bex_def)
       qed
-    have C2:"\<And>x t1 t2. c < x \<Longrightarrow> (\<And>c. FV (shift_L (int d) c t1) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t1)
-            \<Longrightarrow> (\<And>c. FV (shift_L (int d) c t2) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t2) \<Longrightarrow>?S4 x t1 t2 \<subseteq> ?S3 x t1 t2"
+    have C2:"\<And>c x t1 t2. c < x \<Longrightarrow> (\<And>c. FV (shift_L (int d) c t1) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t1)
+            \<Longrightarrow> (\<And>c. FV (shift_L (int d) c t2) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t2) \<Longrightarrow>?S4 c x t1 t2 \<subseteq> ?S3 c x t1 t2"
       proof -
-        fix x t1 t2
+        fix c::nat and x t1 t2
         assume supc:"c<x" and
                FV_s:"\<And>c. FV (shift_L (int d) c t1) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t1"
                     "\<And>c. FV (shift_L (int d) c t2) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t2"
@@ -223,16 +226,16 @@ next
               by auto
             ultimately show ?goal using H1[unfolded simp_nat] grc by blast
           qed        
-        ultimately show "?S4 x t1 t2 \<subseteq> ?S3 x t1 t2" 
+        ultimately show "?S4 c x t1 t2 \<subseteq> ?S3 c x t1 t2" 
           using supc 
           by (simp add: image_def FV_s Int_Collect Bex_def)
               (meson, auto simp add: inf_sup_aci(5))
       qed
 
-     have C4:"\<And>x t1 t2. \<not>c<x \<Longrightarrow> (\<And>c. FV (shift_L (int d) c t1) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t1)
-            \<Longrightarrow> (\<And>c. FV (shift_L (int d) c t2) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t2) \<Longrightarrow> ?S3 x t1 t2 \<subseteq> ?S4 x t1 t2"
+     have C4:"\<And>c x t1 t2. \<not>c<x \<Longrightarrow> (\<And>c. FV (shift_L (int d) c t1) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t1)
+            \<Longrightarrow> (\<And>c. FV (shift_L (int d) c t2) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t2) \<Longrightarrow> ?S3 c x t1 t2 \<subseteq> ?S4 c x t1 t2"
       proof -
-        fix x t1 t2
+        fix c::nat and x t1 t2
         assume infc: "\<not>c<x" and
                FV_s: "(\<And>c. FV (shift_L (int d) c t1) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t1)"
                      " (\<And>c. FV (shift_L (int d) c t2) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t2)"
@@ -305,15 +308,16 @@ next
             by satx
         qed
       
-        then show "?S3 x t1 t2 \<subseteq> ?S4 x t1 t2"
+        then show "?S3 c x t1 t2 \<subseteq> ?S4 c x t1 t2"
            using infc
            by (simp add: image_def FV_s Int_Collect Bex_def) force
       qed
      
-    have "\<And>x t1 t2. \<not>c<x \<Longrightarrow>(\<And>c. FV (shift_L (int d) c t1) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t1)
-            \<Longrightarrow> (\<And>c. FV (shift_L (int d) c t2) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t2) \<Longrightarrow>?S4 x t1 t2 \<subseteq> ?S3 x t1 t2"
+    have "\<And>c x t1 t2. \<not>c<x \<Longrightarrow>(\<And>c. FV (shift_L (int d) c t1) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t1)
+            \<Longrightarrow> (\<And>c. FV (shift_L (int d) c t2) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t2) 
+            \<Longrightarrow>?S4 c x t1 t2 \<subseteq> ?S3 c x t1 t2"
      proof -
-       fix x t1 t2
+       fix c::nat and x t1 t2
        assume infc:"\<not>c<x" and
               FV_s: "(\<And>c. FV (shift_L (int d) c t1) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t1)"
                     "(\<And>c. FV (shift_L (int d) c t2) = (\<lambda>x. if c \<le> x then x + d else x) ` FV t2)"
@@ -364,39 +368,53 @@ next
          qed
          
         
-       then show "?S4 x t1 t2 \<subseteq> ?S3 x t1 t2"
+       then show "?S4 c x t1 t2 \<subseteq> ?S3 c x t1 t2"
          using infc
          by (simp add: image_def FV_s Int_Collect Bex_def) fastforce
      qed   
 
     note H= C1 C2  C4 this
+
+    show "?S3 c x t1 t2 = ?S4 c x t1 t2"
+      using H[of c x t1 t2] assms
+      by (cases "c<x") fast+      
+qed
+        
+lemma FV_shift:
+  "FV (shift_L (int d) c t) = image (\<lambda>x. if x \<ge> c then x + d else x) (FV t)"
+proof (induction t arbitrary: c rule: lterm.induct)
+  case (LAbs T t)      
+    thus ?case           
+      by (auto simp: gr_Suc_conv image_iff) force+
+next 
+  case (LetBinder x t1 t2)
+    note hyps=this  
+    
+    let ?S3= "\<lambda>c x t1 t2. (if c < x then FV (shift_L (int d) c t1) \<union> 
+            (\<lambda>y. if nat (int x + int d) < y then y - 1 else y) `(FV(shift_L (int d) c t2)- {nat (int x + int d)})
+            else FV(shift_L (int d) c t1) \<union> ((\<lambda>y. if x < y then y - 1 else y) ` (FV(shift_L (int d) (Suc c) t2)-{x})))"
+
+    
     have A:" FV (if c < x then Let var nat (int x + int d) := shift_L (int d) c t1 in shift_L (int d) c t2
-        else Let var x := shift_L (int d) c t1 in shift_L (int d) (Suc c) t2) = ?S3 x t1 t2"
-      by auto
+        else Let var x := shift_L (int d) c t1 in shift_L (int d) (Suc c) t2) = ?S3 c x t1 t2"
+      by auto   
 
-    have "?S3 x t1 t2 = ?S4 x t1 t2"
-      using H[of x t1 t2,OF _ hyps]
-      by (cases "c<x") fast+
-
-    then show ?case
+    show ?case
+      using Binder_FV_shift[of d t1 t2 c x,OF hyps]
       by (simp only: shift_L.simps FV.simps A)
       
 qed force+
 
-lemma FV_subst:
-  "FV (subst_L n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"
-proof (induction u arbitrary: n t rule: lterm.induct)
-  case (LAbs T u)
-  thus ?case 
-    by (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1],
-        (metis DiffI One_nat_def UnCI diff_Suc_1 empty_iff imageI insert_iff nat.distinct(1))+)
-next
-  case (LetBinder x t1 t2)
-    note hyps=this
-    let ?S1=" FV (subst_L n t (Let var x := t1 in t2))" and 
-        ?S2="if n \<in> FV (Let var x := t1 in t2) then FV (Let var x := t1 in t2) - {n} \<union> FV t
-              else FV (Let var x := t1 in t2)" and
-        ?S3="\<lambda>n t x t1 t2. (\<lambda>y. if x < y then y - 1 else y) ` (FV (subst_L (if x \<le> n then Suc n else n) (shift_L 1 x t) t2) - {x}) \<union>
+lemma Binder_FV_subst:
+  fixes n x::nat and t t1 t2::lterm
+  assumes "\<And>n t. FV (subst_L n t t1) = (if n \<in> FV t1 then FV t1 - {n} \<union> FV t else FV t1)"
+          "\<And>n t. FV (subst_L n t t2) = (if n \<in> FV t2 then FV t2 - {n} \<union> FV t else FV t2)"
+  shows "(\<lambda>y. if x < y then y - 1 else y) ` (FV (subst_L (if x \<le> n then Suc n else n) (shift_L 1 x t) t2) - {x}) \<union>
+              FV (subst_L n t t1) = (if n \<in> (\<lambda>y. if x < y then y - 1 else y) ` (FV t2 - {x}) \<union> FV t1
+                then (\<lambda>y. if x < y then y - 1 else y) ` (FV t2 - {x}) \<union> FV t1 - {n} \<union> FV t
+                else (\<lambda>y. if x < y then y - 1 else y) ` (FV t2 - {x}) \<union> FV t1)"
+proof -
+  let ?S3="\<lambda>n t x t1 t2. (\<lambda>y. if x < y then y - 1 else y) ` (FV (subst_L (if x \<le> n then Suc n else n) (shift_L 1 x t) t2) - {x}) \<union>
               FV (subst_L n t t1)" and
         ?S4 ="\<lambda>n t x t1 t2. (if n \<in> (\<lambda>y. if x < y then y - 1 else y) ` (FV t2 - {x}) \<union> FV t1
                 then (\<lambda>y. if x < y then y - 1 else y) ` (FV t2 - {x}) \<union> FV t1 - {n} \<union> FV t
@@ -429,7 +447,6 @@ next
 
         ultimately show "?S3 n t x t1 t2 \<subseteq> ?S4 n t x t1 t2" by linarith
       qed
-
     have C2:"\<And>n t x t1 t2. (\<And>n1 ta. FV (subst_L n1 ta t1) = (if n1 \<in> FV t1 then FV t1 - {n1} \<union> FV ta else 
                           FV t1)) \<Longrightarrow>
                          (\<And>n1 ta. FV (subst_L n1 ta t2) = (if n1 \<in> FV t2 then FV t2 - {n1} \<union> FV ta else 
@@ -523,9 +540,22 @@ next
       qed
     note H = this C1 C2 C3
    
-    from H[OF hyps,of x n] have "?S3 n t x t1 t2 = ?S4 n t x t1 t2" by blast      
+    from H[OF assms,of x n] show "?S3 n t x t1 t2 = ?S4 n t x t1 t2" by blast
+qed
+
+
+lemma FV_subst:
+  "FV (subst_L n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"
+proof (induction u arbitrary: n t rule: lterm.induct)
+  case (LAbs T u)
+  thus ?case 
+    by (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1],
+        (metis DiffI One_nat_def UnCI diff_Suc_1 empty_iff imageI insert_iff nat.distinct(1))+)
+next
+  case (LetBinder x t1 t2)
+    note hyps=this         
       
-    then show ?case using hyps by force
+    show ?case using Binder_FV_subst[OF hyps] by force
 
 qed (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1])
 
