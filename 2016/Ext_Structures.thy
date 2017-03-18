@@ -715,21 +715,279 @@ next
                   (FV (shift_L (int d) (Suc c) (snd (B ! i))) - {fst (B ! i)})) = ?S i \<union> FV (shift_L (int d) c t) "
       by force
 
-    have "(\<Union>i<length B.
-        if c < fst (B ! i)
+    have H1:"\<And>i. i<length B \<Longrightarrow> (if c < fst (B ! i)
         then (\<lambda>y. if nat (int (fst (B ! i)) + int d) < y then y - 1 else y) `
              (FV (shift_L (int d) c (snd (B ! i))) - {nat (int (fst (B ! i)) + int d)})
         else (\<lambda>y. if fst (B ! i) < y then y - 1 else y) `
-             (FV (shift_L (int d) (Suc c) (snd (B ! i))) - {fst (B ! i)})) \<union> FV (shift_L (int d) c t)= (\<Union>x<length B.
-        (\<lambda>x. if c \<le> x then x + d else x) `
-        (\<lambda>y. if fst (B ! x) < y then y - 1 else y) ` (FV (snd (B ! x)) - {fst (B ! x)})) \<union> FV (shift_L (int d) c t)"
-      apply (induction B)
-      apply (simp_all del: shift_L.simps)
-      apply (rule; rule)
-      apply (simp add: image_def Bex_def Ball_def hyps(1) shift_simp)
-      sorry
+             (FV (shift_L (int d) (Suc c) (snd (B ! i))) - {fst (B ! i)})) =
+          (\<lambda>x. if c \<le> x then x + d else x) `
+        (\<lambda>y. if fst (B ! i) < y then y - 1 else y) ` (FV (snd (B ! i)) - {fst (B ! i)})"
+      proof -
+        fix i
+        assume Ha:"i<length B"
+        have s_nat: "\<And>x. nat(int x + int d) = x + d" by force
+        have A:" c < fst (B ! i) \<Longrightarrow>
+                {y. \<exists>x. ((\<exists>xa. xa \<in> FV (snd (B ! i)) \<and> c \<le> xa \<and> x = xa + d) \<or> x \<in> FV (snd (B ! i)) \<and> \<not> c \<le> x) \<and>
+                        x \<noteq> nat (int (fst (B ! i)) + int d) \<and> nat (int (fst (B ! i)) + int d) < x \<and> y = x - Suc 0} \<union>
+                ({y. \<exists>x. x \<in> FV (snd (B ! i)) \<and> c \<le> x \<and> y = x + d} \<union> FV (snd (B ! i)) \<inter> {x. \<not> c \<le> x} -
+                 {nat (int (fst (B ! i)) + int d)}) \<inter>
+                {y. \<not> nat (int (fst (B ! i)) + int d) < y} =
+                {y. \<exists>x. ((\<exists>xa. xa \<in> FV (snd (B ! i)) \<and> xa \<noteq> fst (B ! i) \<and> fst (B ! i) < xa \<and> x = xa - Suc 0) \<or>
+                         x \<in> FV (snd (B ! i)) \<and> x \<noteq> fst (B ! i) \<and> \<not> fst (B ! i) < x) \<and>
+                        c \<le> x \<and> y = x + d} \<union>
+                ({y. \<exists>x. x \<in> FV (snd (B ! i)) \<and> x \<noteq> fst (B ! i) \<and> fst (B ! i) < x \<and> y = x - Suc 0} \<union>
+                 (FV (snd (B ! i)) - {fst (B ! i)}) \<inter> {y. \<not> fst (B ! i) < y}) \<inter>
+                {x. \<not> c \<le> x}"
+        proof -
+          assume AH:"c<fst(B!i)"
+          have 1: " \<And>x. c < fst (B ! i) \<Longrightarrow>
+           (\<exists>xa. ((\<exists>x. x \<in> FV (snd (B ! i)) \<and> c \<le> x \<and> xa = x + d) \<or> xa \<in> FV (snd (B ! i)) \<and> \<not> c \<le> xa) \<and>
+                 xa \<noteq> nat (int (fst (B ! i)) + int d) \<and>
+                 nat (int (fst (B ! i)) + int d) < xa \<and> x = xa - Suc 0) \<or>
+           ((\<exists>xa. xa \<in> FV (snd (B ! i)) \<and> c \<le> xa \<and> x = xa + d) \<or> x \<in> FV (snd (B ! i)) \<and> \<not> c \<le> x) \<and>
+           x \<noteq> nat (int (fst (B ! i)) + int d) \<and> \<not> nat (int (fst (B ! i)) + int d) < x \<Longrightarrow>
+           (\<exists>xa. ((\<exists>x. x \<in> FV (snd (B ! i)) \<and> x \<noteq> fst (B ! i) \<and> fst (B ! i) < x \<and> xa = x - Suc 0) \<or>
+                  xa \<in> FV (snd (B ! i)) \<and> xa \<noteq> fst (B ! i) \<and> \<not> fst (B ! i) < xa) \<and>
+                 c \<le> xa \<and> x = xa + d) \<or>
+           ((\<exists>xa. xa \<in> FV (snd (B ! i)) \<and> xa \<noteq> fst (B ! i) \<and> fst (B ! i) < xa \<and> x = xa - Suc 0) \<or>
+            x \<in> FV (snd (B ! i)) \<and> x \<noteq> fst (B ! i) \<and> \<not> fst (B ! i) < x) \<and>
+           \<not> c \<le> x"
+            proof (meson, simp_all)
+              fix xb
+              show "c < fst (B ! i) \<Longrightarrow> nat (int (fst (B ! i)) + int d) < xb + d \<Longrightarrow> xb \<in> FV (snd (B ! i))
+                    \<Longrightarrow> c \<le> xb \<Longrightarrow> \<forall>xa\<ge>c. (\<forall>x>fst (B ! i). x \<in> FV (snd (B ! i)) \<longrightarrow> xa \<noteq> x - Suc 0) \<and>
+                    (xa \<in> FV (snd (B ! i)) \<longrightarrow> xa = fst (B ! i) \<or> fst (B ! i) < xa) \<or> xb + d - Suc 0 \<noteq> xa + d \<Longrightarrow>
+                    \<forall>xa>fst (B ! i). xa \<in> FV (snd (B ! i)) \<longrightarrow> xb + d - Suc 0 \<noteq> xa - Suc 0 \<Longrightarrow>
+                    xb + d - Suc 0 \<in> FV (snd (B ! i))"                         
+              proof (simp add: s_nat)
+                assume a1: "c < fst (B ! i)"
+                assume a2: "fst (B ! i) < xb"
+                assume a3: "xb \<in> FV (snd (B ! i))"
+                assume a4: "\<forall>xa\<ge>c. (\<forall>x>fst (B ! i). x \<in> FV (snd (B ! i)) \<longrightarrow> xa \<noteq> x - Suc 0) \<and> (xa \<in> FV (snd (B ! i)) \<longrightarrow> xa = fst (B ! i) \<or> fst (B ! i) < xa) \<or> xb + d - Suc 0 \<noteq> xa + d"
+                have f5: "Suc c \<le> xb"
+                  using a2 a1 by (meson Suc_leI less_SucI less_le_trans)
+                have "\<forall>n na. \<exists>nb. \<not> na < n \<or> Suc (na + nb) = n"
+                  using less_imp_Suc_add by blast
+                then show ?thesis
+                  using f5 a4 a3 a2 by (metis (no_types) Nat.add_diff_assoc2 One_nat_def Suc_leI Suc_le_mono add_gr_0 diff_Suc_1 less_imp_add_positive)
+              qed              
+            next
+              fix xb
+              show " c < fst (B ! i) \<Longrightarrow> nat (int (fst (B ! i)) + int d) < xb + d \<Longrightarrow> xb \<in> FV (snd (B ! i)) \<Longrightarrow>
+                    c \<le> xb \<Longrightarrow> \<forall>xa\<ge>c. (\<forall>x>fst (B ! i). x \<in> FV (snd (B ! i)) \<longrightarrow> xa \<noteq> x - Suc 0) \<and>
+                    (xa \<in> FV (snd (B ! i)) \<longrightarrow> xa = fst (B ! i) \<or> fst (B ! i) < xa) \<or> fst (B ! i) \<noteq> xa + d
+                    \<Longrightarrow> \<forall>xa>fst (B ! i). xa \<in> FV (snd (B ! i)) \<longrightarrow> fst (B ! i) \<noteq> xa - Suc 0 \<Longrightarrow>
+                    xb + d - Suc 0 = fst (B ! i) \<Longrightarrow> False"
+                by (force simp add: s_nat)
+            next
+              fix xb
+              show "c < fst (B ! i) \<Longrightarrow> nat (int (fst (B ! i)) + int d) < xb + d \<Longrightarrow> xb \<in> FV (snd (B ! i))
+                    \<Longrightarrow> c \<le> xb \<Longrightarrow> \<forall>xa\<ge>c. (\<forall>x>fst (B ! i). x \<in> FV (snd (B ! i)) \<longrightarrow> xa \<noteq> x - Suc 0) \<and>
+                    (xa \<in> FV (snd (B ! i)) \<longrightarrow> xa = fst (B ! i) \<or> fst (B ! i) < xa) \<or>
+                    xb + d - Suc 0 \<noteq> xa + d \<Longrightarrow> \<forall>xa>fst (B ! i). xa \<in> FV (snd (B ! i)) \<longrightarrow> xb + d - Suc 0 \<noteq> xa - Suc 0 \<Longrightarrow>
+                    fst (B ! i) < xb + d - Suc 0 \<Longrightarrow> False"
+                proof (simp add: s_nat)
+                  assume a1: "c < fst (B ! i)"
+                  assume a2: "fst (B ! i) < xb"
+                  assume a3: "xb \<in> FV (snd (B ! i))"
+                  assume "\<forall>xa\<ge>c. (\<forall>x>fst (B ! i). x \<in> FV (snd (B ! i)) \<longrightarrow> xa \<noteq> x - Suc 0) \<and> (xa \<in> FV (snd (B ! i)) \<longrightarrow> xa = fst (B ! i) \<or> fst (B ! i) < xa) \<or> xb + d - Suc 0 \<noteq> xa + d"
+                  then have "\<not> c \<le> xb - Suc 0"
+                    using a3 a2 by (metis (no_types) Nat.add_diff_assoc2 Suc_leI add_gr_0 less_imp_add_positive)
+                  then show ?thesis
+                    using a2 a1 by linarith
+                qed             
+            next
+              fix xb
+              show "c < fst (B ! i) \<Longrightarrow> nat (int (fst (B ! i)) + int d) < xb + d \<Longrightarrow> xb \<in> FV (snd (B ! i)) \<Longrightarrow>
+                    c \<le> xb \<Longrightarrow> \<forall>xa\<ge>c. (\<forall>x>fst (B ! i). x \<in> FV (snd (B ! i)) \<longrightarrow> xa \<noteq> x - Suc 0) \<and>
+                    (xa \<in> FV (snd (B ! i)) \<longrightarrow> xa = fst (B ! i) \<or> fst (B ! i) < xa) \<or> xb + d - Suc 0 \<noteq> xa + d \<Longrightarrow>
+                    c \<le> xb + d - Suc 0 \<Longrightarrow> False"       
+                proof (simp add: s_nat)
+                  assume a1: "c < fst (B ! i)"
+                  assume a2: "fst (B ! i) < xb"
+                  assume a3: "xb \<in> FV (snd (B ! i))"
+                  assume a4: "\<forall>xa\<ge>c. (\<forall>x>fst (B ! i). x \<in> FV (snd (B ! i)) \<longrightarrow> xa \<noteq> x - Suc 0) \<and> (xa \<in> FV (snd (B ! i)) \<longrightarrow> xa = fst (B ! i) \<or> fst (B ! i) < xa) \<or> xb + d - Suc 0 \<noteq> xa + d"
+                  have f5: "Suc c \<le> xb"
+                    using a2 a1 by auto
+                  have "\<forall>n na. \<exists>nb. \<not> na < n \<or> Suc (na + nb) = n"
+                    using less_imp_Suc_add by blast
+                  then show ?thesis
+                    using f5 a4 a3 a2 by (metis (no_types) Nat.add_diff_assoc2 One_nat_def Suc_leI Suc_le_mono add_gr_0 diff_Suc_1 less_imp_add_positive)
+                qed          
+                
+            qed (linarith, fastforce, linarith+)
+          have 2:"\<And>x. c < fst (B ! i) \<Longrightarrow> (\<exists>xa. ((\<exists>x. x \<in> FV (snd (B ! i)) \<and> x \<noteq> fst (B ! i) \<and> fst (B ! i) < x \<and> xa = x - Suc 0) \<or>
+                  xa \<in> FV (snd (B ! i)) \<and> xa \<noteq> fst (B ! i) \<and> \<not> fst (B ! i) < xa) \<and>
+                 c \<le> xa \<and> x = xa + d) \<or> ((\<exists>xa. xa \<in> FV (snd (B ! i)) \<and> xa \<noteq> fst (B ! i) \<and> fst (B ! i) < xa \<and> x = xa - Suc 0) \<or>
+                 x \<in> FV (snd (B ! i)) \<and> x \<noteq> fst (B ! i) \<and> \<not> fst (B ! i) < x) \<and>
+                 \<not> c \<le> x \<Longrightarrow> (\<exists>xa. ((\<exists>x. x \<in> FV (snd (B ! i)) \<and> c \<le> x \<and> xa = x + d) \<or> xa \<in> FV (snd (B ! i)) \<and> \<not> c \<le> xa) \<and>
+                 xa \<noteq> nat (int (fst (B ! i)) + int d) \<and> nat (int (fst (B ! i)) + int d) < xa \<and> x = xa - Suc 0) \<or>
+                 ((\<exists>xa. xa \<in> FV (snd (B ! i)) \<and> c \<le> xa \<and> x = xa + d) \<or> x \<in> FV (snd (B ! i)) \<and> \<not> c \<le> x) \<and>
+                 x \<noteq> nat (int (fst (B ! i)) + int d) \<and> \<not> nat (int (fst (B ! i)) + int d) < x"
+            by (meson, simp_all add: s_nat, (metis Suc_pred add_gr_0 add_less_cancel_right le_SucI less_imp_add_positive)+)
+          
+          show ?thesis by (rule;rule) (simp_all add: AH 1 2)
+        qed
+        have B: "\<not> c < fst (B ! i) \<Longrightarrow>
+                {y. \<exists>x. ((\<exists>xa. xa \<in> FV (snd (B ! i)) \<and> Suc c \<le> xa \<and> x = xa + d) \<or> x \<in> FV (snd (B ! i)) \<and> \<not> Suc c \<le> x) \<and>
+                        x \<noteq> fst (B ! i) \<and> fst (B ! i) < x \<and> y = x - Suc 0} \<union>
+                ({y. \<exists>x. x \<in> FV (snd (B ! i)) \<and> Suc c \<le> x \<and> y = x + d} \<union> FV (snd (B ! i)) \<inter> {x. \<not> Suc c \<le> x} -
+                 {fst (B ! i)}) \<inter>
+                {y. \<not> fst (B ! i) < y} =
+                {y. \<exists>x. ((\<exists>xa. xa \<in> FV (snd (B ! i)) \<and> xa \<noteq> fst (B ! i) \<and> fst (B ! i) < xa \<and> x = xa - Suc 0) \<or>
+                         x \<in> FV (snd (B ! i)) \<and> x \<noteq> fst (B ! i) \<and> \<not> fst (B ! i) < x) \<and>
+                        c \<le> x \<and> y = x + d} \<union>
+                ({y. \<exists>x. x \<in> FV (snd (B ! i)) \<and> x \<noteq> fst (B ! i) \<and> fst (B ! i) < x \<and> y = x - Suc 0} \<union>
+                 (FV (snd (B ! i)) - {fst (B ! i)}) \<inter> {y. \<not> fst (B ! i) < y}) \<inter>
+                {x. \<not> c \<le> x}"
+          proof -
+            assume BH:"\<not> c < fst (B ! i)"
+            have 1: "\<And>x. \<not> c < fst (B ! i) \<Longrightarrow>(\<exists>xa. ((\<exists>x. x \<in> FV (snd (B ! i)) \<and> Suc c \<le> x \<and> xa = x + d) \<or>
+                xa \<in> FV (snd (B ! i)) \<and> \<not> Suc c \<le> xa) \<and> xa \<noteq> fst (B ! i) \<and> fst (B ! i) < xa \<and> x = xa - Suc 0) \<or>
+                ((\<exists>xa. xa \<in> FV (snd (B ! i)) \<and> Suc c \<le> xa \<and> x = xa + d) \<or> x \<in> FV (snd (B ! i)) \<and> \<not> Suc c \<le> x) \<and>
+                x \<noteq> fst (B ! i) \<and> \<not> fst (B ! i) < x \<Longrightarrow>(\<exists>xa. ((\<exists>x. x \<in> FV (snd (B ! i)) \<and> x \<noteq> fst (B ! i) \<and> fst (B ! i) < x \<and> xa = x - Suc 0) \<or>
+                xa \<in> FV (snd (B ! i)) \<and> xa \<noteq> fst (B ! i) \<and> \<not> fst (B ! i) < xa) \<and> c \<le> xa \<and> x = xa + d) \<or>
+                ((\<exists>xa. xa \<in> FV (snd (B ! i)) \<and> xa \<noteq> fst (B ! i) \<and> fst (B ! i) < xa \<and> x = xa - Suc 0) \<or>
+                x \<in> FV (snd (B ! i)) \<and> x \<noteq> fst (B ! i) \<and> \<not> fst (B ! i) < x) \<and> \<not> c \<le> x"
+              proof (meson,simp_all)
+                fix xb
+                show "\<not> c < fst (B ! i) \<Longrightarrow> xb \<in> FV (snd (B ! i)) \<Longrightarrow> Suc c \<le> xb \<Longrightarrow>
+                      \<forall>xa\<ge>c. (\<forall>x>fst (B ! i). x \<in> FV (snd (B ! i)) \<longrightarrow> xa \<noteq> x - Suc 0) \<and>
+                      (xa \<in> FV (snd (B ! i)) \<longrightarrow> xa = fst (B ! i) \<or> fst (B ! i) < xa) \<or>
+                      xb + d - Suc 0 \<noteq> xa + d \<Longrightarrow> \<forall>xa>fst (B ! i). xa \<in> FV (snd (B ! i)) \<longrightarrow> xb + d - Suc 0 \<noteq> xa - Suc 0 \<Longrightarrow>
+                      xb + d - Suc 0 \<in> FV (snd (B ! i))"                 
+                  proof -
+                    assume a1: "Suc c \<le> xb"
+                    assume a2: "\<not> c < fst (B ! i)"
+                    assume a3: "xb \<in> FV (snd (B ! i))"
+                    assume "\<forall>xa\<ge>c. (\<forall>x>fst (B ! i). x \<in> FV (snd (B ! i)) \<longrightarrow> xa \<noteq> x - Suc 0) \<and> (xa \<in> FV (snd (B ! i)) \<longrightarrow> xa = fst (B ! i) \<or> fst (B ! i) < xa) \<or> xb + d - Suc 0 \<noteq> xa + d"
+                    then have "\<not> fst (B ! i) < xb"
+                      using a3 a1 by (metis (no_types) Nat.add_diff_assoc2 One_nat_def Suc_leI diff_Suc_1 gr_Suc_conv zero_less_Suc)
+                    then show ?thesis
+                      using a2 a1 by linarith
+                  qed
+              next
+                fix xb
+                show "\<not> c < fst (B ! i) \<Longrightarrow> xb \<in> FV (snd (B ! i)) \<Longrightarrow> Suc c \<le> xb \<Longrightarrow>
+                      \<forall>xa\<ge>c. (\<forall>x>fst (B ! i). x \<in> FV (snd (B ! i)) \<longrightarrow> xa \<noteq> x - Suc 0) \<and>
+                        (xa \<in> FV (snd (B ! i)) \<longrightarrow> xa = fst (B ! i) \<or> fst (B ! i) < xa) \<or>
+                       fst (B ! i) \<noteq> xa + d \<Longrightarrow> \<forall>xa>fst (B ! i). xa \<in> FV (snd (B ! i)) \<longrightarrow> fst (B ! i) \<noteq> xa - Suc 0 \<Longrightarrow>
+                        xb + d - Suc 0 = fst (B ! i) \<Longrightarrow> False"
+                  proof -
+                    assume a1: "\<not> c < fst (B ! i)"
+                    assume a2: "Suc c \<le> xb"
+                    assume a3: "\<forall>xa\<ge>c. (\<forall>x>fst (B ! i). x \<in> FV (snd (B ! i)) \<longrightarrow> xa \<noteq> x - Suc 0) \<and> (xa \<in> FV (snd (B ! i)) \<longrightarrow> xa = fst (B ! i) \<or> fst (B ! i) < xa) \<or> fst (B ! i) \<noteq> xa + d"
+                    assume a4: "xb + d - Suc 0 = fst (B ! i)"
+                    assume a5: "xb \<in> FV (snd (B ! i))"
+                    obtain nn :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
+                      "\<forall>x0 x1. (\<exists>v2. x0 = Suc v2 \<and> x1 \<le> v2) = (x0 = Suc (nn x0 x1) \<and> x1 \<le> nn x0 x1)"
+                      by moura
+                    then have f6: "\<forall>n na. (\<not> Suc n \<le> na \<or> na = Suc (nn na n) \<and> n \<le> nn na n) \<and> (Suc n \<le> na \<or> (\<forall>nb. na \<noteq> Suc nb \<or> \<not> n \<le> nb))"
+                      using gr_Suc_conv by fastforce
+                    then have f7: "xb = Suc (nn xb c) \<and> c \<le> nn xb c"
+                      using a2 by presburger
+                    have f8: "\<forall>n. \<not> c \<le> n \<or> (\<forall>na. (\<not> fst (B ! i) < na \<or> na \<notin> FV (snd (B ! i))) \<or> n \<noteq> na - Suc 0) \<and> (n \<notin> FV (snd (B ! i)) \<or> n = fst (B ! i) \<or> fst (B ! i) < n) \<or> fst (B ! i) \<noteq> n + d"
+                      using a3 by presburger
+                    have f9: "fst (B ! i) = nn xb c + d"
+                      using f7 a4 by (metis (no_types) Nat.add_diff_assoc2 One_nat_def Suc_leI diff_Suc_1 zero_less_Suc)
+                    have f10: "Suc (nn xb c) \<in> FV (snd (B ! i))"
+                      using f7 a5 by presburger
+                    have "nn xb c = Suc (nn xb c) - Suc 0"
+                      by presburger
+                    then have "Suc (nn xb c) < fst (B ! i)"
+                      using f10 f9 f8 f7 f6 a1 by (meson Suc_le_lessD linorder_neqE_nat)
+                    then show ?thesis
+                      using f7 a1 by linarith
+                  qed
+              next
+                fix xb
+                show "\<not> c < fst (B ! i) \<Longrightarrow> xb \<in> FV (snd (B ! i)) \<Longrightarrow> Suc c \<le> xb \<Longrightarrow>
+                      \<forall>xa\<ge>c. (\<forall>x>fst (B ! i). x \<in> FV (snd (B ! i)) \<longrightarrow> xa \<noteq> x - Suc 0) \<and>
+                      (xa \<in> FV (snd (B ! i)) \<longrightarrow> xa = fst (B ! i) \<or> fst (B ! i) < xa) \<or>
+                      xb + d - Suc 0 \<noteq> xa + d \<Longrightarrow> \<forall>xa>fst (B ! i). xa \<in> FV (snd (B ! i)) \<longrightarrow> xb + d - Suc 0 \<noteq> xa - Suc 0 \<Longrightarrow>
+                      fst (B ! i) < xb + d - Suc 0 \<Longrightarrow> False"
+                 proof -
+                  assume a1: "Suc c \<le> xb"
+                  assume a2: "\<not> c < fst (B ! i)"
+                  assume a3: "xb \<in> FV (snd (B ! i))"
+                  assume "\<forall>xa\<ge>c. (\<forall>x>fst (B ! i). x \<in> FV (snd (B ! i)) \<longrightarrow> xa \<noteq> x - Suc 0) \<and> (xa \<in> FV (snd (B ! i)) \<longrightarrow> xa = fst (B ! i) \<or> fst (B ! i) < xa) \<or> xb + d - Suc 0 \<noteq> xa + d"
+                  then have "\<not> fst (B ! i) < xb"
+                    using a3 a1 by (metis (no_types) Nat.add_diff_assoc2 One_nat_def Suc_leI diff_Suc_1 gr_Suc_conv zero_less_Suc)
+                  then show ?thesis
+                    using a2 a1 by linarith
+                qed
+              next
+                fix xb
+                show "\<not> c < fst (B ! i) \<Longrightarrow> xb \<in> FV (snd (B ! i)) \<Longrightarrow> Suc c \<le> xb \<Longrightarrow>
+                      \<forall>xa\<ge>c. (\<forall>x>fst (B ! i). x \<in> FV (snd (B ! i)) \<longrightarrow> xa \<noteq> x - Suc 0) \<and>
+                      (xa \<in> FV (snd (B ! i)) \<longrightarrow> xa = fst (B ! i) \<or> fst (B ! i) < xa) \<or>
+                      xb + d - Suc 0 \<noteq> xa + d \<Longrightarrow> c \<le> xb + d - Suc 0 \<Longrightarrow> False"
+                  proof -
+                    assume a1: "Suc c \<le> xb"
+                    assume a2: "\<not> c < fst (B ! i)"
+                    assume a3: "xb \<in> FV (snd (B ! i))"
+                    assume "\<forall>xa\<ge>c. (\<forall>x>fst (B ! i). x \<in> FV (snd (B ! i)) \<longrightarrow> xa \<noteq> x - Suc 0) \<and> (xa \<in> FV (snd (B ! i)) \<longrightarrow> xa = fst (B ! i) \<or> fst (B ! i) < xa) \<or> xb + d - Suc 0 \<noteq> xa + d"
+                    then have "\<not> fst (B ! i) < xb"
+                      using a3 a1 by (metis (no_types) Nat.add_diff_assoc2 One_nat_def Suc_leI diff_Suc_1 gr_Suc_conv zero_less_Suc)
+                    then show ?thesis
+                      using a2 a1 by (metis (no_types) Suc_leD Suc_le_lessD less_le_trans linorder_neqE_nat)
+                  qed                
+              qed (force+)
+            
+            have 2:"\<And>x. \<not> c < fst (B ! i) \<Longrightarrow> (\<exists>xa. ((\<exists>x. x \<in> FV (snd (B ! i)) \<and> x \<noteq> fst (B ! i) \<and> fst (B ! i) < x \<and> xa = x - Suc 0) \<or>
+                  xa \<in> FV (snd (B ! i)) \<and> xa \<noteq> fst (B ! i) \<and> \<not> fst (B ! i) < xa) \<and> c \<le> xa \<and> x = xa + d) \<or>
+                  ((\<exists>xa. xa \<in> FV (snd (B ! i)) \<and> xa \<noteq> fst (B ! i) \<and> fst (B ! i) < xa \<and> x = xa - Suc 0) \<or>
+                  x \<in> FV (snd (B ! i)) \<and> x \<noteq> fst (B ! i) \<and> \<not> fst (B ! i) < x) \<and> \<not> c \<le> x \<Longrightarrow>
+                  (\<exists>xa. ((\<exists>x. x \<in> FV (snd (B ! i)) \<and> Suc c \<le> x \<and> xa = x + d) \<or> xa \<in> FV (snd (B ! i)) \<and> \<not> Suc c \<le> xa) \<and>
+                  xa \<noteq> fst (B ! i) \<and> fst (B ! i) < xa \<and> x = xa - Suc 0) \<or> ((\<exists>xa. xa \<in> FV (snd (B ! i)) \<and> Suc c \<le> xa \<and> x = xa + d) \<or> x \<in> FV (snd (B ! i)) \<and> \<not> Suc c \<le> x) \<and>
+                  x \<noteq> fst (B ! i) \<and> \<not> fst (B ! i) < x"
+              proof (meson, simp_all)
+                fix xb
+                show "\<not> c < fst (B ! i) \<Longrightarrow> c \<le> xb - Suc 0 \<Longrightarrow> xb \<in> FV (snd (B ! i)) \<Longrightarrow> fst (B ! i) < xb \<Longrightarrow>
+                      \<forall>xa>fst (B ! i). (\<forall>x\<ge>Suc c. x \<in> FV (snd (B ! i)) \<longrightarrow> xa \<noteq> x + d) \<and> (xa \<in> FV (snd (B ! i)) \<longrightarrow> Suc c \<le> xa) \<or>
+                      xb + d - Suc 0 \<noteq> xa - Suc 0 \<Longrightarrow> \<forall>xa\<ge>Suc c. xa \<in> FV (snd (B ! i)) \<longrightarrow> xb + d - Suc 0 \<noteq> xa + d \<Longrightarrow>
+                      xb + d - Suc 0 \<in> FV (snd (B ! i))"
+                  by (metis (mono_tags, lifting) Suc_leI Suc_pred le_add1 le_imp_less_Suc less_le_trans less_nat_zero_code linorder_neqE_nat)
+              next
+                fix xb
+                show "\<not> c < fst (B ! i) \<Longrightarrow> c \<le> xb - Suc 0 \<Longrightarrow> xb \<in> FV (snd (B ! i)) \<Longrightarrow> fst (B ! i) < xb \<Longrightarrow>
+                      \<forall>xa>fst (B ! i). (\<forall>x\<ge>Suc c. x \<in> FV (snd (B ! i)) \<longrightarrow> xa \<noteq> x + d) \<and> (xa \<in> FV (snd (B ! i)) \<longrightarrow> Suc c \<le> xa) \<or>
+                      xb + d - Suc 0 \<noteq> xa - Suc 0 \<Longrightarrow> \<forall>xa\<ge>Suc c. xa \<in> FV (snd (B ! i)) \<longrightarrow> xb + d - Suc 0
+                      \<noteq> xa + d \<Longrightarrow> Suc c \<le> xb + d - Suc 0 \<Longrightarrow> False"
+                  proof -
+                    assume a1: "c \<le> xb - Suc 0"
+                    assume a2: "fst (B ! i) < xb"
+                    assume a3: "xb \<in> FV (snd (B ! i))"
+                    assume "\<forall>xa>fst (B ! i). (\<forall>x\<ge>Suc c. x \<in> FV (snd (B ! i)) \<longrightarrow> xa \<noteq> x + d) \<and> (xa \<in> FV (snd (B ! i)) \<longrightarrow> Suc c \<le> xa) \<or> xb + d - Suc 0 \<noteq> xa - Suc 0"
+                    then have "\<not> Suc c \<le> xb"
+                      using a3 a2 by (metis add.commute trans_less_add2)
+                    then show ?thesis
+                      using a2 a1 by linarith
+                  qed
+              next
+                fix xb
+                show " \<not> c < fst (B ! i) \<Longrightarrow> c \<le> xb - Suc 0 \<Longrightarrow>xb \<in> FV (snd (B ! i)) \<Longrightarrow> fst (B ! i) < xb \<Longrightarrow>
+                      \<forall>xa>fst (B ! i). (\<forall>x\<ge>Suc c. x \<in> FV (snd (B ! i)) \<longrightarrow> xa \<noteq> x + d) \<and> (xa \<in> FV (snd (B ! i)) \<longrightarrow> Suc c \<le> xa) \<or>
+                      xb + d - Suc 0 \<noteq> xa - Suc 0 \<Longrightarrow> fst (B ! i) < xb + d - Suc 0 \<Longrightarrow> False"
+                  by (metis Suc_leI Suc_pred add_gr_0 le_imp_less_Suc less_SucI less_imp_Suc_add zero_less_Suc)
+              qed fastforce+
 
-    then show ?case
+            show ?thesis by (rule;rule, simp_all add: BH 1 2)
+          qed
+
+        show "(if c < fst (B ! i)
+              then (\<lambda>y. if nat (int (fst (B ! i)) + int d) < y then y - 1 else y) `
+             (FV (shift_L (int d) c (snd (B ! i))) - {nat (int (fst (B ! i)) + int d)})
+             else (\<lambda>y. if fst (B ! i) < y then y - 1 else y) `
+             (FV (shift_L (int d) (Suc c) (snd (B ! i))) - {fst (B ! i)})) =
+             (\<lambda>x. if c \<le> x then x + d else x) ` (\<lambda>y. if fst (B ! i) < y then y - 1 else y) `
+             (FV (snd (B ! i)) - {fst (B ! i)})"
+          by (cases "c <fst (B!i)")
+             (simp_all add: Ha hyps(1) shift_simp Bex_def image_def A B)
+      qed
+  
+
+    from H1 show ?case
       by (simp only: shift_L.simps FV.simps if_True if_False set_foldl_union set_map B2 B1 A
               image_Un image_UN Un_empty_right,subst hyps(1)[of c], fast) 
 qed (force)+
@@ -1850,7 +2108,7 @@ next
   case (has_type_LetPattern p B \<sigma> \<Gamma> t1 \<sigma>2 t2 A)
     note hyps=this 
     have A:"\<sigma>1 \<subseteq>\<^sub>f \<sigma>2 ++ \<sigma>"
-      using hyps(9)
+      using hyps(9) hyps(1,2,3)
        sorry
     show ?case
       using hyps(5)[of n \<sigma>1 s] hyps(1,2,7-) hyps(6)[of n \<sigma>1 s, OF _ _ A]
@@ -2036,33 +2294,10 @@ method inv_eval = (match premises in H:"eval1_L t t1" for t and t1 \<Rightarrow>
                     \<open>insert eval1_L.simps[of t t1, simplified]\<close>)
 
 
-
-lemma pattern_substitution:
-  "\<Gamma> \<turnstile> \<lparr>tb|;|(\<sigma>2 ++ \<sigma>1)\<rparr> |:| A \<Longrightarrow> (\<forall>x\<in>dom \<sigma>1. \<exists>B t' f1. \<sigma>1 x = Some B \<and> \<sigma> x = Some t' \<and>\<emptyset> \<turnstile> \<lparr>t'|;|\<sigma>21\<rparr> |:| B) \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>fill \<sigma> tb|;|\<sigma>2\<rparr> |:| A"
-proof (induction \<Gamma> tb "\<sigma>2++\<sigma>1" A arbitrary: \<sigma> rule: has_type_L.induct)
-  case (has_type_ProjT)
-    thus ?case using "has_type_L.intros"(15) by auto
-next
-  case (has_type_Let)
-    thus ?case sorry
-next
-  case (has_type_PatternVar)
-    thus ?case sorry
-next
-  case (has_type_LetPattern)
-    thus ?case sorry
-next
-  case (has_type_Case)
-    thus ?case sorry
-next
-  case (has_type_CaseV)
-    thus ?case sorry
-qed (auto intro: has_type_L.intros)
-
-lemma lmatch_coherent_char:
+(*lemma lmatch_coherent_char:
   "Lmatch_Type p \<sigma>1 \<Longrightarrow> coherent p B \<Longrightarrow> Lmatch p t1 (fill \<sigma>) \<Longrightarrow> is_value_L t1\<Longrightarrow>
     \<Gamma> \<turnstile> \<lparr>t1|;|\<sigma>2\<rparr> |:| B \<Longrightarrow>\<forall>x\<in>dom \<sigma>1. \<exists>B t' f1. \<sigma>1 x = Some B \<and> \<sigma> x = Some t' \<and> \<emptyset> \<turnstile> \<lparr>t'|;|\<sigma>21\<rparr> |:| B"
-sorry
+sorry*)
 
 theorem Preservation:
   "\<Gamma> \<turnstile> \<lparr>t|;|\<sigma>\<rparr> |:| A \<Longrightarrow> eval1_L t t1 \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t1|;|\<sigma>\<rparr> |:| A"
@@ -2180,9 +2415,9 @@ next
     have "\<forall>x\<in>dom \<sigma>1. \<exists>B. \<sigma>1 x = Some B" by blast
       
     have "(\<exists>\<sigma>. t1 = \<sigma> tb \<and> is_value_L ta \<and> Lmatch p ta \<sigma>) \<Longrightarrow>?case"
-      using pattern_substitution[OF hyps(4)] lmatch_is_fill[of p ta _](*sorry*)
-            lmatch_coherent_char[OF hyps(2,1) _ _ hyps(3)]
-      by force
+      using lmatch_is_fill[of p ta _]
+           (* lmatch_coherent_char[OF hyps(2,1) _ _ hyps(3)]*)
+      sorry (* need some lemma to describe substitution with patterns*)
    
     then show ?case using inv has_type_L.intros(19)[OF hyps(1,2,5,4)] by fast
 next
