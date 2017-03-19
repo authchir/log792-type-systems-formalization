@@ -1535,161 +1535,182 @@ next
           x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and> (n \<notin> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and>
           ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
           x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)))) \<or> x \<in> FV t1)"
-      apply meson
-      apply simp_all
-      apply (fastforce+)[2]
-      apply ((metis less_or_eq_imp_le nat_neq_iff One_nat_def diff_Suc_1 
-                    le_imp_less_Suc less_imp_Suc_add)+)[4]
-      apply rule+
-      apply force
-      apply (metis One_nat_def diff_Suc_1 le_eq_less_or_eq le_imp_less_Suc not_less_eq_eq)
-      
-(*      apply ((metis One_nat_def diff_Suc_1 less_or_eq_imp_le nat_neq_iff le_SucI less_le
-            diff_Suc_Suc  lessI  less_Suc_eq_le less_irrefl_nat minus_nat.diff_0)+)[5]*)
-      sorry
-    show ?case
-      apply (simp only: FV.simps subst_L.simps if_True if_False set_foldl_union set_map 
-                        B1 B2 A Un_empty_right Un_Diff)
-      apply (rule;rule)
-      apply (simp_all add: image_def hyps(1) shift_simp Bex_def FV_shift[of 1 "fst(B!_)" t, simplified] split: if_splits)
-      apply (simp add: C1 C2 C3 C4 C6)+
-      apply blast
-      (* apply (smt One_nat_def diff_Suc_1 leD le_imp_less_Suc le_neq_implies_less less_imp_Suc_add less_or_eq_imp_le not_less_eq_eq)*)
-      defer
-      apply meson
-      apply simp_all
-      apply (metis One_nat_def diff_Suc_1 less_or_eq_imp_le nat_neq_iff)  
-proof -
-  fix x :: nat and xa :: nat
-  assume a1: "xa < length B"
-  assume a2: "x \<in> FV (snd (B ! xa))"
-  assume a3: "x \<noteq> fst (B ! xa)"
-  assume a4: "\<not> fst (B ! xa) < x"
-  assume "\<forall>x<length B. (\<forall>xa>fst (B ! x). xa \<in> FV (snd (B ! x)) \<longrightarrow> n \<noteq> xa - Suc 0) \<and> (n \<in> FV (snd (B ! x)) \<longrightarrow> n = fst (B ! x) \<or> fst (B ! x) < n)"
-  then have "x \<noteq> n"
-    using a4 a3 a2 a1 by blast
-  moreover
-  { assume "\<exists>n1\<le>n. x \<noteq> n \<and> \<not> n < x"
-    then have "x \<noteq> n \<and> \<not> n < x"
-      using le_less_trans
-      by meson
-    then have "\<exists>xa. (fst (B ! xa) \<le> n \<longrightarrow> (Suc n \<in> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and> ((\<exists>nb. (nb \<in> FV (snd (B ! xa)) \<and> nb \<noteq> Suc n \<or> (\<exists>na. na \<in> FV t \<and> fst (B ! xa) \<le> na \<and> nb = Suc na) \<or> nb \<in> FV t \<and> \<not> fst (B ! xa) \<le> nb) \<and> nb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < nb \<and> x = nb - Suc 0) \<or> (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> Suc n \<or> (\<exists>na. na \<in> FV t \<and> fst (B ! xa) \<le> na \<and> x = Suc na) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and> (Suc n \<notin> FV (snd (B ! xa)) \<longrightarrow> xa <length B \<and> ((\<exists>na. na \<in> FV (snd (B ! xa)) \<and> na \<noteq> fst (B ! xa) \<and> fst (B ! xa) < na \<and> x = na - Suc 0) \<or> x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x))) \<and> (\<not> fst (B ! xa) \<le> n \<longrightarrow> (n \<in> FV (snd (B ! xa)) \<longrightarrow> xa <length B \<and> ((\<exists>nb. (nb \<in> FV (snd (B ! xa)) \<and> nb \<noteq> n \<or> (\<exists>na. na \<in> FV t \<and> fst (B ! xa) \<le> na \<and> nb = Suc na) \<or> nb \<in> FV t \<and> \<not> fst (B ! xa) \<le> nb) \<and> nb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < nb \<and> x = nb - Suc 0) \<or> (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> n \<or> (\<exists>na. na \<in> FV t \<and> fst (B ! xa) \<le> na \<and> x = Suc na) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and> (n \<notin> FV (snd (B ! xa)) \<longrightarrow> xa <length B \<and> ((\<exists>na. na \<in> FV (snd (B ! xa)) \<and> na \<noteq> fst (B ! xa) \<and> fst (B ! xa) < na \<and> x = na - Suc 0) \<or> x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)))"
-      using a4 a3 a2 a1 by blast }
-  ultimately show "\<exists>xa. (fst (B ! xa) \<le> n \<longrightarrow> (Suc n \<in> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and>
-                   ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> Suc n \<or> (\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or>
-                           xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and>xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
-                    (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> Suc n \<or>(\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and>
-                    x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and>(Suc n \<notin> FV (snd (B ! xa)) \<longrightarrow>
-                   xa < length B \<and>((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
-                    x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x))) \<and>
-                 (\<not> fst (B ! xa) \<le> n \<longrightarrow> (n \<in> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and>
-                   ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> n \<or> (\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or>
-                           xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
-                    (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> n \<or>(\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and>
-                    x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and>(n \<notin> FV (snd (B ! xa)) \<longrightarrow>xa < length B \<and>
-                   ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
-                    x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)))"
-    using a4 a3 a2 a1 by fastforce
-next
-  fix x
-  show "n \<in> FV t1 \<or>
-         (\<exists>x<length B.
+      proof (meson, simp_all)
+        fix x xa xaa
+        show "xa < length B \<Longrightarrow> xaa \<in> FV (snd (B ! xa)) \<Longrightarrow>fst (B ! xa) < xaa \<Longrightarrow>n = xaa - Suc 0 \<Longrightarrow>
+              x \<in> FV t \<Longrightarrow> xaa - Suc 0 \<notin> FV t1 \<Longrightarrow> x \<notin> FV t1 \<Longrightarrow> \<exists>xa. (fst (B ! xa) \<le> xaa - Suc 0 \<longrightarrow>
+             (xaa \<in> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and> ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> xaa \<or>
+             (\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or> xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and>
+             xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or> (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> xaa \<or>
+             (\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> \<not> fst (B ! xa) \<le> x) \<and>
+             x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and>(xaa \<notin> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and>
+             ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+             x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x))) \<and> (\<not> fst (B ! xa) \<le> xaa - Suc 0 \<longrightarrow>
+             (xaa - Suc 0 \<in> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and> ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> xaa - Suc 0 \<or>
+             (\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or> xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and>
+             xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or> (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> xaa - Suc 0 \<or>
+             (\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> \<not> fst (B ! xa) \<le> x) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and>
+             (xaa - Suc 0 \<notin> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and> ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+               x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)))"
+        by (rule, meson,simp_all, metis One_nat_def diff_Suc_1 le_eq_less_or_eq le_imp_less_Suc not_less_eq_eq)
+           ((metis One_nat_def diff_Suc_1 less_SucI less_imp_le_nat lessI order_refl less_Suc_eq_le)+,
+               linarith+)
+      next
+        fix x xa
+        show "xa < length B \<Longrightarrow> n \<in> FV (snd (B ! xa)) \<Longrightarrow>n \<noteq> fst (B ! xa) \<Longrightarrow> \<not> fst (B ! xa) < n \<Longrightarrow> x \<in> FV t \<Longrightarrow> n \<notin> FV t1 \<Longrightarrow>x \<notin> FV t1 \<Longrightarrow>
+            \<exists>xa. (fst (B ! xa) \<le> n \<longrightarrow> (Suc n \<in> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and>
+            ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> Suc n \<or>(\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or>
+           xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and>xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+          (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> Suc n \<or>(\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> \<not> fst (B ! xa) \<le> x) \<and>
+           x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and> (Suc n \<notin> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and>
+          ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+          x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x))) \<and> (\<not> fst (B ! xa) \<le> n \<longrightarrow>(n \<in> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and>
+          ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> n \<or> (\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or>
+           xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and>xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+           (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> n \<or> (\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> \<not> fst (B ! xa) \<le> x) \<and>
+          x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and>(n \<notin> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and>
+          ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+                x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)))"
+          by (metis Suc_n_not_le_n diff_Suc_Suc le_imp_less_Suc le_neq_implies_less less_or_eq_imp_le
+            minus_nat.diff_0)
+      qed (((metis One_nat_def diff_Suc_1 less_or_eq_imp_le le_SucI nat_less_le
+              le_imp_less_Suc less_imp_Suc_add less_irrefl_nat)+)[8],force+)
+          
+    have C7: " \<And>x. n \<notin> FV t1 \<and>(\<forall>x<length B.(\<forall>xa>fst (B ! x). xa \<in> FV (snd (B ! x)) \<longrightarrow> n \<noteq> xa - Suc 0) \<and>
+             (n \<in> FV (snd (B ! x)) \<longrightarrow> n = fst (B ! x) \<or> fst (B ! x) < n)) \<Longrightarrow> x \<in> FV t1 \<or>
+         (\<exists>xa<length B. (\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+          x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x) \<Longrightarrow> (\<exists>xa. (fst (B ! xa) \<le> n \<longrightarrow>
+         (Suc n \<in> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and> ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> Suc n \<or>
+         (\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or> xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and>
+          xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or> (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> Suc n \<or>
+          (\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and>
+          x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and> (Suc n \<notin> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and>
+          ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+          x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x))) \<and> (\<not> fst (B ! xa) \<le> n \<longrightarrow>
+          (n \<in> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and> ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> n \<or>
+          (\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or> xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and>
+          xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or> (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> n \<or>
+          (\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and>
+          x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and> (n \<notin> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and>
+          ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+          x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)))) \<or> x \<in> FV t1"
+      by (meson, simp_all)(metis One_nat_def diff_Suc_1 less_or_eq_imp_le nat_neq_iff le_imp_less_Suc)+
+
+    have C8:"\<And>x. n \<in> FV t1 \<or> (\<exists>x<length B.
              (\<exists>xa. xa \<in> FV (snd (B ! x)) \<and> xa \<noteq> fst (B ! x) \<and> fst (B ! x) < xa \<and> n = xa - Suc 0) \<or>
-             n \<in> FV (snd (B ! x)) \<and> n \<noteq> fst (B ! x) \<and> \<not> fst (B ! x) < n) \<Longrightarrow>
-         x \<in> FV t1 \<and> x \<noteq> n \<or>
-         (\<exists>xa<length B.
-             (\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
-             x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x) \<and>
-         x \<noteq> n \<or>
-         x \<in> FV t \<Longrightarrow>
-         (n \<in> FV t1 \<longrightarrow>
-          (\<exists>xa. (fst (B ! xa) \<le> n \<longrightarrow>
-                 (Suc n \<in> FV (snd (B ! xa)) \<longrightarrow>
-                  xa < length B \<and>
-                  ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> Suc n \<or>
-                          (\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or>
-                          xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and>
-                         xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
-                   (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> Suc n \<or>
-                    (\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and>
-                   x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and>
-                 (Suc n \<notin> FV (snd (B ! xa)) \<longrightarrow>
-                  xa < length B \<and>
-                  ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
-                   x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x))) \<and>
-                (\<not> fst (B ! xa) \<le> n \<longrightarrow>
-                 (n \<in> FV (snd (B ! xa)) \<longrightarrow>
-                  xa < length B \<and>
-                  ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> n \<or>
-                          (\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or>
-                          xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and>
-                         xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
-                   (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> n \<or>
-                    (\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and>
-                   x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and>
-                 (n \<notin> FV (snd (B ! xa)) \<longrightarrow>
-                  xa < length B \<and>
-                  ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
-                   x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)))) \<or>
-          x \<in> FV t1 \<and> x \<noteq> n \<or> x \<in> FV t) \<and>
-         (n \<notin> FV t1 \<longrightarrow>
-          (\<exists>xa. (fst (B ! xa) \<le> n \<longrightarrow>
-                 (Suc n \<in> FV (snd (B ! xa)) \<longrightarrow>
-                  xa < length B \<and>
-                  ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> Suc n \<or>
-                          (\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or>
-                          xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and>
-                         xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
-                   (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> Suc n \<or>
-                    (\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and>
-                   x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and>
-                 (Suc n \<notin> FV (snd (B ! xa)) \<longrightarrow>
-                  xa < length B \<and>
-                  ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
-                   x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x))) \<and>
-                (\<not> fst (B ! xa) \<le> n \<longrightarrow>
-                 (n \<in> FV (snd (B ! xa)) \<longrightarrow>
-                  xa < length B \<and>
-                  ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> n \<or>
-                          (\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or>
-                          xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and>
-                         xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
-                   (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> n \<or>
-                    (\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and>
-                   x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and>
-                 (n \<notin> FV (snd (B ! xa)) \<longrightarrow>
-                  xa < length B \<and>
-                  ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
-                   x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)))) \<or>
-          x \<in> FV t1)"
-      apply meson
-      apply simp_all         
-      apply fastforce
-      apply fastforce
-      apply ((metis less_or_eq_imp_le less_or_eq_imp_le nat_neq_iff
-                    One_nat_def diff_Suc_1 le_imp_less_Suc less_imp_Suc_add)+)[3]
-      apply force
-      apply rule+
-      apply fastforce
-      apply (metis One_nat_def diff_Suc_1 le_imp_less_Suc less_or_eq_imp_le nat_neq_iff)
-      defer
-      defer
-      apply ((metis One_nat_def diff_Suc_1 less_or_eq_imp_le nat_neq_iff)+)[2]
-      apply (force+)[2]
-      apply (metis Suc_n_not_le_n diff_Suc_Suc le_imp_less_Suc le_neq_implies_less less_or_eq_imp_le minus_nat.diff_0)
-      apply rule
-      apply meson
-      apply force
-      
-      
-qed
-      (*apply (smt Suc_pred diff_Suc_1 le_imp_less_Suc le_neq_implies_less less_imp_Suc_add less_irrefl_nat zero_less_Suc)
-      apply (smt Suc_pred diff_Suc_1 leD le_imp_less_Suc less_imp_Suc_add less_or_eq_imp_le not_less_eq_eq zero_less_Suc)
-      apply blast
-      defer
-      apply (smt One_nat_def diff_Suc_1 le_imp_less_Suc less_or_eq_imp_le)*)
-      
-      sorry
+             n \<in> FV (snd (B ! x)) \<and> n \<noteq> fst (B ! x) \<and> \<not> fst (B ! x) < n) \<Longrightarrow>x \<in> FV t1 \<and> x \<noteq> n \<or>
+         (\<exists>xa<length B.(\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+         x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x) \<and>x \<noteq> n \<or> x \<in> FV t \<Longrightarrow> n \<notin> FV t1 \<longrightarrow>
+         (\<exists>xa. (fst (B ! xa) \<le> n \<longrightarrow> (Suc n \<in> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and>
+         ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> Suc n \<or>(\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or> xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and>
+         xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or> (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> Suc n \<or>
+        (\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and>
+        (Suc n \<notin> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and> ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+        x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x))) \<and> (\<not> fst (B ! xa) \<le> n \<longrightarrow>
+        (n \<in> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and> ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> n \<or>
+        (\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or> xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and> 
+        xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or> (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> n \<or>
+         (\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and>
+        x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and> (n \<notin> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and>
+      ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+       x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)))) \<or> x \<in> FV t1"
+      proof -
+        fix x
+        show "n \<in> FV t1 \<or> (\<exists>x<length B.
+             (\<exists>xa. xa \<in> FV (snd (B ! x)) \<and> xa \<noteq> fst (B ! x) \<and> fst (B ! x) < xa \<and> n = xa - Suc 0) \<or>
+             n \<in> FV (snd (B ! x)) \<and> n \<noteq> fst (B ! x) \<and> \<not> fst (B ! x) < n) \<Longrightarrow>x \<in> FV t1 \<and> x \<noteq> n \<or>
+         (\<exists>xa<length B.(\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+         x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x) \<and>x \<noteq> n \<or> x \<in> FV t \<Longrightarrow> n \<notin> FV t1 \<longrightarrow>
+         (\<exists>xa. (fst (B ! xa) \<le> n \<longrightarrow> (Suc n \<in> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and>
+         ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> Suc n \<or>(\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or> xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and>
+         xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or> (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> Suc n \<or>
+        (\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and>
+        (Suc n \<notin> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and> ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+        x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x))) \<and> (\<not> fst (B ! xa) \<le> n \<longrightarrow>
+        (n \<in> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and> ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> n \<or>
+        (\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or> xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and> 
+        xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or> (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> n \<or>
+         (\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and>
+        x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and> (n \<notin> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and>
+      ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+       x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)))) \<or> x \<in> FV t1"
+       proof (meson)
+         fix x xa xb
+         show "xb - Suc 0 \<notin> FV t1 \<Longrightarrow> x \<notin> FV t1 \<Longrightarrow> xa < length B \<Longrightarrow> xb \<in> FV (snd (B ! xa)) \<Longrightarrow>
+                xb \<noteq> fst (B ! xa) \<Longrightarrow> fst (B ! xa) < xb \<Longrightarrow> n = xb - Suc 0 \<Longrightarrow> x \<in> FV t \<Longrightarrow>
+                \<exists>xa. (fst (B ! xa) \<le> xb - Suc 0 \<longrightarrow> (Suc (xb - Suc 0) \<in> FV (snd (B ! xa)) \<longrightarrow>
+                xa < length B \<and> ((\<exists>xc. (xc \<in> FV (snd (B ! xa)) \<and> xc \<noteq> Suc (xb - Suc 0) \<or>
+               (\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xc = Suc x) \<or> xc \<in> FV t \<and> \<not> fst (B ! xa) \<le> xc) \<and>
+               xc \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xc \<and> x = xc - Suc 0) \<or> (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> Suc (xb - Suc 0) \<or>
+               (\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and>
+               x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and>(Suc (xb - Suc 0) \<notin> FV (snd (B ! xa)) \<longrightarrow>
+              xa < length B \<and> ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+              x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x))) \<and> (\<not> fst (B ! xa) \<le> xb - Suc 0 \<longrightarrow>
+             (xb - Suc 0 \<in> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and> ((\<exists>xc. (xc \<in> FV (snd (B ! xa)) \<and> xc \<noteq> xb - Suc 0 \<or>
+            (\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xc = Suc x) \<or> xc \<in> FV t \<and> \<not> fst (B ! xa) \<le> xc) \<and>
+            xc \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xc \<and> x = xc - Suc 0) \<or> (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> xb - Suc 0 \<or>
+            (\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and>
+            x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and> (xb - Suc 0 \<notin> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and>
+            ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+             x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)))"
+           by (rule, meson, simp_all)
+              (((metis One_nat_def diff_Suc_1 le_imp_less_Suc less_SucI less_Suc_eq_le lessI order_refl)+)[4],
+                linarith+)
+        next
+          fix xa
+          show "n \<notin> FV t1 \<Longrightarrow> x \<notin> FV t1 \<Longrightarrow> xa < length B \<Longrightarrow> n \<in> FV (snd (B ! xa)) \<Longrightarrow> n \<noteq> fst (B ! xa) \<Longrightarrow>
+                \<not> fst (B ! xa) < n \<Longrightarrow> x \<in> FV t \<Longrightarrow> \<exists>xa. (fst (B ! xa) \<le> n \<longrightarrow> (Suc n \<in> FV (snd (B ! xa)) \<longrightarrow>
+                 xa < length B \<and> ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> Suc n \<or>
+                (\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or> xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and>
+                xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or> (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> Suc n \<or>
+                (\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and>
+                x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and> (Suc n \<notin> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and>
+                ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+                x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x))) \<and> (\<not> fst (B ! xa) \<le> n \<longrightarrow>
+                (n \<in> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and> ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> n \<or>
+                (\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or> xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and>
+                xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or> (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> n \<or>
+                (\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and>
+                x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and> (n \<notin> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and>
+                ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+                x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)))"
+            by (rule, meson, simp_all)(metis One_nat_def diff_Suc_1 le_imp_less_Suc Suc_eq_plus1_left add.right_neutral 
+                  lessI order_refl less_SucI less_Suc_eq_le)+            
+        qed (metis One_nat_def diff_Suc_1 less_or_eq_imp_le le_SucI less_le
+              less_irrefl_nat not_le not_less_eq_eq)+
+      qed
+    have HB:"(\<And>x. n \<in> FV t1 \<or>(\<exists>x<length B.(\<exists>xa. xa \<in> FV (snd (B ! x)) \<and> xa \<noteq> fst (B ! x) \<and> fst (B ! x) < xa \<and> n = xa - Suc 0) \<or>
+           n \<in> FV (snd (B ! x)) \<and> n \<noteq> fst (B ! x) \<and> \<not> fst (B ! x) < n) \<Longrightarrow> x \<in> FV t1 \<and> x \<noteq> n \<or>
+          (\<exists>xa<length B.(\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+          x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x) \<and> x \<noteq> n \<or> x \<in> FV t \<Longrightarrow> n \<notin> FV t1 \<longrightarrow>
+          (\<exists>xa. (fst (B ! xa) \<le> n \<longrightarrow> (Suc n \<in> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and> ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> Suc n \<or>
+          (\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or> xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and>
+           xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or> (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> Suc n \<or>
+          (\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and>
+           x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and> (Suc n \<notin> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and>
+          ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+          x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x))) \<and> (\<not> fst (B ! xa) \<le> n \<longrightarrow>
+          (n \<in> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and> ((\<exists>xb. (xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> n \<or>
+          (\<exists>x. x \<in> FV t \<and> fst (B ! xa) \<le> x \<and> xb = Suc x) \<or> xb \<in> FV t \<and> \<not> fst (B ! xa) \<le> xb) \<and>
+          xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or> (x \<in> FV (snd (B ! xa)) \<and> x \<noteq> n \<or>
+         (\<exists>xb. xb \<in> FV t \<and> fst (B ! xa) \<le> xb \<and> x = Suc xb) \<or> x \<in> FV t \<and> \<not> fst (B ! xa) \<le> x) \<and>
+         x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)) \<and> (n \<notin> FV (snd (B ! xa)) \<longrightarrow> xa < length B \<and>
+         ((\<exists>xb. xb \<in> FV (snd (B ! xa)) \<and> xb \<noteq> fst (B ! xa) \<and> fst (B ! xa) < xb \<and> x = xb - Suc 0) \<or>
+        x \<in> FV (snd (B ! xa)) \<and> x \<noteq> fst (B ! xa) \<and> \<not> fst (B ! xa) < x)))) \<or> x \<in> FV t1) \<Longrightarrow>
+       (\<Union>i<length B. (\<lambda>y. if fst (B ! i) < y then y - 1 else y) ` (FV (subst_L (if fst (B ! i) \<le> n then Suc n else n) (shift_L 1 (fst (B ! i)) t) (snd (B ! i))) -
+         {fst (B ! i)})) \<union> FV (subst_L n t t1) =
+    (if n \<in> FV t1 \<union> (\<Union>i<length B. (\<lambda>y. if fst (B ! i) < y then y - 1 else y) ` (FV (snd (B ! i)) - {fst (B ! i)}))
+     then FV t1 - {n} \<union> ((\<Union>i<length B. (\<lambda>y. if fst (B ! i) < y then y - 1 else y) ` (FV (snd (B ! i)) - {fst (B ! i)})) -
+           {n}) \<union> FV t
+     else FV t1 \<union> (\<Union>i<length B. (\<lambda>y. if fst (B ! i) < y then y - 1 else y) ` (FV (snd (B ! i)) - {fst (B ! i)})))"
+      by (rule;rule)
+          (simp_all add: image_def hyps(1) shift_simp Bex_def FV_shift[of 1 "fst(B!_)" t, simplified]
+              C1 C2 C3 C4 C6 C7 split: if_splits, blast)
+     
+    with C8 show ?case
+      by (simp only: FV.simps subst_L.simps if_True if_False set_foldl_union set_map 
+                        B1 B2 A Un_empty_right Un_Diff) fastforce
+
 qed (auto simp: gr0_conv_Suc image_iff FV_shift[of 1, unfolded int_1])
 
 lemma weakening :
@@ -2502,7 +2523,8 @@ next
       by (force intro!: has_type_L.intros)
 qed (force intro: has_type_L.intros simp: nth_append min_def)+
 
-
+(*sorry only concerns patterns missing premise in typing rule or
+  required a different premise (instead of \<sigma>1 \<subseteq>\<^sub>f \<sigma>) *)
 lemma substitution:
   "\<Gamma> \<turnstile> \<lparr>t|;|\<sigma>\<rparr> |:| A \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>LVar n|;|\<sigma>1\<rparr> |:| S \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>s|;|\<sigma>1\<rparr> |:| S \<Longrightarrow> 
   \<sigma>1 \<subseteq>\<^sub>f \<sigma>\<Longrightarrow> \<Gamma> \<turnstile> \<lparr>subst_L n s t|;|\<sigma>\<rparr> |:| A"
