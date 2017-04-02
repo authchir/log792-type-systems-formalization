@@ -21,7 +21,7 @@ datatype Lpattern = V nat ltype ("V/ (_)/ as/ (_)" [201,200]220)
 
 datatype lterm =
   LTrue |
-  LFalse |
+  LFalse|  
   LIf (bool_expr: lterm) (then_expr: lterm) (else_expr: lterm) |
   LVar nat |
   LAbs (arg_type: ltype) (body: lterm) |
@@ -29,7 +29,7 @@ datatype lterm =
   unit |
   Seq (fp: lterm) (sp: lterm) ("(_;;_)" [100,50] 200) |
   AS lterm ltype ("_/ as/ _" [100,150] 200) |
-  LetBinder nat lterm lterm ("Let/ var/ (_)/ :=/ (_)/ in/ (_)" [100,120,150] 250) | 
+  LetBinder lterm lterm ("Let (_)/ in/ (_)" [120,150] 250) | 
   Pair lterm lterm ("\<lbrace>_,_\<rbrace>" [100,150] 250) |
   Proj1 lterm ("\<pi>1/ _" [100] 250) |
   Proj2 lterm ("\<pi>2/ _" [100] 250) |
@@ -41,16 +41,17 @@ datatype lterm =
   LetP Lpattern lterm lterm ("Let/ pattern/ (_)/ :=/ (_)/ in/ (_)"[100,120,150]250) |
   inl lterm ltype ("inl/ (_)/ as/ (_)" [100,100]200) |
   inr lterm ltype ("inr/ (_)/ as/ (_)" [100,100]200) |
-  CaseSum lterm nat lterm nat lterm ("Case/ (_)/ of/ Inl/ (_)/ \<Rightarrow>/ (_)/ |/ Inr/ (_)/ \<Rightarrow>/ (_)" [100, 100,100, 100, 100]200) |
+  CaseSum lterm lterm lterm |
   Variant string lterm ltype ("<(_):=(_)> as (_)" [100,55] 200) |
-  CaseVar lterm "string list" "(nat\<times>lterm) list" ("Case/ (_)/ of/ (_)/ \<Rightarrow>/ (_)" [100,100,100]200)|
-  Fixpoint lterm  ("fix (_)" [201]200) 
+  CaseVar lterm "string list" "lterm list"|
+  Fixpoint lterm  ("fix (_)" [201]200)
+
 
 datatype subterm_set = Unary lterm | Bi lterm lterm | Ter lterm lterm lterm | Comp lterm "lterm list" |UList "lterm list" | Void
 
 
 definition letR :: "ltype\<Rightarrow>lterm\<Rightarrow>lterm\<Rightarrow>lterm" ("letrec/ x:(_) =(_)/ in/ (_)" [100,100,100]200) where
- "letrec x:A = t1 in t2 \<equiv> (let x=fix(LAbs A t1) in t2)"     
+ "letrec x:A = t1 in t2 \<equiv> (Let (Fixpoint (LAbs A t1)) in t2)"     
 
 fun shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lterm" where
   "shift_L d c LTrue = LTrue" |
@@ -62,10 +63,8 @@ fun shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lterm" w
   "shift_L d c unit = unit" |
   "shift_L d c (Seq t1 t2) = Seq (shift_L d c t1) (shift_L d c t2)" |
   "shift_L d c (t as A) = (shift_L d c t) as A" |
-  "shift_L d c (Let var x := t in t1) = 
-    (if x> c then Let var (nat (int x + d)) := (shift_L d c t) in (shift_L d c t1)
-     else  Let var x := (shift_L d c t) in (shift_L d (Suc c) t1)
-     )"  |
+  "shift_L d c (Let t in t1) = 
+    (Let (shift_L d c t) in (shift_L d (Suc c) t1))" |
   "shift_L d c (\<lbrace>t1,t2\<rbrace>) = \<lbrace> shift_L d c t1 , shift_L d c t2 \<rbrace>" |
   "shift_L d c (\<pi>1 t) = \<pi>1 (shift_L d c t)" |
   "shift_L d c (\<pi>2 t) = \<pi>2 (shift_L d c t)" |
@@ -77,14 +76,11 @@ fun shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lterm" w
   "shift_L d c (Let pattern p := t1 in t2) = (Let pattern p := (shift_L d c t1) in (shift_L d c t2))" |
   "shift_L d c (inl t as T') =  inl (shift_L d c t) as T'" |
   "shift_L d c (inr t as T') =  inr (shift_L d c t) as T'" |
-  "shift_L d c (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = 
-    (Case (shift_L d c t) of 
-        Inl (if x> c then (nat (int x + d)) else x) \<Rightarrow> shift_L d (if x\<le> c then Suc c else c) t1 
-      | Inr (if y> c then (nat (int y + d)) else y) \<Rightarrow> shift_L d (if y\<le> c then Suc c else c) t2)" |
+  "shift_L d c (CaseSum t t1 t2) = 
+    (CaseSum (shift_L d c t) (shift_L d (Suc c) t1) (shift_L d (Suc c) t2))" |
   "shift_L d c (<l:=t> as A) = <l:= shift_L d c t> as A" |
-  "shift_L d c (Case t of L \<Rightarrow> B) = 
-    (Case (shift_L d c t) of L \<Rightarrow> 
-      map (\<lambda>p.(if (fst p) > c then (nat (int (fst p) + d)) else fst p , shift_L d (if (fst p)\<le>c then Suc c else c) (snd p))) B)"|
+  "shift_L d c (CaseVar t  L B) = 
+    (CaseVar (shift_L d c t)  L (map (shift_L d (Suc c)) B))"|
   "shift_L d c (Fixpoint t) = Fixpoint (shift_L d c t)" 
 
 function subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> lterm" where
@@ -97,8 +93,7 @@ function subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> l
   "subst_L j s unit = unit" |
   "subst_L j s (Seq t1 t2) = Seq (subst_L j s t1) (subst_L j s t2)" |
   "subst_L j s (t as A) = (subst_L j s t) as A" |
-  "subst_L j s (Let var x := t in t1) = 
-  ((Let var x := (subst_L j s t) in (subst_L (if j \<ge> x then Suc j else j) (shift_L 1 x s) t1))) " |
+  "subst_L j s (Let t in t1) = ((Let (subst_L j s t) in (subst_L (Suc j) (shift_L 1 0 s) t1))) " |
   "subst_L j s (\<lbrace>t1,t2\<rbrace>) = \<lbrace>subst_L j s t1, subst_L j s t2\<rbrace>" |
   "subst_L j s (\<pi>1 t) = \<pi>1 (subst_L j s t)" |
   "subst_L j s (\<pi>2 t) = \<pi>2 (subst_L j s t)" |
@@ -110,27 +105,18 @@ function subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> l
   "subst_L j s (Let pattern p := t1 in t2) = (Let pattern p := (subst_L j s t1) in (subst_L j s t2))" |
   "subst_L j s (inl t as T') =  inl (subst_L j s t) as T'" |
   "subst_L j s (inr t as T') =  inr (subst_L j s t) as T'" |
-  "subst_L j s (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = 
-    (Case (subst_L j s t) of 
-        Inl x \<Rightarrow> (subst_L (if j \<ge> x then Suc j else j) (shift_L 1 x s) t1)
-      | Inr y \<Rightarrow> (subst_L (if j \<ge> y then Suc j else j) (shift_L 1 y s) t2))" |
+  "subst_L j s (CaseSum t t1 t2) = 
+    (CaseSum (subst_L j s t) (subst_L (Suc j) (shift_L 1 0 s) t1) (subst_L (Suc j) (shift_L 1 0 s) t2))" |
   "subst_L j s (<l:=t> as T') =  <l:=subst_L j s t> as T'" |
-  "subst_L j s (Case t of L \<Rightarrow> B) = 
-    (Case (subst_L j s t) of L \<Rightarrow> map (\<lambda>p. (fst p, subst_L (if j \<ge> fst p  then Suc j else j) (shift_L 1 (fst p) s) (snd p))) B)" |
+  "subst_L j s (CaseVar t L B) = 
+    (CaseVar (subst_L j s t) L (map (subst_L (Suc j) (shift_L 1 0 s)) B))" |
   "subst_L j s (Fixpoint t) = Fixpoint (subst_L j s t)"
 by pat_completeness auto
 
 termination
-  proof  (relation "measure (\<lambda>(j,s,t). size t)", simp_all)
-    fix t :: lterm and B :: "(nat \<times> lterm) list" and x :: "nat \<times> lterm"
-    assume "x \<in> set B"
-    then have "\<not> Suc (size_list (size_prod (\<lambda>n. 0) size) B + size t) \<le> size_prod (\<lambda>n. 0) size x"
-      by (meson less_add_Suc1 not_less size_list_estimation')
-    then have "\<not> Suc (size_list (size_prod (\<lambda>n. 0) size) B + size t) \<le> size (snd x)"
-      by (simp add: size_prod_simp)
-    then show "size (snd x) < Suc (size_list (size_prod (\<lambda>n. 0) size) B + size t)"
-      using not_less by blast
-  qed (metis  size_list_estimation' lessI not_less)+
+  by (relation "measure (\<lambda>(j,s,t). size t)", simp_all)
+      (metis  size_list_estimation' lessI not_less add.commute le_imp_less_Suc 
+            less_irrefl_nat not_less size_list_estimation trans_less_add2)+
 
 fun Pvars :: "Lpattern \<Rightarrow> nat list" where
 "Pvars (V n as A) = [n]" |
@@ -143,7 +129,7 @@ fun patterns::"lterm \<Rightarrow> nat list" where
 "patterns (LApp t1 t2)                = patterns t1 @ patterns t2" |
 "patterns (Seq t1 t2)                 = patterns t1 @ patterns t2" |
 "patterns (t1 as A)                   = patterns t1" |
-"patterns (Let var x := t1 in t2)     = patterns t1 @ patterns t2" |
+"patterns (Let t1 in t2)     = patterns t1 @ patterns t2" |
 "patterns (\<lbrace>t1,t2\<rbrace>)                   = patterns t1 @ patterns t2" |
 "patterns (Tuple L)                   = foldl (\<lambda>e r. e @ r) [] (map (patterns) L)" |
 "patterns (Record L LT)               = foldl (\<lambda>e r. e @ r) [] (map (patterns) LT)" |
@@ -154,10 +140,11 @@ fun patterns::"lterm \<Rightarrow> nat list" where
 "patterns (Let pattern p := t1 in t2) = patterns t1 @ patterns t2" |
 "patterns (inl t as T') =  patterns t" |
 "patterns (inr t as T') =  patterns t" |
-"patterns (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = patterns t @ patterns t1 @ patterns t2" |
+"patterns (CaseSum t t1 t2) = patterns t @ patterns t1 @ patterns t2" |
 "patterns (<l:=t> as T') =  patterns t" |
-"patterns (Case t of L \<Rightarrow> B) = patterns t @ foldl (\<lambda>e r. e @ r) [] (map (patterns\<circ>snd) B)" |
-"patterns (Fixpoint t) = patterns t"
+"patterns (CaseVar t L B) = patterns t @ foldl (\<lambda>e r. e @ r) [] (map patterns B)" |
+"patterns (Fixpoint t) = patterns t"|
+"patterns t = []"
 
 inductive is_value_L :: "lterm \<Rightarrow> bool" where
   VTrue : "is_value_L LTrue" |
@@ -181,7 +168,7 @@ function FV :: "lterm \<Rightarrow> nat set" where
   "FV unit = {}" |
   "FV (Seq t1 t2) = FV t1 \<union> FV t2" |
   "FV (t as A) = FV t" |
-  "FV (Let var x := t in t1) = image (\<lambda>y. if (y>x) then y-1 else y) (FV t1 -{x}) \<union> FV t" |
+  "FV (Let t in t1) = image (\<lambda>y. y-1) (FV t1 -{0}) \<union> FV t" |
   "FV (\<lbrace>t1,t2\<rbrace>) = FV t1 \<union> FV t2" |
   "FV (\<pi>1 t) =  FV t" |
   "FV (\<pi>2 t) =  FV t" |
@@ -193,25 +180,17 @@ function FV :: "lterm \<Rightarrow> nat set" where
   "FV (Let pattern p := t1 in t2) = FV t1 \<union> FV t2" |
   "FV (inl t as A) = FV t" |
   "FV (inr t as A) = FV t" |
-  "FV (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = image (\<lambda>y. if (y>x) then y - 1 else y) (FV t1 -{x}) \<union> 
-                                              image (\<lambda>z. if (z>y) then z - 1 else z) (FV t2 -{y}) \<union> 
-                                              FV t " |
+  "FV (CaseSum t t1 t2) = image (\<lambda>y. y - 1) (FV t1 -{0}) \<union> 
+                          image (\<lambda>z. z - 1) (FV t2 -{0}) \<union> FV t " |
   "FV (<L:=t> as A) = FV t" |
-  "FV (Case t of L \<Rightarrow> B) = FV t \<union> foldl (\<lambda>x r. x \<union> r) {} (map (\<lambda>p. image (\<lambda>y. if (y>fst p) then y - 1 else y) (FV (snd p) - {fst p})) B)" |
+  "FV (CaseVar t L B) = FV t \<union> (\<Union>i<length B. (image (\<lambda>y. y - 1) (FV (B!i)-{0})))" |
   "FV (Fixpoint t) = FV t"
 by pat_completeness auto
 
 termination
-  proof (relation "measure (\<lambda>t. size t)", simp_all)
-    fix t :: lterm and B :: "(nat \<times> lterm) list" and x :: "nat \<times> lterm"
-    assume "x \<in> set B"
-    then have "\<not> Suc (size_list (size_prod (\<lambda>n. 0) size) B + size t) \<le> size_prod (\<lambda>n. 0) size x"
-      by (meson less_add_Suc1 not_less size_list_estimation')
-    then have "\<not> Suc (size_list (size_prod (\<lambda>n. 0) size) B + size t) \<le> size (snd x)"
-      by (simp add: size_prod_simp)
-    then show "size (snd x) < Suc (size_list (size_prod (\<lambda>n. 0) size) B + size t)"
-      by (meson not_less)
-  qed (metis size_list_estimation' lessI not_less )+
+  by (relation "measure (\<lambda>t. size t)", simp_all)
+     (((metis size_list_estimation' lessI not_less)+)[2],
+      meson not_add_less1 not_less_eq nth_mem size_list_estimation)
 
 fun p_instantiate::"(nat \<rightharpoonup> lterm) \<Rightarrow> Lpattern \<Rightarrow> lterm" where
 "p_instantiate \<Sigma> (V k as A) = (case \<Sigma> k of Some t' \<Rightarrow> t' | None \<Rightarrow> <|V k as A|>)"|
@@ -224,7 +203,7 @@ fun fill::"(nat \<rightharpoonup> lterm) \<Rightarrow> lterm \<Rightarrow> lterm
 "fill \<Sigma> (LApp t1 t2)                = LApp (fill \<Sigma> t1) (fill \<Sigma> t2)" |
 "fill \<Sigma> (Seq t1 t2)                 =  Seq (fill \<Sigma> t1) (fill \<Sigma> t2)" |
 "fill \<Sigma> (t1 as A)                   = (fill \<Sigma> t1) as A" |
-"fill \<Sigma> (Let var x := t1 in t2)     = (Let var x := (fill \<Sigma> t1) in (fill \<Sigma> t2))" |
+"fill \<Sigma> (Let t1 in t2)              = (Let (fill \<Sigma> t1) in (fill \<Sigma> t2))" |
 "fill \<Sigma> (\<lbrace>t1,t2\<rbrace>)                   = \<lbrace>(fill \<Sigma> t1), (fill \<Sigma> t2)\<rbrace>" |
 "fill \<Sigma> (Tuple L)                   = Tuple (map (fill \<Sigma>) L)" |
 "fill \<Sigma> (Record L LT)               = Record L (map (fill \<Sigma>) LT)" |
@@ -235,9 +214,9 @@ fun fill::"(nat \<rightharpoonup> lterm) \<Rightarrow> lterm \<Rightarrow> lterm
 "fill \<Sigma> (Let pattern p := t1 in t2) = (Let pattern p := (fill \<Sigma> t1) in (fill \<Sigma> t2))" |
 "fill \<Sigma> (inl t as A) = inl (fill \<Sigma> t) as A"|
 "fill \<Sigma> (inr t as A) = inr (fill \<Sigma> t) as A"|
-"fill \<Sigma> (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = (Case (fill \<Sigma> t) of Inl x \<Rightarrow> (fill \<Sigma> t1) | Inr y \<Rightarrow> (fill \<Sigma> t2))"|
+"fill \<Sigma> (CaseSum t t1 t2) = (CaseSum (fill \<Sigma> t) (fill \<Sigma> t1) (fill \<Sigma> t2))"|
 "fill \<Sigma> (<l:=t> as A) =  <l:=(fill \<Sigma> t)> as A"|
-"fill \<Sigma> (Case t of L \<Rightarrow> B) = (Case (fill \<Sigma> t) of L \<Rightarrow> map (\<lambda>p. (fst p, fill \<Sigma> (snd p))) B)"|
+"fill \<Sigma> (CaseVar t L B) = (CaseVar (fill \<Sigma> t) L (map (fill \<Sigma>) B))"|
 "fill \<Sigma> (Fixpoint t) = Fixpoint (fill \<Sigma> t)" |
 "fill \<Sigma> t = t"
 
@@ -247,7 +226,7 @@ fun subterms :: "lterm\<Rightarrow>subterm_set" where
 "subterms (LApp t1 t2)                = Bi t1 t2" |
 "subterms (Seq t1 t2)                 = Bi t1 t2" |
 "subterms (t1 as A)                   = Unary t1" |
-"subterms (Let var x := t1 in t2)     = Bi t1 t2" |
+"subterms (Let t1 in t2)              = Bi t1 t2" |
 "subterms (\<lbrace>t1,t2\<rbrace>)                   = Bi t1 t2" |
 "subterms (Tuple L)                   = UList L" |
 "subterms (Record L LT)               = UList LT" |
@@ -258,9 +237,9 @@ fun subterms :: "lterm\<Rightarrow>subterm_set" where
 "subterms (Let pattern p := t1 in t2) = Bi t1 t2" |
 "subterms (inl t as A) = Unary t"|
 "subterms (inr t as A) = Unary t"|
-"subterms (Case t of Inl x \<Rightarrow> t1 | Inr y \<Rightarrow> t2) = Ter t t1 t2"|
+"subterms (CaseSum t t1 t2) = Ter t t1 t2"|
 "subterms (<l:=t> as A) =  Unary t"|
-"subterms (Case t of L \<Rightarrow> B) = Comp t (map snd B)"|
+"subterms (CaseVar t L B) = Comp t B"|
 "subterms (Fixpoint t) = Unary t" |
 "subterms t = Void"
 

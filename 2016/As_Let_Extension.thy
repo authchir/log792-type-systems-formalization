@@ -33,7 +33,7 @@ datatype lterm =
   unit |
   Seq (fp: lterm) (sp: lterm) ("(_;;_)" [100,50] 200) |
   AS lterm ltype ("_/ as/ _" [100,150] 200) |
-  LetBinder nat lterm lterm ("Let/ var/ (_)/ :=/ (_)/ in/ (_)" [100,120,150] 250)  
+  LetBinder lterm lterm ("Let/ (_)/ in/ (_)" [120,150] 250)  
 
 primrec shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lterm" where
   "shift_L d c LTrue = LTrue" |
@@ -45,10 +45,7 @@ primrec shift_L :: "int \<Rightarrow> nat \<Rightarrow> lterm \<Rightarrow> lter
   "shift_L d c unit = unit" |
   "shift_L d c (Seq t1 t2) = Seq (shift_L d c t1) (shift_L d c t2)" |
   "shift_L d c (t as A) = (shift_L d c t) as A" |
-  "shift_L d c (Let var x := t in t1) = 
-    (if x\<ge> c then Let var (nat (int x + d)) := (shift_L d c t) in (shift_L d c t1)
-     else  Let var x := (shift_L d c t) in (shift_L d (Suc c) t1)
-     )"
+  "shift_L d c (Let t in t1) = Let (shift_L d c t) in (shift_L d (Suc c) t1)"
 
 primrec subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> lterm" where
   "subst_L j s LTrue = LTrue" |
@@ -60,9 +57,8 @@ primrec subst_L :: "nat \<Rightarrow> lterm \<Rightarrow> lterm \<Rightarrow> lt
   "subst_L j s unit = unit" |
   "subst_L j s (Seq t1 t2) = Seq (subst_L j s t1) (subst_L j s t2)" |
   "subst_L j s (t as A) = (subst_L j s t) as A" |
-  "subst_L j s (Let var x := t in t1) = 
-  (if j=x then Let var x := subst_L j s t in t1
-    else  (Let var x := (subst_L j s t) in (subst_L j s t1))) "
+  "subst_L j s (Let t in t1) = 
+  (Let (subst_L j s t) in (subst_L (Suc j) (shift_L 1 0 s) t1))"
   
 
 inductive is_value_L :: "lterm \<Rightarrow> bool" where
@@ -81,8 +77,8 @@ primrec FV :: "lterm \<Rightarrow> nat set" where
   "FV unit = {}" |
   "FV (Seq t1 t2) = FV t1 \<union> FV t2" |
   "FV (t as A) = FV t" |
-  "FV (Let var x:= t in t1) = 
-    (if x \<in> FV t1 then (FV t1 - {x}) \<union> FV t else FV t1)"
+  "FV (Let t in t1) = 
+    FV t \<union> image (\<lambda>x. x - 1) (FV t1 - {0})"
 
 
 inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
@@ -117,9 +113,9 @@ inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (t1 as A) (t1' as A)" |
  -- "Rules relating to evaluation of letbinder"
   eval1_L_LetV:
-    "is_value_L v1 \<Longrightarrow> eval1_L (Let var x := v1 in t2) (subst_L x v1 t2)" |
+    "is_value_L v1 \<Longrightarrow> eval1_L (Let v1 in t2) (subst_L 0 v1 t2)" |
   eval1_L_Let:
-    "eval1_L t1 t1' \<Longrightarrow> eval1_L (Let var x := t1 in t2) (Let var x := t1' in t2)"
+    "eval1_L t1 t1' \<Longrightarrow> eval1_L (Let t1 in t2) (Let t1' in t2)"
 
 type_synonym lcontext = "ltype list"
 
@@ -129,19 +125,6 @@ abbreviation cons :: "lcontext \<Rightarrow> ltype \<Rightarrow> lcontext" (infi
   "cons \<Gamma> T' \<equiv> T' # \<Gamma>"
 abbreviation elem' :: "(nat \<times> ltype) \<Rightarrow> lcontext \<Rightarrow> bool" (infix "|\<in>|" 200) where
   "elem' p \<Gamma> \<equiv> fst p < length \<Gamma> \<and> snd p = nth \<Gamma> (fst p)"
-
-text{*  For the typing rule of letbinder, we require to replace the type 
-        of the variable by the expected type 
-    *}
-fun replace ::"nat \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
-"replace n x xs = 
-  (if length xs \<le> n then xs 
-    else (take n xs) @ [x] @ (drop (Suc n) xs))"
-
-lemma replace_inv_length[simp]:
-  "length (replace n x S) = length S"  
-by(induction S arbitrary: x n, auto)
-
 
 
 inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> ltype \<Rightarrow> bool" ("((_)/ \<turnstile> (_)/ |:| (_))" [150, 150, 150] 150) where
@@ -167,9 +150,8 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> ltype \<Righ
   has_type_LAscribe:
     "\<Gamma> \<turnstile> t1 |:| A \<Longrightarrow> \<Gamma> \<turnstile> t1 as A |:| A" |
   has_type_Let:
-    "\<Gamma> \<turnstile> t1 |:| A \<Longrightarrow> insert_nth x A \<Gamma> \<turnstile> t2 |:| B \<Longrightarrow> \<Gamma> \<turnstile> Let var x := t1 in t2 |:| B"
+    "\<Gamma> \<turnstile> t1 |:| A \<Longrightarrow>(\<Gamma>|,|A) \<turnstile> t2 |:| B \<Longrightarrow> \<Gamma> \<turnstile> Let t1 in t2 |:| B"
   
-inductive_cases has_type_LetE : "\<Gamma> \<turnstile> Let var x := t1 in t2 |:| B"
 
 lemma inversion:
   "\<Gamma> \<turnstile> LTrue |:| R \<Longrightarrow> R = Bool"
@@ -181,13 +163,9 @@ lemma inversion:
   "\<Gamma> \<turnstile> unit |:| R \<Longrightarrow> R = Unit"
   "\<Gamma> \<turnstile> Seq t1 t2 |:| R \<Longrightarrow> \<exists>A. R = A \<and> \<Gamma> \<turnstile> t2 |:| A \<and> \<Gamma> \<turnstile> t1 |:| Unit"
   "\<Gamma> \<turnstile> t as A |:| R \<Longrightarrow> R = A"
-  "\<Gamma> \<turnstile> Let var x := t in t1 |:| R \<Longrightarrow> \<exists>A B. R = B \<and> \<Gamma> \<turnstile> t |:| A \<and> (insert_nth x A \<Gamma>) \<turnstile> t1 |:| B"
-proof (auto elim: has_type_L.cases)
-  assume H:"\<Gamma> \<turnstile> Let var x := t in t1 |:| R"
-  show "\<exists>A. \<Gamma> \<turnstile> t |:| A \<and> (take x \<Gamma> @ drop x \<Gamma> |,| A) \<turnstile> t1 |:| R "
-    using H has_type_LetE
-    by (cases "x\<ge> length \<Gamma>", fastforce+)
-qed
+  "\<Gamma> \<turnstile> Let t in t1 |:| R \<Longrightarrow> \<exists>A B. R = B \<and> \<Gamma> \<turnstile> t |:| A \<and> (\<Gamma>|,|A) \<turnstile> t1 |:| B"
+by (auto elim: has_type_L.cases)
+
 
 lemma canonical_forms:
   "is_value_L v \<Longrightarrow> \<Gamma> \<turnstile> v |:| Bool \<Longrightarrow> v = LTrue \<or> v = LFalse"
@@ -206,19 +184,10 @@ proof (induction \<Gamma> t A arbitrary: n rule: has_type_L.induct)
       has_type_LAbs.IH[where n="Suc n"] show ?case
       by (auto intro: has_type_L.intros(5))
 next
-  case (has_type_Let \<Gamma> t A x t1 B)
-    have 1: "n\<le>x \<Longrightarrow> ?case"
-      using has_type_Let(3,5)[simplified]
-            has_type_Let(4)[simplified length_insert_nth,OF le_SucI[OF has_type_Let(5)]]  
-            insert_nth_comp[of n \<Gamma> x S A]
-      by (force intro: has_type_L.intros)
-    have "n>x \<Longrightarrow> ?case"
-      using has_type_Let(3,5)[simplified]
-             has_type_Let(4)[of "Suc n", simplified length_insert_nth]
-            insert_nth_comp(2)[of n \<Gamma> x S A] has_type_Let(5)
-      by (force intro: has_type_L.intros)
-    with 1 show ?case 
-      by auto      
+  case (has_type_Let \<Gamma> t A t1 B)
+    then show ?case 
+      using has_type_L.intros(10)
+      by fastforce
 qed (auto simp: nth_append min_def intro: has_type_L.intros)
 
 subsection{* Ascription*}
