@@ -1,13 +1,13 @@
 (*<*)
 theory Ext_Structures
 imports
-   Main Pure
+   Main
    List_extra
    Lambda_calculus
-  "~~/src/HOL/List"
-  "~~/src/HOL/Eisbach/Eisbach"
-  "~~/src/HOL/Eisbach/Eisbach_Tools"
-  "$AFP/List-Index/List_Index" 
+  "HOL.List"
+  "HOL-Eisbach.Eisbach"
+  "HOL-Eisbach.Eisbach_Tools"
+  "List-Index.List_Index"
 begin
 (*>*)
 
@@ -41,7 +41,7 @@ inductive coherent ::"Lpattern \<Rightarrow> ltype \<Rightarrow> bool" where
   
 
 inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
-  -- "Rules relating to the evaluation of Booleans"
+  \<comment> \<open>Rules relating to the evaluation of Booleans\<close>
   eval1_LIf_LTrue:
     "eval1_L (LIf LTrue t2 t3) t2" |
   eval1_LIf_LFalse:
@@ -49,7 +49,7 @@ inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
   eval1_LIf:
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (LIf t1 t2 t3) (LIf t1' t2 t3)" |
 
-  -- "Rules relating to the evaluation of function application"
+  \<comment> \<open>Rules relating to the evaluation of function application\<close>
   eval1_LApp1:
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (LApp t1 t2) (LApp t1' t2)" |
   eval1_LApp2:
@@ -63,17 +63,19 @@ inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
   eval1_L_Seq_Next:
     "eval1_L (Seq unit t2) t2" |
   
- -- "Rules relating to evaluation of ascription"
+  \<comment> \<open>Rules relating to evaluation of ascription\<close>
   eval1_L_Ascribe:
     "is_value_L v \<Longrightarrow> eval1_L (v as A) v" |
   eval1_L_Ascribe1:
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (t1 as A) (t1' as A)" |
- -- "Rules relating to evaluation of letbinder"
+
+  \<comment> \<open>Rules relating to evaluation of letbinder\<close>
   eval1_L_LetV:
     "is_value_L v1 \<Longrightarrow> eval1_L (Let v1 in t2) (shift_L (-1) 0 (subst_L 0 (shift_L 1 0 v1) t2))" |
   eval1_L_Let:
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (Let t1 in t2) (Let t1' in t2)" |
- -- "Rules relating to evaluation of pairs"
+
+  \<comment> \<open>Rules relating to evaluation of pairs\<close>
   eval1_L_PairBeta1:
     "is_value_L v1 \<Longrightarrow> is_value_L v2 \<Longrightarrow> eval1_L (\<pi>1 \<lbrace>v1,v2\<rbrace>) v1" | 
   eval1_L_PairBeta2:
@@ -86,7 +88,8 @@ inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (\<lbrace>t1,t2\<rbrace>) (\<lbrace>t1',t2\<rbrace>)" |
   eval1_L_Pair2:
     "is_value_L v1 \<Longrightarrow> eval1_L t2 t2' \<Longrightarrow> eval1_L (\<lbrace>v1,t2\<rbrace>) (\<lbrace>v1,t2'\<rbrace>)" |
- -- "Rules relating to evaluation of tuples"
+
+  \<comment> \<open>Rules relating to evaluation of tuples\<close>
   eval1_L_ProjTuple:
     "1\<le>i \<Longrightarrow> i\<le>length L \<Longrightarrow> is_value_L (Tuple L) \<Longrightarrow> eval1_L (\<Pi> i (Tuple L)) (L ! (i-1))" |
   eval1_L_Proj:
@@ -94,7 +97,8 @@ inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
   eval1_L_Tuple:
     " 1\<le>j\<Longrightarrow> j\<le>length L \<Longrightarrow> is_value_L (Tuple (take (j-1) L)) \<Longrightarrow> 
       eval1_L (L ! (j-1)) (t') \<Longrightarrow> eval1_L (Tuple L) (Tuple (replace (j-1) t' L))" |
- -- "Rules relating to evaluation of records"
+
+  \<comment> \<open>Rules relating to evaluation of records\<close>
   eval1_L_ProjRCD:
     "l \<in> set L \<Longrightarrow> is_value_L (Record L LT) \<Longrightarrow> eval1_L (ProjR l (Record L LT)) (LT ! (index L l))" |
   eval1_L_ProjR:
@@ -102,12 +106,14 @@ inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
   eval1_L_RCD:
     " m<length LT \<Longrightarrow> is_value_L (Record (take m L) (take m LT)) \<Longrightarrow> 
       eval1_L (LT ! m) (t') \<Longrightarrow> eval1_L (Record L LT) (Record L (replace m t' LT))" |   
- -- "Rules relating to evaluation of pattern matching"
+
+  \<comment> \<open>Rules relating to evaluation of pattern matching\<close>
   eval1_L_LetPV:
     "is_value_L v1 \<Longrightarrow> Lmatch p v1 \<sigma> \<Longrightarrow> eval1_L (Let pattern p := v1 in t2) (\<sigma> t2)" |
   eval1_L_LetP:
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (Let pattern p := t1 in t2) (Let pattern p := t1' in t2)" |
- -- "Rules relating to evaluation of Sums"
+
+  \<comment> \<open>Rules relating to evaluation of Sums\<close>
   eval1_L_CaseInl:
     "is_value_L v \<Longrightarrow> eval1_L (CaseSum (inl v as A) t1 t2) (shift_L (-1) 0 (subst_L 0 (shift_L 1 0 v) t1))" |
   eval1_L_CaseInr:
@@ -146,7 +152,7 @@ text{*  For the typing rule of letbinder, we require to replace the type
 
 
 inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> pcontext \<Rightarrow> ltype \<Rightarrow> bool" ("((_)/ \<turnstile> \<lparr>(_)|;|(_)\<rparr>/ |:| (_))" [150, 150, 150,150] 150) where
-  -- "Rules relating to the type of Booleans"
+  \<comment> \<open>Rules relating to the type of Booleans\<close>
   has_type_LTrue:
     "\<Gamma> \<turnstile> \<lparr>LTrue|;| \<sigma>\<rparr> |:| Bool" |
   has_type_LFalse:
@@ -155,7 +161,7 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> pcontext \<R
     "\<Gamma> \<turnstile> \<lparr>t1|;| \<sigma>\<rparr> |:| Bool \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t2|;| \<sigma>\<rparr> |:| T' \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>t3|;| \<sigma>\<rparr> |:| T' \<Longrightarrow> 
       \<Gamma> \<turnstile> \<lparr>LIf t1 t2 t3|;| \<sigma>\<rparr> |:| T'" |
 
-  -- \<open>Rules relating to the type of the constructs of the $\lambda$-calculus\<close>
+  \<comment> \<open>Rules relating to the type of the constructs of the $\lambda$-calculus\<close>
   has_type_LVar:
     "(x, T') |\<in>| \<Gamma> \<Longrightarrow> \<Gamma> \<turnstile> \<lparr>LVar x|;| \<sigma>\<rparr> |:| (T')" |
   has_type_LAbs:
@@ -316,9 +322,11 @@ proof (induction t arbitrary:)
       proof (induction p)
         case (V n A)
           show ?case  by (cases "n\<notin>dom \<sigma>1") (simp add: domIff, force)+
-      next 
-      qed simp 
-qed (auto intro: snds.intros)  
+      next
+        case (RCD x1 x2)
+        then show ?case by simp
+      qed
+qed (auto intro: snds.intros)
 
 lemma Binder_FV_shift:
   fixes c d::nat and t1 t2::lterm
@@ -390,9 +398,9 @@ next
     
     have f3: "(\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) t1) - {0}) \<union> (\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) t2) - {0}) \<union> FV (shift_L (int d) c t) = (\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) t2) - {0}) \<union> ((\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) t1) - {0}) \<union> FV (shift_L (int d) c t))"
           by blast
-    have "(\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) t1) - {0}) \<union> FV (shift_L (int d) c t) = (\<lambda>n. n + d) ` (((\<lambda>n. n - Suc 0) ` (FV t1 - {0}) \<union> FV t) \<inter> Collect (op \<le> c)) \<union> ((\<lambda>n. n - Suc 0) ` (FV t1 - {0}) \<union> FV t) \<inter> {n. \<not> c \<le> n} \<union> FV (shift_L (int d) c t)"
+    have "(\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) t1) - {0}) \<union> FV (shift_L (int d) c t) = (\<lambda>n. n + d) ` (((\<lambda>n. n - Suc 0) ` (FV t1 - {0}) \<union> FV t) \<inter> Collect ((\<le>) c)) \<union> ((\<lambda>n. n - Suc 0) ` (FV t1 - {0}) \<union> FV t) \<inter> {n. \<not> c \<le> n} \<union> FV (shift_L (int d) c t)"
       using Binder_FV_shift[OF hyps(1,2), of c]  by auto
-    then have "(\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) t1) - {0}) \<union> (\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) t2) - {0}) \<union> FV (shift_L (int d) c t) = (\<lambda>n. n + d) ` (((\<lambda>n. n - Suc 0) ` (FV t1 - {0}) \<union> FV t) \<inter> Collect (op \<le> c)) \<union> ((\<lambda>n. n - Suc 0) ` (FV t1 - {0}) \<union> FV t) \<inter> {n. \<not> c \<le> n} \<union> ((\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) t2) - {0}) \<union> FV (shift_L (int d) c t))"
+    then have "(\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) t1) - {0}) \<union> (\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) t2) - {0}) \<union> FV (shift_L (int d) c t) = (\<lambda>n. n + d) ` (((\<lambda>n. n - Suc 0) ` (FV t1 - {0}) \<union> FV t) \<inter> Collect ((\<le>) c)) \<union> ((\<lambda>n. n - Suc 0) ` (FV t1 - {0}) \<union> FV t) \<inter> {n. \<not> c \<le> n} \<union> ((\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) t2) - {0}) \<union> FV (shift_L (int d) c t))"
       using f3 by auto
 
     then show "?case" using Binder_FV_shift[OF hyps(1,3),of c] A by simp
@@ -410,42 +418,58 @@ next
         then show "(\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc cb) (B ! i)) - {0}) \<union> FV (shift_L (int d) cb t) = (\<lambda>n. n + d) ` (((\<lambda>n. n - Suc 0) ` (FV (B ! i) - {0}) \<union> FV t) \<inter> {n. cb \<le> n}) \<union> ((\<lambda>n. n - Suc 0) ` (FV (B ! i) - {0}) \<union> FV t) \<inter> {n. \<not> cb \<le> n}"
           by (simp add: \<open>\<And>uu c. (\<And>c1. B ! uu \<in> set B) \<Longrightarrow> (\<lambda>y. y - Suc 0) ` (FV (shift_L (int d) (Suc c) (B ! uu)) - {0}) \<union> FV (shift_L (int d) c t) = (\<lambda>x. x + d) ` (((\<lambda>y. y - Suc 0) ` (FV (B ! uu) - {0}) \<union> FV t) \<inter> {x. c \<le> x}) \<union> ((\<lambda>y. y - Suc 0) ` (FV (B ! uu) - {0}) \<union> FV t) \<inter> {x. \<not> c \<le> x}\<close>)
       qed
-    show ?case
+      show ?case
       using H[of _ c]
       proof (simp,induction "length B" arbitrary: B)
+        case 0
+        then show ?case using hyps by simp
+      next
         case (Suc n B1)
           then obtain a B' where H2:"B1=a#B'" "B1!0=a" "n = length B'"
             using Suc_length_conv  nth_Cons_0
             by metis
-          have H3:"((\<lambda>x. x + d) ` ((FV t \<union> (\<Union>x<length B'. (\<lambda>y. y - Suc 0) ` (FV (B' ! x) - {0}))) \<inter> Collect (op \<le> c)) \<union>
+          have H3:"((\<lambda>x. x + d) ` ((FV t \<union> (\<Union>x<length B'. (\<lambda>y. y - Suc 0) ` (FV (B' ! x) - {0}))) \<inter> Collect ((\<le>) c)) \<union>
               (FV t \<union> (\<Union>x<length B'. (\<lambda>y. y - Suc 0) ` (FV (B' ! x) - {0}))) \<inter> {x. \<not> c \<le> x}) \<union>
-              ((\<lambda>x. x + d) ` (((\<lambda>y. y - Suc 0) ` (FV a - {0}) \<union> FV t) \<inter> Collect (op \<le> c)) \<union>
+              ((\<lambda>x. x + d) ` (((\<lambda>y. y - Suc 0) ` (FV a - {0}) \<union> FV t) \<inter> Collect ((\<le>) c)) \<union>
               ((\<lambda>y. y - Suc 0) ` (FV a - {0}) \<union> FV t) \<inter> {x. \<not> c \<le> x}) = 
                (\<lambda>x. x + d) ` ((FV t \<union> ((\<Union>x<length B'. (\<lambda>y. y - Suc 0) ` (FV (B' ! x) - {0})) \<union> 
-               (\<lambda>y. y - Suc 0) ` (FV a - {0}))) \<inter> Collect (op \<le> c)) \<union>
+               (\<lambda>y. y - Suc 0) ` (FV a - {0}))) \<inter> Collect ((\<le>) c)) \<union>
                (FV t \<union> ((\<Union>x<length B'. (\<lambda>y. y - Suc 0) ` (FV (B' ! x) - {0})) \<union>
                (\<lambda>y. y - Suc 0) ` (FV a - {0}))) \<inter> {x. \<not> c \<le> x}"
            by fast
 
-          note simp1 =  UN_Suc[of n "\<lambda>x. (\<lambda>y. y - Suc 0) ` (FV (shift_L (int d) (Suc c) (B1 ! x)) - {0})", 
+         note simp1 =  UN_Suc[where n=n and P="(\<lambda>x. (\<lambda>y. y - Suc 0) ` FV (shift_L (int d) (Suc c) (B1 ! x)) - {0})",
                           unfolded H2 nth_Cons_0 nth_Cons'[of a B' "Suc _", simplified if_False nat.distinct diff_Suc_1]]
-             and simp2=  UN_Suc[of n "\<lambda>x. (\<lambda>y. y - Suc 0) ` (FV (B1 ! x) - {0})", 
+          and simp2=  UN_Suc[where n=n and P="\<lambda>x. (\<lambda>y. y - Suc 0) ` (FV (B1 ! x) - {0})", 
                           unfolded H2 nth_Cons_0 nth_Cons'[of a B' "Suc _", simplified if_False nat.distinct diff_Suc_1]]
 
           show "FV (shift_L (int d) c t) \<union> (\<Union>x<length B1. (\<lambda>y. y - Suc 0) ` (FV (shift_L (int d) (Suc c) (B1 ! x)) - {0})) =
-               (\<lambda>x. x + d) ` ((FV t \<union> (\<Union>x<length B1. (\<lambda>y. y - Suc 0) ` (FV (B1 ! x) - {0}))) \<inter> Collect (op \<le> c)) \<union>
-           (FV t \<union> (\<Union>x<length B1. (\<lambda>y. y - Suc 0) ` (FV (B1 ! x) - {0}))) \<inter> {x. \<not> c \<le> x} "
+               (\<lambda>x. x + d) ` ((FV t \<union> (\<Union>x<length B1. (\<lambda>y. y - Suc 0) ` (FV (B1 ! x) - {0}))) \<inter> Collect ((\<le>) c)) \<union>
+           (FV t \<union> (\<Union>x<length B1. (\<lambda>y. y - Suc 0) ` (FV (B1 ! x) - {0}))) \<inter> {x. \<not> c \<le> x} " (is ?P)
           proof (simp add: H2(1) simp1 simp2  Un_assoc)
-            have f3: "FV (shift_L (int d) c t) \<union> ((\<Union>n<length B'. (\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) (B' ! n)) - {0})) \<union> ((\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) a) - {0}) \<union> FV (shift_L (int d) c t))) = (\<lambda>n. n + d) ` ((FV t \<union> ((\<Union>n<length B'. (\<lambda>n. n - Suc 0) ` (FV (B' ! n) - {0})) \<union> (\<lambda>n. n - Suc 0) ` (FV a - {0}))) \<inter> Collect (op \<le> c)) \<union> (FV t \<union> ((\<Union>n<length B'. (\<lambda>n. n - Suc 0) ` (FV (B' ! n) - {0})) \<union> (\<lambda>n. n - Suc 0) ` (FV a - {0}))) \<inter> {n. \<not> c \<le> n}"
+            have f3: "FV (shift_L (int d) c t) \<union> ((\<Union>n<length B'. (\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) (B' ! n)) - {0})) \<union> ((\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) a) - {0}) \<union> FV (shift_L (int d) c t))) = (\<lambda>n. n + d) ` ((FV t \<union> ((\<Union>n<length B'. (\<lambda>n. n - Suc 0) ` (FV (B' ! n) - {0})) \<union> (\<lambda>n. n - Suc 0) ` (FV a - {0}))) \<inter> Collect ((\<le>) c)) \<union> (FV t \<union> ((\<Union>n<length B'. (\<lambda>n. n - Suc 0) ` (FV (B' ! n) - {0})) \<union> (\<lambda>n. n - Suc 0) ` (FV a - {0}))) \<inter> {n. \<not> c \<le> n}"
               using  Suc(3)[unfolded H2, of 0, simplified] H3 Suc(1)[OF H2(3) Suc(3)[unfolded H2, of "Suc _", simplified] 
                                                                       Suc(3)[unfolded H2, of "Suc _", simplified], simplified]
               by (metis (no_types, lifting) sup_assoc)
             have "\<And>N Na Nb. (N::nat set) \<union> (Na \<union> (Nb \<union> N)) = N \<union> (Na \<union> Nb)"
               by fastforce
-            then show "FV (shift_L (int d) c t) \<union> ((\<Union>n<length B'. (\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) (B' ! n)) - {0})) \<union> (\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) a) - {0})) = (\<lambda>n. n + d) ` ((FV t \<union> ((\<Union>n<length B'. (\<lambda>n. n - Suc 0) ` (FV (B' ! n) - {0})) \<union> (\<lambda>n. n - Suc 0) ` (FV a - {0}))) \<inter> Collect (op \<le> c)) \<union> (FV t \<union> ((\<Union>n<length B'. (\<lambda>n. n - Suc 0) ` (FV (B' ! n) - {0})) \<union> (\<lambda>n. n - Suc 0) ` (FV a - {0}))) \<inter> {n. \<not> c \<le> n}"
+            then have f4: "FV (shift_L (int d) c t) \<union> ((\<Union>n<length B'. (\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) (B' ! n)) - {0})) \<union> (\<lambda>n. n - Suc 0) ` (FV (shift_L (int d) (Suc c) a) - {0})) = (\<lambda>n. n + d) ` ((FV t \<union> ((\<Union>n<length B'. (\<lambda>n. n - Suc 0) ` (FV (B' ! n) - {0})) \<union> (\<lambda>n. n - Suc 0) ` (FV a - {0}))) \<inter> Collect ((\<le>) c)) \<union> (FV t \<union> ((\<Union>n<length B'. (\<lambda>n. n - Suc 0) ` (FV (B' ! n) - {0})) \<union> (\<lambda>n. n - Suc 0) ` (FV a - {0}))) \<inter> {n. \<not> c \<le> n}"
               using f3 by presburger
-          qed 
-      qed (force simp: image_iff hyps)
+            then show "FV (shift_L (int d) c t) \<union>
+              (\<Union>x<Suc (length B').
+                  (\<lambda>y. y - Suc 0) ` (FV (shift_L (int d) (Suc c) ((a # B') ! x)) - {0})) =
+              (\<lambda>x. x + d) `
+              ((FV t \<union>
+                ((\<Union>x<length B'. (\<lambda>y. y - Suc 0) ` (FV (B' ! x) - {0})) \<union>
+                 (\<lambda>y. y - Suc 0) ` (FV a - {0}))) \<inter>
+               Collect ((\<le>) c)) \<union>
+              (FV t \<union>
+               ((\<Union>x<length B'. (\<lambda>y. y - Suc 0) ` (FV (B' ! x) - {0})) \<union>
+                (\<lambda>y. y - Suc 0) ` (FV a - {0}))) \<inter>
+              {x. \<not> c \<le> x}"
+              by (simp add: UN_Suc)
+          qed
+        qed
 qed (force)+
 
 lemma Binder_FV_subst:
@@ -469,6 +493,8 @@ proof -
 
     ultimately show ?thesis  by satx
 qed
+
+lemmas int_1 = of_nat_1[where 'a=int]
 
 lemma FV_subst:
   " FV (subst_L n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"
@@ -593,10 +619,10 @@ next
             by metis
           have s1:"Suc 0 = 1" by simp
             
-          note simp2 =  UN_Suc[of "length B'" "\<lambda>x. (\<lambda>y. y - 1) ` (FV (subst_L (Suc n) (shift_L 1 0 t) ((a # B') ! x)) - {0})", 
-                          unfolded nth_Cons_0 nth_Cons'[of a B' "Suc _", simplified if_False nat.distinct diff_Suc_1]]
-             and simp3=  UN_Suc[of "length B'" "\<lambda>x. (\<lambda>y. y - 1) ` (FV ((a # B') ! x) - {0})", 
-                          unfolded H2 nth_Cons_0 nth_Cons'[of a B' "Suc _", simplified if_False nat.distinct diff_Suc_1]]
+          note simp2 = UN_Suc[where n = "length B'" and P = "\<lambda>x. (\<lambda>y. y - 1) ` (FV (subst_L (Suc n) (shift_L 1 0 t) ((a # B') ! x)) - {0})",
+                         unfolded nth_Cons_0 nth_Cons'[of a B' "Suc _", simplified if_False nat.distinct diff_Suc_1]]
+           and simp3 = UN_Suc[where n = "length B'" and P = "\<lambda>x. (\<lambda>y. y - 1) ` (FV ((a # B') ! x) - {0})",
+                         unfolded H2 nth_Cons_0 nth_Cons'[of a B' "Suc _", simplified if_False nat.distinct diff_Suc_1]]
              and H4=Suc(3)[of "Suc _", unfolded H2 nth_Cons'[of a B' "Suc _", simplified if_False nat.distinct diff_Suc_1]
                             , simplified this length_Cons]
           have H3: "((if n \<in> (\<lambda>y. y - 1) ` (FV a - {0}) \<union> FV t1
@@ -753,7 +779,7 @@ by (induction arbitrary: \<sigma>1 rule: Lmatch_Type.induct)
             "Lmatch_Type.simps"[of "RCD _ _", simplified])
 
 lemma fill_id:
-  "fill empty t= t"
+  "fill Map.empty t= t"
 proof (induction t)
   case (Tuple L)
     thus ?case by (induction L, simp+)
@@ -937,8 +963,8 @@ proof (induction arbitrary:t \<Gamma> \<sigma> rule:coherent.induct)
 qed (auto intro: Lmatch.intros) 
 
 theorem progress:
-  "\<emptyset> \<turnstile> \<lparr>t|;|empty\<rparr> |:| A \<Longrightarrow> is_value_L t \<or> (\<exists>t1. eval1_L t t1)"
-proof (induction "\<emptyset>::ltype list" t "empty::nat\<rightharpoonup>ltype" A rule: has_type_L.induct)
+  "\<emptyset> \<turnstile> \<lparr>t |;| Map.empty\<rparr> |:| A \<Longrightarrow> is_value_L t \<or> (\<exists>t1. eval1_L t t1)"
+proof (induction "\<emptyset>::ltype list" t "Map.empty::nat\<rightharpoonup>ltype" A rule: has_type_L.induct)
   case (has_type_LIf t1 t2 A t3)
     thus ?case by (metis eval1_L.intros canonical_forms)
 next

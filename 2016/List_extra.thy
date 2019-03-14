@@ -1,10 +1,10 @@
 theory List_extra
 imports
-   Main
-  "~~/src/HOL/List"
-  "~~/src/HOL/Eisbach/Eisbach"
-  "~~/src/HOL/Eisbach/Eisbach_Tools"
-  "$AFP/List-Index/List_Index" 
+  Main
+  "HOL.List"
+  "List-Index.List_Index"
+  "HOL-Eisbach.Eisbach"
+  "HOL-Eisbach.Eisbach_Tools"
 begin
 
 text{*
@@ -35,7 +35,7 @@ fun BigCirc::"('a\<Rightarrow>'a) list \<Rightarrow> ('a\<Rightarrow>'a)" ("\<Od
 "\<Odot> (f#fs) = f \<circ> (\<Odot> fs)"
 
 fun BigCircT::"('a\<rightharpoonup>'b) list \<Rightarrow> ('a\<rightharpoonup>'b)" ("\<Odot>\<^sub>T (_)" [75] 55) where
-"\<Odot>\<^sub>T [] = empty" |
+"\<Odot>\<^sub>T [] = Map.empty" |
 "\<Odot>\<^sub>T (f#fs) = f ++ (\<Odot>\<^sub>T fs)"
 
 fun indexed_map::"nat \<Rightarrow> (nat\<Rightarrow>'a\<Rightarrow>'b) \<Rightarrow> 'a list \<Rightarrow> 'b list" where
@@ -262,7 +262,7 @@ proof (induction L arbitrary: k j L1 L2 L3)
 qed auto
 
 lemma list_iter_nil:
-"list_iter op @ [] L = [] \<Longrightarrow> i<length L \<Longrightarrow> L!i = []" 
+  "list_iter (@) [] L = [] \<Longrightarrow> i<length L \<Longrightarrow> L!i = []"
 proof (induction L arbitrary: i)
   case (Cons a L')
     show ?case
@@ -283,7 +283,7 @@ proof (induction L arbitrary: i)
 qed auto  
 
 lemma list_map_incl:
-  "set (list_iter op @ [] (map f L)) \<subseteq> S \<Longrightarrow>  i<length L \<Longrightarrow> set(f (L!i)) \<subseteq> S"
+  "set (list_iter (@) [] (map f L)) \<subseteq> S \<Longrightarrow>  i<length L \<Longrightarrow> set(f (L!i)) \<subseteq> S"
 proof (induction L arbitrary: f S i)
   case (Cons a L')
     from Cons show ?case
@@ -291,7 +291,7 @@ proof (induction L arbitrary: f S i)
 qed auto
 
 lemma list_map_incl2:
-  "(\<And>i. i<length L \<Longrightarrow> set(f (L!i)) \<subseteq> S) \<Longrightarrow> set (list_iter op @ [] (map f L)) \<subseteq> S"
+  "(\<And>i. i<length L \<Longrightarrow> set(f (L!i)) \<subseteq> S) \<Longrightarrow> set (list_iter (@) [] (map f L)) \<subseteq> S"
 proof (induction "map f L" arbitrary: L f S)
   case (Cons a L')
     obtain b L1 where "L = b#L1"
@@ -334,24 +334,24 @@ lemma fst_updt_snd_is_fst[simp]:
 by (induction L arbitrary:f, auto)  
 
 lemma fst_ext_com_list_it_app:
-  "fst_extract (list_iter op @ [] L) = list_iter op @ [] (map fst_extract L)"
+  "fst_extract (list_iter (@) [] L) = list_iter (@) [] (map fst_extract L)"
 by(induction L, auto)
 
 lemma snd_ext_com_list_it_app:
-  "snd_extract (list_iter op @ [] L) = list_iter op @ [] (map snd_extract L)"
+  "snd_extract (list_iter (@) [] L) = list_iter (@) [] (map snd_extract L)"
 by(induction L, auto)
 
 lemma map_com_list_it_app:
-  "map F (list_iter op @ [] L) = list_iter op @ [] (map (map F) L)"
+  "map F (list_iter (@) [] L) = list_iter (@) [] (map (map F) L)"
 by (induction L arbitrary: F, auto)
 
 lemma zip_com_list_it_app:
-  "(\<And>L1. length (f L1) = length (g L1)) \<Longrightarrow> zip (list_iter op @ [] (map f L)) (list_iter op @ [] (map g L)) = 
-    list_iter op @ [] (map (\<lambda>p. zip (f p) (g p)) L)"
+  "(\<And>L1. length (f L1) = length (g L1)) \<Longrightarrow> zip (list_iter (@) [] (map f L)) (list_iter (@) [] (map g L)) = 
+    list_iter (@) [] (map (\<lambda>p. zip (f p) (g p)) L)"
 by (induction L arbitrary: f g, auto)
 
 lemma list_it_map_app_map:
-  "list_iter op @ [] (map (update_snd F) L) = update_snd F (list_iter op @ [] L)"
+  "list_iter (@) [] (map (update_snd F) L) = update_snd F (list_iter (@) [] L)"
 using fst_ext_com_list_it_app[of L] snd_ext_com_list_it_app[of L]
       map_com_list_it_app[of F "map snd_extract L"]
       zip_com_list_it_app[of "fst_extract" "map F \<circ> snd_extract" L]
@@ -374,11 +374,11 @@ proof (induction L arbitrary: L1 F)
 qed auto
 
 lemma set_foldl_app[simp]:
-  "set(foldl op @ L1 L) = (UN l : set L. set l) \<union> set L1"
+  "set(foldl (@) L1 L) = (UN l : set L. set l) \<union> set L1"
 by (induction L arbitrary: L1, auto)
 
 lemma set_foldl_union[simp]:
-  "foldl op \<union> S L = (UN l : set L. l) \<union> S"
+  "foldl (\<union>) S L = (UN l : set L. l) \<union> S"
 by (induction L arbitrary: S, auto)
 
 lemma update_snd_rewrite_fun:

@@ -2,10 +2,10 @@
 theory As_Let_Extension
 imports
    Main
-  "~~/src/HOL/Eisbach/Eisbach"
-  "~~/src/HOL/Eisbach/Eisbach_Tools"
-  "$AFP/List-Index/List_Index" 
-  "List_extra"
+   "HOL-Eisbach.Eisbach"
+   "HOL-Eisbach.Eisbach_Tools"
+   "List-Index.List_Index"
+   "List_extra"
 begin
 (*>*)
 
@@ -82,7 +82,7 @@ primrec FV :: "lterm \<Rightarrow> nat set" where
 
 
 inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
-  -- "Rules relating to the evaluation of Booleans"
+  \<comment> \<open>Rules relating to the evaluation of Booleans\<close>
   eval1_LIf_LTrue:
     "eval1_L (LIf LTrue t2 t3) t2" |
   eval1_LIf_LFalse:
@@ -90,7 +90,7 @@ inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
   eval1_LIf:
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (LIf t1 t2 t3) (LIf t1' t2 t3)" |
 
-  -- "Rules relating to the evaluation of function application"
+  \<comment> \<open>Rules relating to the evaluation of function application\<close>
   eval1_LApp1:
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (LApp t1 t2) (LApp t1' t2)" |
   eval1_LApp2:
@@ -99,19 +99,20 @@ inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
     "is_value_L v2 \<Longrightarrow> eval1_L (LApp (LAbs T' t12) v2)
       (shift_L (-1) 0 (subst_L 0 (shift_L 1 0 v2) t12))" |
   
- -- "Rules relating to evaluation of sequence"
+  \<comment> \<open>Rules relating to evaluation of sequence\<close>
   
   eval1_L_Seq:
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (Seq t1 t2) (Seq t1' t2)" |
   eval1_L_Seq_Next:
     "eval1_L (Seq unit t2) t2" |
   
- -- "Rules relating to evaluation of ascription"
+  \<comment> \<open>Rules relating to evaluation of ascription\<close>
   eval1_L_Ascribe:
     "is_value_L v \<Longrightarrow> eval1_L (v as A) v" |
   eval1_L_Ascribe1:
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (t1 as A) (t1' as A)" |
- -- "Rules relating to evaluation of letbinder"
+
+  \<comment> \<open>Rules relating to evaluation of letbinder\<close>
   eval1_L_LetV:
     "is_value_L v1 \<Longrightarrow> eval1_L (Let v1 in t2) (subst_L 0 v1 t2)" |
   eval1_L_Let:
@@ -128,7 +129,7 @@ abbreviation elem' :: "(nat \<times> ltype) \<Rightarrow> lcontext \<Rightarrow>
 
 
 inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> ltype \<Rightarrow> bool" ("((_)/ \<turnstile> (_)/ |:| (_))" [150, 150, 150] 150) where
-  -- "Rules relating to the type of Booleans"
+  \<comment> \<open>Rules relating to the type of Booleans\<close>
   has_type_LTrue:
     "\<Gamma> \<turnstile> LTrue |:| Bool" |
   has_type_LFalse:
@@ -136,7 +137,7 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> ltype \<Righ
   has_type_LIf:
     "\<Gamma> \<turnstile> t1 |:| Bool \<Longrightarrow> \<Gamma> \<turnstile> t2 |:| T' \<Longrightarrow> \<Gamma> \<turnstile> t3 |:| T' \<Longrightarrow> \<Gamma> \<turnstile> (LIf t1 t2 t3) |:| T'" |
 
-  -- \<open>Rules relating to the type of the constructs of the $\lambda$-calculus\<close>
+  \<comment> \<open>Rules relating to the type of the constructs of the $\lambda$-calculus\<close>
   has_type_LVar:
     "(x, T') |\<in>| \<Gamma> \<Longrightarrow> \<Gamma> \<turnstile> (LVar x) |:| (T')" |
   has_type_LAbs:

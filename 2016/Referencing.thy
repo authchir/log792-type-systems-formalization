@@ -1,5 +1,7 @@
 theory Referencing
-imports Main  "$AFP/List-Index/List_Index"
+imports
+  Main
+  "List-Index.List_Index"
 begin
   
 datatype ltype=
@@ -55,7 +57,7 @@ abbreviation consS :: "lstore \<Rightarrow> lterm \<Rightarrow> lstore" (infixl 
   "\<mu>|\<leftarrow>|v \<equiv> \<mu>@[v]"
 
 inductive eval1_L :: "lterm \<Rightarrow> lstore \<Rightarrow> lterm \<Rightarrow> lstore \<Rightarrow> bool" where
-   -- "Rules relating to the evaluation of function application"
+  \<comment> \<open>Rules relating to the evaluation of function application\<close>
   eval1_LApp1:
     "eval1_L t1 \<mu> t1' \<mu>' \<Longrightarrow> eval1_L (LApp t1 t2) \<mu> (LApp t1' t2) \<mu>'" |
   eval1_LApp2:
@@ -102,10 +104,10 @@ text{*  For the typing rule of letbinder, we require to replace the type
 
 
 inductive has_type_L :: "lcontext \<Rightarrow> loc_ctx \<Rightarrow> lterm \<Rightarrow> ltype \<Rightarrow> bool" ("((_)|;|(_)/ \<turnstile> (_)/ |:| (_))" [150,150, 150] 150) where
-  -- "Rules relating to the type of Unit"
+  \<comment> \<open>Rules relating to the type of Unit\<close>
   has_type_Lunit:
     "\<Gamma>|;|\<Sigma> \<turnstile> unit |:| Unit"|
-  -- \<open>Rules relating to the type of the constructs of the $\lambda$-calculus\<close>
+  \<comment> \<open>Rules relating to the type of the constructs of the $\lambda$-calculus\<close>
   has_type_LVar:
     "(x, T') |\<in>| \<Gamma> \<Longrightarrow> \<Gamma>|;|\<Sigma> \<turnstile> LVar x |:| (T')" |
   has_type_LAbs:
@@ -143,6 +145,8 @@ proof (induction t arbitrary: c rule: lterm.induct)
   case (LAbs T t)
   thus ?case  by (auto simp: gr_Suc_conv image_iff) force+
 qed auto
+
+lemmas int_1 = of_nat_1[where 'a=int]
 
 lemma FV_subst:
   "FV (subst_L n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"

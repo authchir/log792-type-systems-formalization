@@ -1,6 +1,8 @@
 theory Exceptions
-imports Main "$AFP/List-Index/List_Index" List_extra
-
+imports
+  Main
+  "List-Index.List_Index"
+  List_extra
 begin
 
 
@@ -55,7 +57,7 @@ inductive is_value_L :: "lterm \<Rightarrow> bool" where
 
 
 inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
-  -- "Rules relating to the evaluation of function application"
+  \<comment> \<open>Rules relating to the evaluation of function application\<close>
   eval1_LApp1:
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (LApp t1 t2) (LApp t1' t2)" |
   eval1_LApp2:
@@ -215,6 +217,8 @@ proof (induction t arbitrary: c rule: lterm.induct)
   case (LAbs T t)
   thus ?case  by (auto simp: gr_Suc_conv image_iff) force+
 qed auto
+
+lemmas int_1 = of_nat_1[where 'a=int]
 
 lemma FV_subst:
   "FV (subst_L n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"
@@ -380,7 +384,7 @@ inductive is_value_L1 :: "lterm1 \<Rightarrow> bool" where
 
 
 inductive eval1_L1 :: "lterm1 \<Rightarrow> lterm1 \<Rightarrow> bool" where
-  -- "Rules relating to the evaluation of function application"
+  \<comment> \<open>Rules relating to the evaluation of function application\<close>
   eval1_L1App1:
     "eval1_L1 t1 t1' \<Longrightarrow> eval1_L1 (LApp1 t1 t2) (LApp1 t1' t2)" |
   eval1_L1App2:

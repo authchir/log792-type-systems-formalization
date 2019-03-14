@@ -1,10 +1,10 @@
 theory Normalization
 imports 
   Main
-  "~~/src/HOL/IMP/Star"
-  "$AFP/List-Index/List_Index"
-  "~~/src/HOL/Eisbach/Eisbach"
-  "~~/src/HOL/Eisbach/Eisbach_Tools"
+  "HOL-IMP.Star"
+  "List-Index.List_Index"
+  "HOL-Eisbach.Eisbach"
+  "HOL-Eisbach.Eisbach_Tools"
 begin
 
 datatype ltype=
@@ -36,7 +36,7 @@ inductive is_value_L:: "lterm \<Rightarrow> bool" where
 | "is_value_L (LAbs T t)"
 
 inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
-   -- "Rules relating to the evaluation of function application"
+  \<comment> \<open>Rules relating to the evaluation of function application\<close>
   eval1_LApp1:
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (LApp t1 t2) (LApp t1' t2)" |
   eval1_LApp2:
@@ -63,10 +63,11 @@ text{*  For the typing rule of letbinder, we require to replace the type
 
 
 inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> ltype \<Rightarrow> bool" ("((_)/ \<turnstile> (_)/ |:| (_))" [150,150, 150] 150) where
-  -- "Rules relating to the type of A"
+  \<comment> \<open>Rules relating to the type of A\<close>
   has_type_LValA:
     "\<Gamma> \<turnstile> ValA |:| A"|
-  -- \<open>Rules relating to the type of the constructs of the $\lambda$-calculus\<close>
+
+  \<comment> \<open>Rules relating to the type of the constructs of the $\lambda$-calculus\<close>
   has_type_LVar:
     "(x, T') |\<in>| \<Gamma> \<Longrightarrow> \<Gamma> \<turnstile> LVar x |:| (T')" |
   has_type_LAbs:
@@ -118,6 +119,8 @@ proof (induction t arbitrary: c rule: lterm.induct)
   case (LAbs T t)
   thus ?case  by (auto simp: gr_Suc_conv image_iff) force+
 qed auto
+
+lemmas int_1 = of_nat_1[where 'a=int]
 
 lemma FV_subst:
   "FV (subst_L n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"

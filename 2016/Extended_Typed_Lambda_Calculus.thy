@@ -2,10 +2,10 @@
 theory Extended_Typed_Lambda_Calculus
 imports
   Main
-  "~~/src/HOL/Eisbach/Eisbach"
-  "~~/src/HOL/Eisbach/Eisbach_Tools"
-  "$AFP/List-Index/List_Index" 
-  "~~/src/HOL/IMP/Star"
+  "List-Index.List_Index"
+  "HOL-Eisbach.Eisbach"
+  "HOL-Eisbach.Eisbach_Tools"
+  "HOL-IMP.Star"
 begin
 (*>*)
 
@@ -87,7 +87,7 @@ primrec FV :: "ltermI \<Rightarrow> nat set" where
 
 
 inductive eval1_L :: "ltermI \<Rightarrow> ltermI \<Rightarrow> bool" where
-  -- "Rules relating to the evaluation of Booleans"
+  \<comment> \<open>Rules relating to the evaluation of Booleans\<close>
   eval1_LIf_LTrue:
     "eval1_L (LIf LTrue t2 t3) t2" |
   eval1_LIf_LFalse:
@@ -95,7 +95,7 @@ inductive eval1_L :: "ltermI \<Rightarrow> ltermI \<Rightarrow> bool" where
   eval1_LIf:
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (LIf t1 t2 t3) (LIf t1' t2 t3)" |
 
-  -- "Rules relating to the evaluation of function application"
+  \<comment> \<open>Rules relating to the evaluation of function application\<close>
   eval1_LApp1:
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (LApp t1 t2) (LApp t1' t2)" |
   eval1_LApp2:
@@ -119,7 +119,7 @@ abbreviation elem' :: "(nat \<times> ltype) \<Rightarrow> lcontext \<Rightarrow>
 
 (* had new typing rule for unit and sequence*)
 inductive has_type_L :: "lcontext \<Rightarrow> ltermI \<Rightarrow> ltype \<Rightarrow> bool" ("((_)/ \<turnstile> (_)/ |:| (_))" [150, 150, 150] 150) where
-  -- "Rules relating to the type of Booleans"
+  \<comment> \<open>Rules relating to the type of Booleans\<close>
   has_type_LTrue:
     "\<Gamma> \<turnstile> LTrue |:| Bool" |
   has_type_LFalse:
@@ -127,7 +127,7 @@ inductive has_type_L :: "lcontext \<Rightarrow> ltermI \<Rightarrow> ltype \<Rig
   has_type_LIf:
     "\<Gamma> \<turnstile> t1 |:| Bool \<Longrightarrow> \<Gamma> \<turnstile> t2 |:| T' \<Longrightarrow> \<Gamma> \<turnstile> t3 |:| T' \<Longrightarrow> \<Gamma> \<turnstile> (LIf t1 t2 t3) |:| T'" |
 
-  -- \<open>Rules relating to the type of the constructs of the $\lambda$-calculus\<close>
+  \<comment> \<open>Rules relating to the type of the constructs of the $\lambda$-calculus\<close>
   has_type_LVar:
     "(x, T') |\<in>| \<Gamma> \<Longrightarrow> \<Gamma> \<turnstile> (LVar x) |:| (T')" |
   has_type_LAbs:
@@ -150,6 +150,8 @@ proof (induction t arbitrary: c rule: ltermI.induct)
   case (LAbs A t)
     thus ?case by (auto simp: gr_Suc_conv image_iff) force+
 qed auto
+
+lemmas int_1 = of_nat_1[where 'a=int]
 
 lemma FV_subst:
   "FV (subst_L n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"
@@ -321,7 +323,7 @@ primrec FVE :: "ltermE \<Rightarrow> nat set" where
   "FVE (SeqE t1 t2) = FVE t1 \<union> (FVE t2)"
 
 inductive eval1_LE :: "ltermE \<Rightarrow> ltermE \<Rightarrow> bool" where
-  -- "Rules relating to the evaluation of Booleans"
+  \<comment> \<open>Rules relating to the evaluation of Booleans\<close>
   eval1_LEIf_LTrue:
     "eval1_LE (LEIf LETrue t2 t3) t2" |
   eval1_LEIf_LFalse:
@@ -329,7 +331,7 @@ inductive eval1_LE :: "ltermE \<Rightarrow> ltermE \<Rightarrow> bool" where
   eval1_LEIf:
     "eval1_LE t1 t1' \<Longrightarrow> eval1_LE (LEIf t1 t2 t3) (LEIf t1' t2 t3)" |
 
-  -- "Rules relating to the evaluation of function application"
+  \<comment> \<open>Rules relating to the evaluation of function application\<close>
   eval1_LEApp1:
     "eval1_LE t1 t1' \<Longrightarrow> eval1_LE (LEApp t1 t2) (LEApp t1' t2)" |
   eval1_LEApp2:
@@ -338,8 +340,7 @@ inductive eval1_LE :: "ltermE \<Rightarrow> ltermE \<Rightarrow> bool" where
     "is_value_LE v2 \<Longrightarrow> eval1_LE (LEApp (LEAbs T' t12) v2)
       (shift_LE (-1) 0 (subst_LE 0 (shift_LE 1 0 v2) t12))" |
   
-  -- "Rules relating to evaluation of sequence"
-  
+  \<comment> \<open>Rules relating to evaluation of sequence\<close>
   eval1_LE_E_Seq:
     "eval1_LE t1 t1' \<Longrightarrow> eval1_LE (SeqE t1 t2) (SeqE t1' t2)" |
   eval1_LE_E_Seq_Next:
@@ -352,7 +353,7 @@ inductive_cases eval1_LESeq_E: "eval1_LE (SeqE t1 t2) t'"
 
 (* had new typing rule for unit and sequence*)
 inductive has_type_LE :: "lcontext \<Rightarrow> ltermE \<Rightarrow> ltype \<Rightarrow> bool" ("((_)/ \<turnstile>\<^sup>E (_)/ |:| (_))" [150, 150, 150] 150) where
-  -- "Rules relating to the type of Booleans"
+  \<comment> \<open>Rules relating to the type of Booleans\<close>
   has_type_LETrue:
     "\<Gamma> \<turnstile>\<^sup>E LETrue |:| Bool" |
   has_type_LEFalse:
@@ -360,7 +361,7 @@ inductive has_type_LE :: "lcontext \<Rightarrow> ltermE \<Rightarrow> ltype \<Ri
   has_type_LEIf:
     "\<Gamma> \<turnstile>\<^sup>E t1 |:| Bool \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E t2 |:| T' \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E t3 |:| T' \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E (LEIf t1 t2 t3) |:| T'" |
 
-  -- \<open>Rules relating to the type of the constructs of the $\lambda$-calculus\<close>
+  \<comment> \<open>Rules relating to the type of the constructs of the $\lambda$-calculus\<close>
   has_type_LEVar:
     "(x, T') |\<in>| \<Gamma> \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E (LEVar x) |:| (T')" |
   has_type_LEAbs:
@@ -370,7 +371,8 @@ inductive has_type_LE :: "lcontext \<Rightarrow> ltermE \<Rightarrow> ltype \<Ri
   
   has_type_LEUnit:
     "\<Gamma> \<turnstile>\<^sup>E unitE |:| Unit " |  
-  -- "Rule relating to sequence"
+
+  \<comment> \<open>Rule relating to sequence\<close>
   has_type_LESeqE:
     "\<Gamma> \<turnstile>\<^sup>E t1 |:| Unit \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E t2 |:| A \<Longrightarrow> \<Gamma> \<turnstile>\<^sup>E (SeqE t1 t2) |:| A"
 
@@ -437,7 +439,7 @@ fun e::"ltermE \<Rightarrow>  ltermI" where
 lemma value_equiv: "is_value_LE v1 \<longleftrightarrow> is_value_L (e v1)" (is "?P \<longleftrightarrow> ?Q")
 proof
   show "?P \<Longrightarrow> ?Q"
-    by (induction rule: is_value_LE.induct, auto intro:"is_value_L.intros")    
+    by (induction rule: is_value_LE.induct, auto intro: is_value_L.intros)
 next
   show "?Q \<Longrightarrow> ?P" 
     by (induction rule: e.induct) (auto intro: is_value_LE.intros simp: "is_value_L.simps")

@@ -53,7 +53,7 @@ provide the @{text "|:|"} operator as a more conventional notation:
 *}
 
 inductive has_type :: "nbterm \<Rightarrow> nbtype \<Rightarrow> bool" (infix "|:|" 150) where
-  -- "Rules relating to the type of Booleans"
+  \<comment> \<open>Rules relating to the type of Booleans\<close>
   has_type_NBTrue:
     "NBTrue |:| Bool" |
   has_type_NBFalse:
@@ -61,7 +61,7 @@ inductive has_type :: "nbterm \<Rightarrow> nbtype \<Rightarrow> bool" (infix "|
   has_type_NBIf:
     "t1 |:| Bool \<Longrightarrow> t2 |:| T \<Longrightarrow> t3 |:| T \<Longrightarrow> NBIf t1 t2 t3 |:| T" |
 
-  -- "Rules relating to the type of natural numbers"
+  \<comment> \<open>Rules relating to the type of natural numbers\<close>
   has_type_NBZero:
     "NBZero |:| Nat" |
   has_type_NBSucc:
