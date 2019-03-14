@@ -1,6 +1,7 @@
 session "log792" = "HOL" +
   options [document = pdf, document_output = "output"]
-  theories [document = false]
+  sessions
+    "List-Index"
   theories
     Examples
     Nameless_Representation_Of_Terms

@@ -2,7 +2,7 @@
 theory Typed_Lambda_Calculus
 imports
   Main
-  "$AFP/List-Index/List_Index"
+ "List-Index.List_Index"
 begin
 (*>*)
 
@@ -31,7 +31,7 @@ only add the Boolean type as a base case:\footnote{The prefix \emph{l} stands fo
 \emph{lambda-calculus}.}
 *}
 
-datatype_new ltype =
+datatype ltype =
   Bool |
   Fun (domain: ltype) (codomain: ltype) (infixr "\<rightarrow>" 225)
 
@@ -60,7 +60,7 @@ The syntax of this language differs from the pure $\lambda$-calculus by having c
 Boolean expressions and a type annotation on function abstractions:
 *}
 
-datatype_new lterm =
+datatype lterm =
   LTrue |
   LFalse |
   LIf (bool_expr: lterm) (then_expr: lterm) (else_expr: lterm) |
@@ -104,7 +104,7 @@ evaluation of the conditional statement:
 *}
 
 inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
-  -- "Rules relating to the evaluation of Booleans"
+  \<comment> \<open>Rules relating to the evaluation of Booleans\<close>
   eval1_LIf_LTrue:
     "eval1_L (LIf LTrue t2 t3) t2" |
   eval1_LIf_LFalse:
@@ -112,7 +112,7 @@ inductive eval1_L :: "lterm \<Rightarrow> lterm \<Rightarrow> bool" where
   eval1_LIf:
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (LIf t1 t2 t3) (LIf t1' t2 t3)" |
 
-  -- "Rules relating to the evaluation of function application"
+  \<comment> \<open>Rules relating to the evaluation of function application\<close>
   eval1_LApp1:
     "eval1_L t1 t1' \<Longrightarrow> eval1_L (LApp t1 t2) (LApp t1' t2)" |
   eval1_LApp2:
@@ -156,7 +156,7 @@ definition:
 \<close>
 
 inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> ltype \<Rightarrow> bool" ("((_)/ \<turnstile> (_)/ |:| (_))" [150, 150, 150] 150) where
-  -- "Rules relating to the type of Booleans"
+  \<comment> \<open>Rules relating to the type of Booleans\<close>
   has_type_LTrue:
     "\<Gamma> \<turnstile> LTrue |:| Bool" |
   has_type_LFalse:
@@ -164,7 +164,7 @@ inductive has_type_L :: "lcontext \<Rightarrow> lterm \<Rightarrow> ltype \<Righ
   has_type_LIf:
     "\<Gamma> \<turnstile> t1 |:| Bool \<Longrightarrow> \<Gamma> \<turnstile> t2 |:| T \<Longrightarrow> \<Gamma> \<turnstile> t3 |:| T \<Longrightarrow> \<Gamma> \<turnstile> (LIf t1 t2 t3) |:| T" |
 
-  -- \<open>Rules relating to the type of the constructs of the $\lambda$-calculus\<close>
+  \<comment> \<open>Rules relating to the type of the constructs of the $\lambda$-calculus\<close>
   has_type_LVar:
     "(x, T) |\<in>| \<Gamma> \<Longrightarrow> \<Gamma> \<turnstile> (LVar x) |:| T" |
   has_type_LAbs:
@@ -212,7 +212,7 @@ lemma
 
 lemma ex9_2_3_general:
   "\<emptyset> |,| T \<rightarrow> T \<rightarrow> Bool |,| T |,| T \<turnstile> LApp (LApp (LVar 2) (LVar 1)) (LVar 0) |:| Bool"
-  by (auto intro!: has_type_L.intros simp: assms)
+  by (auto intro!: has_type_L.intros)
 
 lemmas ex9_2_3_bool = ex9_2_3_general[of Bool]
 
@@ -435,6 +435,8 @@ proof (induction t arbitrary: c rule: lterm.induct)
   case (LAbs T t)
   thus ?case by (auto simp: gr_Suc_conv image_iff) force+
 qed auto
+
+lemmas int_1 = of_nat_1[where 'a=int]
 
 lemma FV_subst:
   "FV (subst_L n t u) = (if n \<in> FV u then (FV u - {n}) \<union> FV t else FV u)"

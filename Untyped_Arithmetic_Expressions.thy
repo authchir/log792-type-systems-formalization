@@ -336,9 +336,9 @@ qed (simp_all add: le_SucI)
 
 (* subsubsection {* Theorem 3.3.4 *} *)
 
-theorems induct_depth = measure_induct_rule[of depth_NB]
-theorems induct_size = measure_induct_rule[of size_NB]
-theorems structural_induction = nbterm.induct
+lemmas induct_depth = measure_induct_rule[of depth_NB]
+lemmas induct_size = measure_induct_rule[of size_NB]
+lemmas structural_induction = nbterm.induct
 
 (*>*)
 text \<open>
@@ -377,7 +377,7 @@ The single-step evaluation relation is a superset of the one defined for Boolean
 *}
 
 inductive eval1_NB :: "nbterm \<Rightarrow> nbterm \<Rightarrow> bool" where
-  -- "Rules relating to the evaluation of Booleans"
+  \<comment> \<open>Rules relating to the evaluation of Booleans\<close>
   eval1_NBIf_NBTrue:
     "eval1_NB (NBIf NBTrue t2 t3) t2" |
   eval1_NBIf_NBFalse:
@@ -385,7 +385,7 @@ inductive eval1_NB :: "nbterm \<Rightarrow> nbterm \<Rightarrow> bool" where
   eval1_NBIf:
     "eval1_NB t1 t1' \<Longrightarrow> eval1_NB (NBIf t1 t2 t3) (NBIf t1' t2 t3)" |
 
-  -- "Rules relating to the evaluation of natural numbers"
+  \<comment> \<open>Rules relating to the evaluation of natural numbers\<close>
   eval1_NBSucc:
     "eval1_NB t t' \<Longrightarrow> eval1_NB (NBSucc t) (NBSucc t')" |
   eval1_NBPred_NBZero:
@@ -395,7 +395,7 @@ inductive eval1_NB :: "nbterm \<Rightarrow> nbterm \<Rightarrow> bool" where
   eval1_NBPred:
     "eval1_NB t t' \<Longrightarrow> eval1_NB (NBPred t) (NBPred t')" |
 
-  -- "Rules relating to the evaluation of the test for equality with zero"
+  \<comment> \<open>Rules relating to the evaluation of the test for equality with zero\<close>
   eval1_NBIs_zero_NBZero:
     "eval1_NB (NBIs_zero NBZero) NBTrue" |
   eval1_NBIs_zero_NBSucc:

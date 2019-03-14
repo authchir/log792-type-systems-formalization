@@ -36,7 +36,7 @@ lists:\footnote{Prefixing an element with a descriptive name, as done for the ar
 \texttt{name : element}.}
 *}
 
-datatype_new 'a list = Nil | Cons (head: 'a) (tail: "'a list")
+datatype 'a list = Nil | Cons (head: 'a) (tail: "'a list")
 
 text {*
 The datatype consists of two constructors. The first one, @{const Nil}, is used to represent the
