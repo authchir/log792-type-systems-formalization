@@ -1,0 +1,21 @@
+session "tapl" = "HOL" +
+  options [document = false]
+  sessions
+    "List-Index"
+    "HOL-Eisbach"
+    "HOL-IMP"
+  theories [document = false]
+    Examples
+    Nameless_Representation_Of_Terms
+    Typed_Arithmetic_Expressions
+    Typed_Lambda_Calculus
+    Untyped_Arithmetic_Expressions
+    Untyped_Lambda_Calculus
+    Normalization
+    Extended_Typed_Lambda_Calculus
+    List_extra
+    As_Let_Extension
+    Exceptions
+    Referencing
+    Lambda_calculus
+    Ext_Structures
